@@ -67,8 +67,9 @@ skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açıl
 <img src="assets/readme/music.png" width="880" alt="Müzik kartı: kapak, ilerleme çubuğu ve düğmeler; yanında aynı şarkının sözleri; altında müzik pili">
 
 Kart pilden büyüyerek açılır, fare uzaklaşınca küçülerek kapanır. Müzik kartında kapağın
-köşesindeki **Sözler** şarkı sözlerini açar; sözler `lrclib.net`'ten gelir ve şarkıyla birlikte
-akar.
+köşesindeki **Sözler** şarkı sözlerini açar; sözler `lrclib.net`'ten, orada yoksa NetEase Cloud
+Music'ten ya da Kugou'dan gelir ve şarkıyla birlikte akar. Yavaşlatılmış (slowed) ya da
+hızlandırılmış bir sürümün sözleri hiçbirinde yoksa orijinalinkiler onun uzunluğuna esnetilir.
 
 <img src="assets/readme/day.png" width="880" alt="Günün özeti kartı, zamanlayıcı kartı, saatlik hava durumu kartı ve Dijital Denge kartı">
 
@@ -234,8 +235,9 @@ açılır. Güncelleme denetimi Ayarlar → Hakkında → Güncellemeleri denetl
 
 Now Bar'ın bağlandığı yerler (hiçbiri API anahtarı istemez):
 
-- **Şarkı sözleri:** çalan şarkının sanatçısı, adı ve süresi `lrclib.net`'e gönderilir
-  (Ayarlar → Medya → Şarkı sözleri ile kapatılabilir).
+- **Şarkı sözleri:** çalan şarkının sanatçısı, adı ve süresi `lrclib.net`'e, orada
+  bulunamazsa NetEase Cloud Music'e (`music.163.com`) ve Kugou'ya (`lyrics.kugou.com`)
+  gönderilir (Ayarlar → Medya → Şarkı sözleri ile kapatılabilir).
 - **Hava durumu:** seçilen şehrin koordinatları Open-Meteo'ya gönderilir (`api.open-meteo.com`,
   `geocoding-api.open-meteo.com`). **Konumumu kullan** seçiliyse konum Windows'un konum
   hizmetinden alınır (Windows izin ister); yerin adını bulmak için yaklaşık 1 km'ye yuvarlanmış

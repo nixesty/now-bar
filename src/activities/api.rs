@@ -448,7 +448,7 @@ fn parse_icon(v: Option<&str>) -> Result<IconSpec, Reject> {
 }
 
 /// Standard or URL-safe base64, padding optional, line breaks skipped.
-fn base64(text: &str) -> Option<Vec<u8>> {
+pub(crate) fn base64(text: &str) -> Option<Vec<u8>> {
     let mut out = Vec::with_capacity(text.len() * 3 / 4);
     let (mut acc, mut bits) = (0u32, 0u32);
     for c in text.trim_end_matches('=').bytes() {

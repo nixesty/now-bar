@@ -91,6 +91,181 @@ pub fn search_url(artist: &str, title: &str) -> String {
     format!("https://lrclib.net/api/search?track_name={}&artist_name={}", encode(title), encode(artist))
 }
 
+/// A record another source's search found: its title, artist and length, and where its
+/// lyrics are.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Found {
+    pub title: String,
+    pub artist: String,
+    pub duration_s: f64,
+    pub lyrics_url: String,
+}
+
+/// The sources asked after lrclib, in this order. Neither wants a key; both carry many records
+/// lrclib lacks, slowed and sped-up releases among them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    NetEase,
+    Kugou,
+}
+
+impl Source {
+    pub const OTHERS: [Source; 2] = [Source::NetEase, Source::Kugou];
+
+    /// The search for "First artist - Title" (the way Kugou wants it): the cleaned title, but an
+    /// edit's as it is, since what makes it one is what finds it.
+    pub fn search_url(self, artist: &str, title: &str, duration_s: u64) -> String {
+        let (first, clean) = search_terms(artist, title);
+        let title = if is_speed_edit(title) { without_artist(artist, title) } else { &clean };
+        let keyword = encode(&format!("{first} - {title}"));
+        match self {
+            Source::NetEase => format!("https://music.163.com/api/cloudsearch/pc?s={keyword}&type=1&limit=10"),
+            Source::Kugou => format!("https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&keyword={keyword}&duration={}&hash=", duration_s * 1000),
+        }
+    }
+
+    /// The records a search answered (`None`: not an answer, such as a busy server's page).
+    pub fn found(self, body: &str) -> Option<Vec<Found>> {
+        let json: serde_json::Value = serde_json::from_str(body).ok()?;
+        let records = match self {
+            Source::NetEase => &json["result"]["songs"],
+            Source::Kugou => &json["candidates"],
+        };
+        let read = |r: &serde_json::Value| -> Option<Found> {
+            Some(match self {
+                Source::NetEase => Found {
+                    title: r["name"].as_str()?.to_string(),
+                    artist: r["ar"].as_array()?.iter().filter_map(|a| a["name"].as_str()).collect::<Vec<_>>().join(", "),
+                    duration_s: r["dt"].as_f64()? / 1000.0,
+                    lyrics_url: format!("https://music.163.com/api/song/lyric?id={}&lv=1", r["id"].as_u64()?),
+                },
+                Source::Kugou => Found {
+                    title: r["song"].as_str()?.to_string(),
+                    artist: r["singer"].as_str()?.to_string(),
+                    duration_s: r["duration"].as_f64()? / 1000.0,
+                    lyrics_url: format!(
+                        "https://lyrics.kugou.com/download?ver=1&client=pc&id={}&accesskey={}&fmt=lrc&charset=utf8",
+                        encode(r["id"].as_str()?),
+                        encode(r["accesskey"].as_str()?)
+                    ),
+                },
+            })
+        };
+        Some(records.as_array().map(|a| a.iter().filter_map(read).collect()).unwrap_or_default())
+    }
+
+    /// The LRC text in a lyrics answer (Kugou's in base64), if it has one.
+    pub fn lrc(self, body: &str) -> Option<String> {
+        let json: serde_json::Value = serde_json::from_str(body).ok()?;
+        let lrc = match self {
+            Source::NetEase => json["lrc"]["lyric"].as_str()?.to_string(),
+            Source::Kugou => String::from_utf8(crate::activities::api::base64(json["content"].as_str()?)?).ok()?,
+        };
+        Some(lrc.trim_start_matches('\u{feff}').to_string())
+    }
+}
+
+/// The records in `found` that fit the track, best first (`pick`'s order: the best title and
+/// artist match, then the closest length): within `DURATION_SLACK_S` of its length, and an
+/// edit when it is a slowed or sped-up edit, never one when it isn't. These sources' lyrics
+/// come only after the pick, so another version's timing can't be told by its lines, as
+/// `pick` tells it.
+pub fn rank<'a>(found: &'a [Found], title: &str, artist: &str, duration_s: u64) -> Vec<&'a Found> {
+    let (our_artist, our_title) = search_terms(artist, title);
+    let edit = is_speed_edit(title);
+    let mut fits: Vec<(u8, f64, &Found)> = found
+        .iter()
+        .filter(|f| is_speed_edit(&f.title) == edit)
+        .filter_map(|f| {
+            let off = (f.duration_s - duration_s as f64).abs();
+            let score = fit(&our_title, &our_artist, &f.title, &f.artist);
+            (off <= DURATION_SLACK_S && score > 0).then_some((score, off, f))
+        })
+        .collect();
+    fits.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.total_cmp(&b.1)));
+    fits.into_iter().map(|(_, _, f)| f).collect()
+}
+
+/// Credits some records put among their lines in English ("Lyricist : …").
+const CREDITS: &[&str] = &[
+    "lyricist", "lyrics", "lyrics by", "composer", "composed by", "music", "music by", "written by", "writer", "producer", "produced by",
+    "arranger", "arranged by", "mixed by", "mastered by",
+];
+
+/// Another source's LRC made fit for the pill and the card: without its credits ("作曲 : …",
+/// "Lyricist : …"), the "Title - Artist" line some open with and a "pure music" note
+/// ("纯音乐"), and with full-width commas in Latin lines as ", ". `None` when no timed line with
+/// words is left, or the lines run past the track's end (another length's timing).
+pub fn tidy(lrc: &str, title: &str, artist: &str, duration_s: u64) -> Option<String> {
+    let (first, clean) = (first_artist(artist), clean_title(title));
+    let names = [format!("{clean} {first}"), format!("{first} {clean}"), format!("{title} {artist}"), format!("{artist} {title}")].map(|n| norm(&n));
+    let lines: Lines = parse_lrc(lrc)
+        .into_iter()
+        .filter(|(_, words)| !is_credit(words) && !words.contains("纯音乐") && !names.contains(&norm(words)))
+        .map(|(ms, words)| match words.chars().any(is_han) {
+            true => (ms, words),
+            false => (ms, words.replace('，', ", ").split_whitespace().collect::<Vec<_>>().join(" ")),
+        })
+        .collect();
+    let past_end = lines.last().is_some_and(|(ms, _)| *ms as f64 > (duration_s as f64 + DURATION_SLACK_S) * 1000.0);
+    (lines.iter().any(|(_, words)| !words.is_empty()) && !past_end).then(|| lrc_text(&lines))
+}
+
+/// "作曲 : Ekin", "Lyricist : Deniz": a key in Chinese characters or a credit's English name,
+/// then a colon.
+fn is_credit(words: &str) -> bool {
+    let Some(at) = words.find([':', '：']) else { return false };
+    let key = words[..at].trim();
+    !key.is_empty() && ((key.chars().count() <= 8 && key.chars().all(is_han)) || CREDITS.contains(&key.to_lowercase().as_str()))
+}
+
+fn is_han(c: char) -> bool {
+    matches!(c, '\u{3400}'..='\u{4dbf}' | '\u{4e00}'..='\u{9fff}')
+}
+
+/// For a slowed or sped-up edit no source has: the original's lines from lrclib's search
+/// `results`, every time stretched by how much longer (or shorter) the edit is, since an edit
+/// plays the whole song slower (or faster) alike. The original's length is the one most of
+/// lrclib's unedited records of the song share: copies filed under other lengths scatter, those
+/// under the edit's own length are copies (it has none of its own, or `pick` would have taken
+/// it), and one whose lines run past its own length doesn't count. `None` for a track that
+/// isn't an edit, without an original, or more than twice as slow or fast as it.
+pub fn stretched(results: &serde_json::Value, title: &str, artist: &str, duration_s: u64) -> Option<String> {
+    if !is_speed_edit(title) {
+        return None;
+    }
+    let (our_artist, our_title) = search_terms(artist, title);
+    let originals: Vec<(f64, Lines)> = results
+        .as_array()?
+        .iter()
+        .filter_map(|r| {
+            let name = r["trackName"].as_str()?;
+            let length = r["duration"].as_f64()?;
+            let lines = parse_lrc(r["syncedLyrics"].as_str()?);
+            let last = lines.last()?.0;
+            let fits = !is_speed_edit(name) && fit(&our_title, &our_artist, name, r["artistName"].as_str().unwrap_or_default()) > 0;
+            let other_length = (length - duration_s as f64).abs() > DURATION_SLACK_S;
+            (fits && other_length && last as f64 <= (length + DURATION_SLACK_S) * 1000.0).then_some((length, lines))
+        })
+        .collect();
+    let sharing = |length: f64| originals.iter().filter(|(l, _)| (l - length).abs() <= DURATION_SLACK_S).count();
+    // The first of the most shared.
+    let (length, lines) = originals.iter().fold(None, |best: Option<&(f64, Lines)>, o| match best {
+        Some(b) if sharing(b.0) >= sharing(o.0) => Some(b),
+        _ => Some(o),
+    })?;
+    let ratio = duration_s as f64 / length;
+    if !(0.5..=2.0).contains(&ratio) {
+        return None;
+    }
+    Some(lrc_text(&lines.iter().map(|(ms, words)| ((*ms as f64 * ratio).round() as u64, words.clone())).collect()))
+}
+
+/// Lines back as LRC text, "[mm:ss.xxx]" a line.
+fn lrc_text(lines: &Lines) -> String {
+    lines.iter().map(|(ms, words)| format!("[{:02}:{:02}.{:03}]{words}\n", ms / 60_000, ms / 1000 % 60, ms % 1000)).collect()
+}
+
 /// How far a record's duration may be from the track's: the lines are timed for that length,
 /// so a slowed or sped-up edit only takes a record of its own length, never the original's.
 const DURATION_SLACK_S: f64 = 3.0;
@@ -180,15 +355,20 @@ pub fn first_artist(artist: &str) -> String {
 /// What to search lrclib for: the first artist, and the cleaned title without the
 /// "Artist - " that YouTube video titles start with.
 pub fn search_terms(artist: &str, title: &str) -> (String, String) {
+    (first_artist(artist), clean_title(without_artist(artist, title)))
+}
+
+/// A title without the "Artist - " that YouTube video titles start with.
+fn without_artist<'a>(artist: &str, title: &'a str) -> &'a str {
     let first = first_artist(artist);
-    let mut title = title.trim();
+    let title = title.trim();
     if let Some((head, tail)) = [" - ", " – ", " — "].iter().find_map(|d| title.split_once(d)) {
         let same = |a: &str, b: &str| squash(a) == squash(b);
         if same(head, &first) || same(head, artist) || same(&first_artist(head), &first) {
-            title = tail;
+            return tail;
         }
     }
-    (first, clean_title(title))
+    title
 }
 
 /// Whether a title names a slowed, sped-up or nightcore edit.
@@ -243,6 +423,18 @@ fn likeness(ours: &str, theirs: &str) -> u8 {
     }
 }
 
+/// How well a record's title and artist match ours (as `search_terms` gives them): their
+/// likenesses added, 0 when either doesn't match at all.
+fn fit(our_title: &str, our_artist: &str, their_title: &str, their_artist: &str) -> u8 {
+    let title = likeness(our_title, &clean_title(their_title));
+    let artist = likeness(our_artist, &first_artist(their_artist)).max(likeness(our_artist, their_artist).min(1));
+    if title == 0 || artist == 0 {
+        0
+    } else {
+        title + artist
+    }
+}
+
 /// When a record's synced lyrics start their last line (ms), if they have any.
 fn last_line_ms(r: &serde_json::Value) -> Option<u64> {
     let lrc = r["syncedLyrics"].as_str()?;
@@ -280,13 +472,10 @@ pub fn pick(results: &serde_json::Value, title: &str, artist: &str, duration_s: 
         if end > (duration_s as f64 + DURATION_SLACK_S) as u64 * 1000 || other_endings.iter().any(|e| e.abs_diff(end) <= 500) {
             continue;
         }
-        let their_artist = r["artistName"].as_str().unwrap_or_default();
-        let title_score = likeness(&our_title, &clean_title(r["trackName"].as_str().unwrap_or_default()));
-        let artist_score = likeness(&our_artist, &first_artist(their_artist)).max(likeness(&our_artist, their_artist).min(1));
-        if title_score == 0 || artist_score == 0 {
+        let score = fit(&our_title, &our_artist, r["trackName"].as_str().unwrap_or_default(), r["artistName"].as_str().unwrap_or_default());
+        if score == 0 {
             continue;
         }
-        let score = title_score + artist_score;
         if best.is_none_or(|(s, o, _)| score > s || (score == s && off < o)) {
             best = Some((score, off, lrc));
         }
@@ -552,6 +741,126 @@ mod tests {
             record("METAMORPHOSIS (Slowed + Reverb)", "INTERWORLD", 172.0, Some("[00:06.00]a\n[02:51.03]slow end")),
         ]);
         assert_eq!(pick(&results, "METAMORPHOSIS (Slowed + Reverb)", "INTERWORLD", 172).as_deref(), Some("[00:06.00]a\n[02:51.03]slow end"));
+    }
+
+    #[test]
+    fn other_sources_search_for_the_first_artist_and_the_title() {
+        assert_eq!(
+            Source::NetEase.search_url("Ekin, Deniz", "Ekin - Gece Treni (Official Video)", 200),
+            "https://music.163.com/api/cloudsearch/pc?s=Ekin%20-%20Gece%20Treni&type=1&limit=10"
+        );
+        // An edit keeps what makes it one: Kugou finds only the title as it is filed.
+        assert_eq!(
+            Source::Kugou.search_url("Ekin", "Gece Treni (Slowed + Reverb)", 278),
+            "https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&keyword=Ekin%20-%20Gece%20Treni%20%28Slowed%20%2B%20Reverb%29&duration=278000&hash="
+        );
+    }
+
+    #[test]
+    fn other_sources_answers_are_read() {
+        let netease = r#"{"result":{"songs":[{"id":101,"name":"Gece Treni","ar":[{"name":"Ekin"},{"name":"Deniz"}],"dt":236363}],"songCount":1},"code":200}"#;
+        assert_eq!(
+            Source::NetEase.found(netease),
+            Some(vec![Found { title: "Gece Treni".into(), artist: "Ekin, Deniz".into(), duration_s: 236.363, lyrics_url: "https://music.163.com/api/song/lyric?id=101&lv=1".into() }])
+        );
+        assert_eq!(Source::NetEase.found(r#"{"result":{"songCount":0},"code":200}"#), Some(vec![]));
+        let kugou = r#"{"status":200,"candidates":[{"id":"202","accesskey":"AB12","singer":"Ekin","song":"Gece Treni (Slowed + Reverb)","duration":278126}]}"#;
+        assert_eq!(
+            Source::Kugou.found(kugou),
+            Some(vec![Found {
+                title: "Gece Treni (Slowed + Reverb)".into(),
+                artist: "Ekin".into(),
+                duration_s: 278.126,
+                lyrics_url: "https://lyrics.kugou.com/download?ver=1&client=pc&id=202&accesskey=AB12&fmt=lrc&charset=utf8".into()
+            }])
+        );
+        assert_eq!(Source::Kugou.found("<html>busy</html>"), None, "not an answer: asked again later");
+    }
+
+    #[test]
+    fn other_sources_lyrics_are_read() {
+        assert_eq!(Source::NetEase.lrc(r#"{"lrc":{"version":3,"lyric":"[00:12.00]Raylar uzar\n"},"code":200}"#).as_deref(), Some("[00:12.00]Raylar uzar\n"));
+        assert_eq!(Source::NetEase.lrc(r#"{"nolyric":true,"code":200}"#), None);
+        // Base64, with a byte-order mark.
+        let kugou = r#"{"status":200,"fmt":"lrc","content":"77u/W3RpOkdlY2UgVHJlbmldCltvZmZzZXQ6MF0KWzAwOjAwLjAwXUdlY2UgVHJlbmkgLSBFa2luClswMDoxMi4wMF1SYXlsYXIgdXphcgo="}"#;
+        assert_eq!(Source::Kugou.lrc(kugou).as_deref(), Some("[ti:Gece Treni]\n[offset:0]\n[00:00.00]Gece Treni - Ekin\n[00:12.00]Raylar uzar\n"));
+    }
+
+    fn found(title: &str, artist: &str, duration_s: f64) -> Found {
+        Found { title: title.into(), artist: artist.into(), duration_s, lyrics_url: format!("{title} {duration_s}") }
+    }
+
+    #[test]
+    fn an_edit_takes_only_an_edits_record_and_the_original_only_an_unedited_one() {
+        let records = [
+            found("Gece Treni", "Ekin", 278.1),
+            found("Gece Treni (Slowed + Reverb)", "Ekin", 278.0),
+            found("Gece Treni (Sped Up)", "Ekin", 236.0),
+            found("Gece Treni", "Ekin", 236.4),
+            found("Gece Treni (Slowed)", "Ekin", 290.0),
+            found("Başka Şarkı (Slowed)", "Ekin", 278.0),
+        ];
+        let urls = |ranked: Vec<&Found>| ranked.into_iter().map(|f| f.lyrics_url.clone()).collect::<Vec<_>>();
+        assert_eq!(urls(rank(&records, "Gece Treni (Slowed + Reverb)", "Ekin", 278)), ["Gece Treni (Slowed + Reverb) 278"]);
+        assert_eq!(urls(rank(&records, "Ekin - Gece Treni (Official Video)", "Ekin", 236)), ["Gece Treni 236.4"]);
+    }
+
+    #[test]
+    fn tidy_drops_credits_and_the_title_line_and_spaces_full_width_commas() {
+        let lrc = "[00:00.000] 作曲 : Ekin\n[00:00.500] 作词 : Deniz\n[00:00.900]Gece Treni - Ekin\n[00:01.000]Lyricist : Deniz\n\
+                   [00:12.000]Raylar uzar，Gece biter\n[00:15.000]寂静的夜，你在哪里\n[00:20.000]Note: bu bir söz\n[00:30.000]";
+        assert_eq!(
+            tidy(lrc, "Gece Treni (Slowed + Reverb)", "Ekin", 200).as_deref(),
+            Some("[00:12.000]Raylar uzar, Gece biter\n[00:15.000]寂静的夜，你在哪里\n[00:20.000]Note: bu bir söz\n[00:30.000]\n")
+        );
+    }
+
+    #[test]
+    fn tidy_refuses_pure_music_and_lines_past_the_end() {
+        assert_eq!(tidy("[00:00.000] 作曲 : Ekin\n[00:01.000] 纯音乐，请欣赏", "Gece Treni", "Ekin", 200), None);
+        assert_eq!(tidy("[00:12.000]Raylar uzar\n[03:50.000]Son", "Gece Treni", "Ekin", 200), None, "another length's timing");
+        assert_eq!(tidy("Raylar uzar\nSon", "Gece Treni", "Ekin", 200), None, "plain lyrics");
+    }
+
+    #[test]
+    fn a_slowed_edit_no_source_has_gets_the_originals_lines_stretched() {
+        let original = "[00:20.00]Raylar uzar\n[03:51.00]Son";
+        let results = serde_json::json!([record("Gece Treni", "Ekin", 236.0, Some(original))]);
+        // 278 / 236: every line comes that much later.
+        assert_eq!(stretched(&results, "Gece Treni (Slowed + Reverb)", "Ekin", 278).as_deref(), Some("[00:23.559]Raylar uzar\n[04:32.110]Son\n"));
+    }
+
+    #[test]
+    fn the_stretch_takes_the_length_most_originals_share() {
+        let lyrics = "[00:20.00]Raylar uzar\n[03:51.00]Son";
+        let results = serde_json::json!([
+            // Copies filed under other lengths: one too short for its own lines, one an album's.
+            record("Gece Treni", "Ekin", 213.0, Some(lyrics)),
+            record("Gece Treni", "Ekin", 278.0, Some(lyrics)),
+            record("Gece Treni", "Ekin", 236.0, Some(lyrics)),
+            record("Gece Treni", "Ekin", 236.4, Some(lyrics)),
+            record("Gece Treni (Slowed)", "Ekin", 300.0, Some("[00:30.00]yavaş")),
+        ]);
+        assert_eq!(stretched(&results, "Gece Treni (Slowed + Reverb)", "Ekin", 278).as_deref(), Some("[00:23.559]Raylar uzar\n[04:32.110]Son\n"));
+    }
+
+    #[test]
+    fn copies_filed_under_the_edits_own_length_are_no_original() {
+        let lyrics = "[00:20.00]Raylar uzar\n[03:51.00]Son";
+        let results = serde_json::json!([
+            record("Gece Treni", "Ekin", 278.0, Some(lyrics)),
+            record("Gece Treni", "Ekin", 278.5, Some(lyrics)),
+            record("Gece Treni", "Ekin", 236.0, Some(lyrics)),
+        ]);
+        assert_eq!(stretched(&results, "Gece Treni (Slowed + Reverb)", "Ekin", 278).as_deref(), Some("[00:23.559]Raylar uzar\n[04:32.110]Son\n"));
+    }
+
+    #[test]
+    fn no_stretch_for_an_unedited_track_or_an_edit_as_long_as_the_original() {
+        let results = serde_json::json!([record("Gece Treni", "Ekin", 236.0, Some("[00:20.00]Raylar uzar\n[03:51.00]Son"))]);
+        assert_eq!(stretched(&results, "Gece Treni", "Ekin", 278), None);
+        assert_eq!(stretched(&results, "Gece Treni (Slowed)", "Ekin", 237), None);
+        assert_eq!(stretched(&results, "Gece Treni (Ultra Slowed)", "Ekin", 600), None, "no edit is that slow");
     }
 
     #[test]

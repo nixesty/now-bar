@@ -1,8 +1,9 @@
-//! Fetches synced lyrics from lrclib.net on its own thread, cached on disk under
-//! %LOCALAPPDATA%\NowBar\lyrics2 (a track lrclib doesn't have is cached as such, so it isn't
-//! asked again; a busy or unreachable server isn't cached: the worker asks again a few times,
-//! as the app asks only once per track). Each track: lrclib's exact match first, then a search
-//! for its cleaned title and first artist (players and YouTube decorate both).
+//! Fetches synced lyrics on its own thread, cached on disk under %LOCALAPPDATA%\NowBar\lyrics3
+//! (a track no source has is cached as such, so it isn't asked again; a busy or unreachable
+//! server isn't cached: the worker asks again a few times, as the app asks only once per
+//! track). Each track: lrclib.net's exact match first, then its search for the cleaned title
+//! and first artist (players and YouTube decorate both), then NetEase's and Kugou's searches,
+//! and for a slowed or sped-up edit none has, the original's lines stretched to its length.
 
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, RecvTimeoutError, Sender};
@@ -13,13 +14,14 @@ use windows::core::HSTRING;
 use windows::Foundation::Uri;
 use windows::Web::Http::HttpClient;
 
-use super::lyrics::{is_speed_edit, parse_lrc, pick, query_url, search_terms, search_url, Lines};
+use super::lyrics::{is_speed_edit, parse_lrc, pick, query_url, rank, search_terms, search_url, stretched, tidy, Lines, Source};
 use crate::platform::log::log;
 use crate::platform::windows::post_lyrics;
 
 /// The cache's folder. "lyrics" held the exact-match-only answers, whose many "none"s the
-/// search may now find; a new folder gives every track that second chance.
-const CACHE_DIR: &str = "lyrics2";
+/// search may now find, and "lyrics2" lrclib's alone, whose "none"s the other sources and the
+/// stretch may: a new folder gives every track that second chance.
+const CACHE_DIR: &str = "lyrics3";
 
 /// When a track whose lookup failed (lrclib is often busy) is asked again: after each of these.
 const RETRY_AFTER: [Duration; 3] = [Duration::from_secs(5), Duration::from_secs(20), Duration::from_secs(60)];
@@ -156,11 +158,13 @@ enum Reply {
 }
 
 /// The fallback chain: lrclib's exact match (artist, title and duration as the player gives
-/// them), then its search for the cleaned title and first artist, picked by `pick`. A slowed
-/// or sped-up edit skips the exact match: it may be the original's lyrics filed under the
-/// edit's length, which only the search's other versions show. The synced LRC; `Some(None)`
-/// when lrclib has none (plain lyrics don't count: the card shows only synced ones); `None`
-/// when a request failed.
+/// them), then its search for the cleaned title and first artist, picked by `pick`; then the
+/// other sources' searches; and for a slowed or sped-up edit none of them has, the original's
+/// lines from lrclib's search stretched to the edit's length. A slowed or sped-up edit skips
+/// the exact match: it may be the original's lyrics filed under the edit's length, which only
+/// the search's other versions show. The synced LRC; `Some(None)` when no source has any
+/// (plain lyrics don't count: the card shows only synced ones); `None` when lrclib failed, or
+/// another source did and none of the rest had them (it may have, so it's asked again).
 fn lookup(track: &Track, mut get: impl FnMut(&str) -> Reply) -> Option<Option<String>> {
     if !is_speed_edit(&track.title) {
         if let Some(lrc) = exact(track, &mut get)? {
@@ -168,14 +172,45 @@ fn lookup(track: &Track, mut get: impl FnMut(&str) -> Reply) -> Option<Option<St
         }
     }
     let (artist, title) = search_terms(&track.artist, &track.title);
-    match get(&search_url(&artist, &title)) {
-        Reply::Body(body) => {
-            let results: serde_json::Value = serde_json::from_str(&body).ok()?;
-            Some(pick(&results, &track.title, &track.artist, track.duration_s))
-        }
-        Reply::NotFound => Some(None),
-        Reply::Failed => None,
+    let results: serde_json::Value = match get(&search_url(&artist, &title)) {
+        Reply::Body(body) => serde_json::from_str(&body).ok()?,
+        Reply::NotFound => serde_json::Value::Null,
+        Reply::Failed => return None,
+    };
+    if let Some(lrc) = pick(&results, &track.title, &track.artist, track.duration_s) {
+        return Some(Some(lrc));
     }
+    let mut failed = false;
+    for source in Source::OTHERS {
+        match elsewhere(source, track, &mut get) {
+            Some(Some(lrc)) => return Some(Some(lrc)),
+            Some(None) => {}
+            None => failed = true,
+        }
+    }
+    (!failed).then(|| stretched(&results, &track.title, &track.artist, track.duration_s))
+}
+
+/// Another source's search, then the lyrics of its records that fit (the best two at most),
+/// tidied: like `lookup`'s answer.
+fn elsewhere(source: Source, track: &Track, get: &mut impl FnMut(&str) -> Reply) -> Option<Option<String>> {
+    let found = match get(&source.search_url(&track.artist, &track.title, track.duration_s)) {
+        Reply::Body(body) => source.found(&body)?,
+        Reply::NotFound => return Some(None),
+        Reply::Failed => return None,
+    };
+    for f in rank(&found, &track.title, &track.artist, track.duration_s).into_iter().take(2) {
+        match get(&f.lyrics_url) {
+            Reply::Body(body) => {
+                if let Some(lrc) = source.lrc(&body).and_then(|lrc| tidy(&lrc, &f.title, &f.artist, track.duration_s)) {
+                    return Some(Some(lrc));
+                }
+            }
+            Reply::NotFound => {}
+            Reply::Failed => return None,
+        }
+    }
+    Some(None)
 }
 
 /// lrclib's exact match alone (all the lookup there was before the search).
@@ -224,7 +259,7 @@ fn get(client: &HttpClient, url: &str) -> Reply {
                 std::thread::sleep(wait + Duration::from_millis(jitter as u64));
             }
             _ => {
-                log(&format!("lyrics: lrclib answered {status}"));
+                log(&format!("lyrics: {} answered {status}", url.split('/').nth(2).unwrap_or(url)));
                 return Reply::Failed;
             }
         }
@@ -319,6 +354,74 @@ mod tests {
         assert_eq!(lookup(&track("Ed Sheeran", "Shape of You", 263), server(|| Reply::NotFound, || Reply::Failed, &mut asked)), None);
     }
 
+    /// Answers each request by the first route whose part of the URL it holds ("!fail": the
+    /// request failed), anything else "not found", noting each URL.
+    fn routes<'a>(routes: &'a [(&'a str, &'a str)], asked: &'a mut Vec<String>) -> impl FnMut(&str) -> Reply + 'a {
+        move |url| {
+            asked.push(url.to_string());
+            match routes.iter().find(|(part, _)| url.contains(part)) {
+                Some((_, "!fail")) => Reply::Failed,
+                Some((_, body)) => Reply::Body(body.to_string()),
+                None => Reply::NotFound,
+            }
+        }
+    }
+
+    const SLOWED: (&str, &str, u64) = ("Ekin", "Gece Treni (Slowed + Reverb)", 278);
+    const NETEASE_NONE: &str = r#"{"result":{"songCount":0},"code":200}"#;
+    const NETEASE_FOUND: &str = r#"{"result":{"songs":[{"id":7,"name":"Gece Treni (Slowed + Reverb)","ar":[{"name":"Ekin"}],"dt":278074}]},"code":200}"#;
+    const NETEASE_LYRICS: &str = r#"{"lrc":{"lyric":"[00:00.000] 作曲 : Ekin\n[00:23.97]Raylar uzar\n[04:32.12]Son"},"code":200}"#;
+    const KUGOU_NONE: &str = r#"{"status":200,"candidates":[]}"#;
+    const KUGOU_FOUND: &str = r#"{"status":200,"candidates":[{"id":"9","accesskey":"CD34","singer":"Ekin","song":"Gece Treni (Slowed + Reverb)","duration":278126}]}"#;
+    const KUGOU_LYRICS: &str = r#"{"status":200,"content":"W2FyOkVraW5dCltvZmZzZXQ6MF0KWzAwOjAwLjAwXUdlY2UgVHJlbmkgLSBFa2luClswMDoyNC4wMF1SYXlsYXIgdXphcgpbMDQ6MzIuMzVdU29uCg=="}"#;
+
+    #[test]
+    fn chain_asks_netease_when_lrclib_has_none() {
+        let mut asked = Vec::new();
+        let r = [("lrclib.net/api/search", "[]"), ("cloudsearch", NETEASE_FOUND), ("song/lyric?id=7", NETEASE_LYRICS)];
+        let (artist, title, s) = SLOWED;
+        assert_eq!(lookup(&track(artist, title, s), routes(&r, &mut asked)), Some(Some("[00:23.970]Raylar uzar\n[04:32.120]Son\n".into())));
+        assert_eq!(asked.len(), 3, "lrclib's search, NetEase's, its lyrics: {asked:?}");
+    }
+
+    #[test]
+    fn chain_asks_kugou_when_netease_has_none_either() {
+        let mut asked = Vec::new();
+        let r = [("lrclib.net/api/search", "[]"), ("cloudsearch", NETEASE_NONE), ("kugou.com/search", KUGOU_FOUND), ("download?ver=1&client=pc&id=9&accesskey=CD34", KUGOU_LYRICS)];
+        let (artist, title, s) = SLOWED;
+        assert_eq!(lookup(&track(artist, title, s), routes(&r, &mut asked)), Some(Some("[00:24.000]Raylar uzar\n[04:32.350]Son\n".into())));
+    }
+
+    #[test]
+    fn chain_stretches_the_original_when_no_source_has_the_edit() {
+        let mut asked = Vec::new();
+        let originals = r#"[{"trackName":"Gece Treni","artistName":"Ekin","duration":236.0,"syncedLyrics":"[00:20.00]Raylar uzar\n[03:51.00]Son"}]"#;
+        let r = [("lrclib.net/api/search", originals), ("cloudsearch", NETEASE_NONE), ("kugou.com/search", KUGOU_NONE)];
+        let (artist, title, s) = SLOWED;
+        assert_eq!(lookup(&track(artist, title, s), routes(&r, &mut asked)), Some(Some("[00:23.559]Raylar uzar\n[04:32.110]Son\n".into())));
+    }
+
+    #[test]
+    fn a_source_that_fails_is_passed_over_for_the_next() {
+        let mut asked = Vec::new();
+        let r = [("lrclib.net/api/search", "[]"), ("cloudsearch", "!fail"), ("kugou.com/search", KUGOU_FOUND), ("kugou.com/download", KUGOU_LYRICS)];
+        let (artist, title, s) = SLOWED;
+        assert_eq!(lookup(&track(artist, title, s), routes(&r, &mut asked)), Some(Some("[00:24.000]Raylar uzar\n[04:32.350]Son\n".into())));
+    }
+
+    #[test]
+    fn chain_gives_no_answer_while_a_source_that_may_have_it_fails() {
+        // Not "none", and no stretch yet: the source may have the edit's own timing.
+        let originals = r#"[{"trackName":"Gece Treni","artistName":"Ekin","duration":236.0,"syncedLyrics":"[00:20.00]Raylar uzar\n[03:51.00]Son"}]"#;
+        let (artist, title, s) = SLOWED;
+        let lyrics_fail: &[(&str, &str)] = &[("lrclib.net/api/search", originals), ("cloudsearch", NETEASE_FOUND), ("song/lyric", "!fail"), ("kugou.com/search", KUGOU_NONE)];
+        let search_fails: &[(&str, &str)] = &[("lrclib.net/api/search", originals), ("cloudsearch", NETEASE_NONE), ("kugou.com/search", "!fail")];
+        for r in [lyrics_fail, search_fails] {
+            let mut asked = Vec::new();
+            assert_eq!(lookup(&track(artist, title, s), routes(r, &mut asked)), None, "{r:?}");
+        }
+    }
+
     /// Tracks as the user's players name them, with their real lengths.
     const LIVE: &[(&str, &str, u64)] = &[
         ("TWXNY, Sxilwix ve Innxcence", "HEAVENLY JUMPSTYLE (Ultra Slowed)", 161),
@@ -356,12 +459,21 @@ mod tests {
             answer
         };
         let shown = |a: &Option<Option<String>>| match a {
-            Some(Some(lrc)) => format!("found ({} lines)", parse_lrc(lrc).len()),
+            Some(Some(lrc)) => {
+                let lines = parse_lrc(lrc);
+                format!("found ({} lines, the last at {} s)", lines.len(), lines.last().map_or(0, |(ms, _)| ms / 1000))
+            }
             Some(None) => "none".into(),
             None => "failed".into(),
         };
+        // One more, kept out of the repo: NOWBAR_LYRICS_TRACK="Artist|Title|seconds".
+        let own = std::env::var("NOWBAR_LYRICS_TRACK").ok();
+        let own = own.as_deref().and_then(|t| {
+            let mut parts = t.split('|');
+            Some((parts.next()?, parts.next()?, parts.next()?.parse::<u64>().ok()?))
+        });
         let (mut before, mut after) = (0, 0);
-        for &(artist, title, duration_s) in LIVE {
+        for &(artist, title, duration_s) in LIVE.iter().chain(own.iter()) {
             let t = track(artist, title, duration_s);
             let old = answered(&mut || exact(&t, &mut |url: &str| ask(url)));
             let new = answered(&mut || lookup(&t, ask));
@@ -369,6 +481,6 @@ mod tests {
             before += matches!(old, Some(Some(_))) as usize;
             after += matches!(new, Some(Some(_))) as usize;
         }
-        println!("found before: {before}/{n}, after: {after}/{n}", n = LIVE.len());
+        println!("found before: {before}/{n}, after: {after}/{n}", n = LIVE.len() + own.iter().count());
     }
 }
