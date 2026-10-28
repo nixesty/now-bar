@@ -2355,6 +2355,12 @@ impl App {
                 };
                 let fade = self.front.as_ref().is_some_and(|f| !f.same_kind(&front));
                 self.ui.pill_layout = self.ui.pill.show(&self.gfx, &front, &behind, &self.ui.pill_scale, fade, compact)?;
+                // A lyric line that doesn't fit scrolls with the singing.
+                let sung = match self.stack.first() {
+                    Some(ActivityKind::Media(id)) if !hint => self.media_of(*id).and_then(|m| self.pill_lyrics_at(m)).and_then(|(lines, pos)| lyrics::sung(lines, pos)),
+                    _ => None,
+                };
+                self.ui.pill.sing(sung, &self.ui.pill_scale)?;
                 let glide = self.ui.pill_window.shown();
                 self.ui.pill_window.place(pill, self.ui.pill_layout.frame_w, self.ui.pill_layout.radius, glide)?;
                 self.ui.pill_window.set_visible(!self.fullscreen);
@@ -3713,6 +3719,13 @@ impl App {
     /// The pill's lyric line for a playing `m` (`None` inside: between lines) and the ms until the
     /// next starts; `None` without synced lines or with the setting off.
     fn pill_lyric(&self, m: &MediaSnapshot) -> Option<(Option<String>, Option<u64>)> {
+        let (lines, pos_ms) = self.pill_lyrics_at(m)?;
+        let (line, next) = lyrics::pill_line(lines, pos_ms);
+        Some((line.map(str::to_string), next))
+    }
+
+    /// A playing `m`'s synced lines and its position in them (ms), when the pill shows them.
+    fn pill_lyrics_at(&self, m: &MediaSnapshot) -> Option<(&Lines, u64)> {
         let s = settings::current();
         if !(s.media_lyrics && s.media_pill_lyrics && m.playing) {
             return None;
@@ -3721,9 +3734,7 @@ impl App {
         let hold = self.seek_hold.filter(|(held, _)| *held == m.id).map(|(_, h)| h);
         let card = MediaCard::new(m.clone(), filetime_now(), None, None, (0, 0), hold);
         let t = card.m.timeline?;
-        let pos_ms = (card.position? - t.start).max(0) as u64 / 10_000;
-        let (line, next) = lyrics::pill_line(lines, pos_ms);
-        Some((line.map(str::to_string), next))
+        Some((lines, (card.position? - t.start).max(0) as u64 / 10_000))
     }
 
     /// The lines around the card's position, when its track has synced lyrics.

@@ -57,6 +57,25 @@ pub fn pill_line(lines: &Lines, pos_ms: u64) -> (Option<&str>, Option<u64>) {
     (words, next)
 }
 
+/// A slow singer's pace: a line's words take at most this long a letter. A longer wait for
+/// the next line is a pause after them (an instrumental bit), not singing.
+const SLOWEST_MS_PER_LETTER: u64 = 180;
+
+/// Where the singing is in the line on at `pos_ms`: ms since it started, and how long its words
+/// take (until the next line starts, at most a slow singer's pace); `None` when the pill shows
+/// the title (before the first line, between lines).
+pub fn sung(lines: &Lines, pos_ms: u64) -> Option<(u64, u64)> {
+    let i = line_at(lines, pos_ms)?;
+    let (start, words) = &lines[i];
+    let letters = words.trim().chars().count() as u64;
+    if letters == 0 {
+        return None;
+    }
+    let slowest = letters * SLOWEST_MS_PER_LETTER;
+    let span = lines.get(i + 1).map_or(slowest, |(next, _)| (next - start).min(slowest));
+    Some((pos_ms - start, span))
+}
+
 /// lrclib.net's exact-match request for a track (duration in whole seconds).
 pub fn query_url(artist: &str, title: &str, album: &str, duration_s: u64) -> String {
     format!(
@@ -322,6 +341,22 @@ mod tests {
         assert_eq!(pill_line(&lines, 3_500), (None, Some(1_500)), "an empty line is a gap: the title");
         assert_eq!(pill_line(&lines, 6_000), (Some("Tren geçti"), None), "the last stays");
         assert_eq!(pill_line(&Lines::new(), 6_000), (None, None));
+    }
+
+    #[test]
+    fn the_singing_takes_until_the_next_line() {
+        let lines = parse_lrc("[00:01.00]Gece yarısı tren geçti\n[00:04.00]\n[00:09.00]Son");
+        assert_eq!(sung(&lines, 2_000), Some((1_000, 3_000)));
+        assert_eq!(sung(&lines, 500), None, "before the first: the title");
+        assert_eq!(sung(&lines, 5_000), None, "an empty line is a gap: the title");
+    }
+
+    #[test]
+    fn a_long_wait_for_the_next_line_is_a_pause_not_singing() {
+        // 22 letters at a slow singer's pace, not the 20 s until the next line.
+        let lines = parse_lrc("[00:01.00]  Gece yarısı tren geçti  \n[00:21.00]Son");
+        assert_eq!(sung(&lines, 1_000), Some((0, 22 * SLOWEST_MS_PER_LETTER)));
+        assert_eq!(sung(&lines, 22_000), Some((1_000, 3 * SLOWEST_MS_PER_LETTER)), "the last: that pace too");
     }
 
     #[test]

@@ -120,6 +120,32 @@ const TITLE_RISE_DIP: f32 = 10.0;
 const TITLE_RISE_MS: f32 = 280.0;
 const MARQUEE_FADE_DIP: f32 = 14.0;
 
+/// A sung lyric line keeps the words being sung this far into what shows (its middle): what
+/// comes next shows on its right, what was just sung on its left.
+const SUNG_AT: f32 = 0.5;
+/// The player's position wanders a little between its reports; a line found further than this
+/// from where its scroll has got to was sought.
+const SUNG_SEEK_MS: u128 = 500;
+
+/// How a lyric line that doesn't fit scrolls with the singing: still until the words being sung
+/// reach `SUNG_AT`, then along with them (the singing taken to move evenly through the
+/// `text_w` px of words over `span_ms`), then still at the end, `distance` px on. Key frames
+/// (s from now, px scrolled) from `into_ms` into the line.
+fn sung_frames(text_w: f32, visible: f32, distance: f32, into_ms: u64, span_ms: u64) -> Vec<(f32, f32)> {
+    let px_per_ms = text_w / span_ms.max(1) as f32;
+    let at = visible * SUNG_AT;
+    let scrolled = |ms: f32| (ms * px_per_ms - at).clamp(0.0, distance);
+    let now = into_ms as f32;
+    let mut frames = vec![(0.0, scrolled(now))];
+    // When the singing reaches `at`, and when the end comes into view.
+    for (ms, px) in [(at / px_per_ms, 0.0), ((at + distance) / px_per_ms, distance)] {
+        if ms > now {
+            frames.push(((ms - now) / 1000.0, px));
+        }
+    }
+    frames
+}
+
 /// One UI 9 pill material inside the taskbar: #121212 at 92 % (the opacity is a setting).
 pub fn pill_base() -> Color {
     let a = (crate::settings::current().pill_opacity_pct as u32 * 255 / 100) as u8;
@@ -537,6 +563,9 @@ pub struct PillVisual {
     /// What the active layer shows; an identical refresh (another activity ticking) repaints
     /// nothing, so a running marquee isn't restarted.
     painted: Option<(PillContent, PillLayout)>,
+    /// The lyric line scrolling with the singing: when its singing started and how long it
+    /// takes; `None` while the title isn't one, and after a repaint (which stops the scroll).
+    sung: Option<(std::time::Instant, u64)>,
     /// The weather's moving background, between the body and the content, and what it shows.
     fx: ContainerVisual,
     fx_for: Option<(WeatherFx, i32, i32)>,
@@ -627,6 +656,7 @@ impl PillVisual {
             buttons: Vec::new(),
             last_title: None,
             painted: None,
+            sung: None,
             fx,
             fx_for: None,
         })
@@ -731,6 +761,7 @@ impl PillVisual {
         let target = if fade { 1 - self.active } else { self.active };
         self.buttons = paint_layer(g, &self.c, &self.props, &mut self.layers[target], front, s, l)?;
         self.painted = Some((front.clone(), l));
+        self.sung = None;
         if line_moved {
             self.slide_title(s)?;
         }
@@ -809,7 +840,8 @@ impl PillVisual {
     /// Scrolls an overflowing media title once: pause, scroll to the end, pause, back.
     pub fn start_marquee(&self, s: &Scale) -> Result<()> {
         let layer = &self.layers[self.active];
-        let Some((distance, _)) = layer.overflow else { return Ok(()) };
+        // A lyric line keeps to the singing, hovered or not.
+        let Some((distance, _)) = layer.overflow.filter(|_| self.sung.is_none()) else { return Ok(()) };
         let scroll_s = distance / (crate::settings::current().marquee_speed_dip_s as f32 * s.0);
         let total = MARQUEE_PAUSE_S * 2.0 + scroll_s + 0.4;
         let at = |t: f32| t / total;
@@ -821,6 +853,41 @@ impl PillVisual {
         anim.InsertKeyFrameWithEasingFunction(at(MARQUEE_PAUSE_S + scroll_s), Vector2 { X: x0 - distance, Y: 0.0 }, &linear)?;
         anim.InsertKeyFrameWithEasingFunction(at(2.0 * MARQUEE_PAUSE_S + scroll_s), Vector2 { X: x0 - distance, Y: 0.0 }, &linear)?;
         anim.InsertKeyFrame(1.0, Vector2 { X: x0, Y: 0.0 })?;
+        anim.SetDuration(TimeSpan { Duration: (total as f64 * 1e7) as i64 })?;
+        layer.marquee_brush.StartAnimation(h!("Offset"), &anim)
+    }
+
+    /// Scrolls a lyric line that doesn't fit with the singing (see [`sung_frames`]): `line` is
+    /// how far into it the singing is and how long it takes (ms), `None` while the title isn't
+    /// one. Within a line the scroll runs on by itself; a seek in it starts it again from there.
+    pub fn sing(&mut self, line: Option<(u64, u64)>, s: &Scale) -> Result<()> {
+        let still = crate::settings::current().marquee == crate::settings::Marquee::Off;
+        let Some((into_ms, span_ms)) = line.filter(|_| !still) else {
+            self.sung = None;
+            return Ok(());
+        };
+        let now = std::time::Instant::now();
+        let started = now.checked_sub(std::time::Duration::from_millis(into_ms)).unwrap_or(now);
+        if self.sung.is_some_and(|(was, span)| span == span_ms && (was.max(started) - was.min(started)).as_millis() < SUNG_SEEK_MS) {
+            return Ok(());
+        }
+        self.sung = Some((started, span_ms));
+        let layer = &self.layers[self.active];
+        let Some((distance, visible)) = layer.overflow else { return Ok(()) };
+        let text_w = distance + visible - MARQUEE_FADE_DIP * s.0;
+        let frames = sung_frames(text_w, visible, distance, into_ms, span_ms);
+        let x0 = layer.marquee_offset_x;
+        let total = frames.last().map_or(0.0, |(t, _)| *t);
+        if total <= 0.0 {
+            layer.marquee_brush.StopAnimation(h!("Offset"))?;
+            return layer.marquee_brush.SetOffset(Vector2 { X: x0 - frames[0].1, Y: 0.0 });
+        }
+        let anim = self.c.CreateVector2KeyFrameAnimation()?;
+        let linear = self.c.CreateLinearEasingFunction()?;
+        for (t, px) in frames {
+            anim.InsertKeyFrameWithEasingFunction(t / total, Vector2 { X: x0 - px, Y: 0.0 }, &linear)?;
+        }
+        // Real time, never slowed with the system's animations: it keeps to the music.
         anim.SetDuration(TimeSpan { Duration: (total as f64 * 1e7) as i64 })?;
         layer.marquee_brush.StartAnimation(h!("Offset"), &anim)
     }
@@ -1968,6 +2035,28 @@ mod tests {
 
     /// The pill doesn't show the position, so a timeline tick must not repaint it (a repaint
     /// would also restart the title marquee).
+    fn close(got: &[(f32, f32)], want: &[(f32, f32)]) -> bool {
+        got.len() == want.len() && got.iter().zip(want).all(|(g, w)| (g.0 - w.0).abs() < 1e-3 && (g.1 - w.1).abs() < 1e-3)
+    }
+
+    #[test]
+    fn a_sung_line_waits_for_the_singing_to_reach_the_middle_then_follows_it() {
+        // 300 px of words sung over 3 s: the singing moves 0.1 px/ms. 150 px show, so it
+        // reaches their middle at 0.75 s; the end (164 px on, past the fade) at 2.39 s.
+        let frames = sung_frames(300.0, 150.0, 164.0, 0, 3_000);
+        assert!(close(&frames, &[(0.0, 0.0), (0.75, 0.0), (2.39, 164.0)]), "{frames:?}");
+    }
+
+    #[test]
+    fn a_sung_line_picks_up_where_the_singing_is() {
+        let frames = sung_frames(300.0, 150.0, 164.0, 1_000, 3_000);
+        assert!(close(&frames, &[(0.0, 25.0), (1.39, 164.0)]), "already scrolling: {frames:?}");
+        let frames = sung_frames(300.0, 150.0, 164.0, 2_800, 3_000);
+        assert!(close(&frames, &[(0.0, 164.0)]), "past its end: {frames:?}");
+        let frames = sung_frames(300.0, 150.0, 164.0, 9_000, 0);
+        assert!(close(&frames, &[(0.0, 164.0)]), "no time to sing it: {frames:?}");
+    }
+
     #[test]
     fn media_pill_ignores_timeline_updates() {
         assert_eq!(PillContent::media(song(10)), PillContent::media(song(20_000_000)));
