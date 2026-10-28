@@ -95,8 +95,9 @@ use crate::render::card::{
 };
 use crate::render::morph::PAGE_OUT_MS;
 use crate::render::gfx::{is_device_lost, Gfx};
-use crate::render::layout::{card_rect, fit_pill, frame_x, pill_fit, pill_rect, RectPx, Scale, TaskbarInfo};
+use crate::render::layout::{card_rect, fit_pill, frame_x, lerp_rect, pill_fit, pill_rect, RectPx, Scale, TaskbarInfo};
 use crate::render::morph::{Morph, SHADOW_BLUR_DIP, SHADOW_DY_DIP};
+use crate::render::motion::{speed_factor, spring_at, SPRING_DURATION_S};
 use crate::render::pill::{layout_for, waveform_levels, PillButton, PillContent, PillLayout, PillVisual, MAX_SLIVERS, PILL_H_DIP, SLIVER_STEP_DIP};
 
 /// Widest and tallest card (370 DIP; a full Now Brief, screen time included, is 566 tall); the
@@ -645,6 +646,9 @@ pub struct App {
     card_state: CardState,
     open: Option<OpenCard>,
     card_screen: RectPx,
+    /// What the card's shape last sprang from toward `card_screen` (screen px, radius), and when
+    /// (ms): the pill, or the card before a switch.
+    card_from: (RectPx, f32, u64),
     pill_hover: bool,
     card_hover: bool,
     timer: Option<TimerSlot>,
@@ -928,6 +932,7 @@ impl App {
             card_state: CardState::Closed,
             open: None,
             card_screen: RectPx { x: 0, y: 0, w: 0, h: 0 },
+            card_from: (RectPx { x: 0, y: 0, w: 0, h: 0 }, 0.0, 0),
             pill_hover: false,
             card_hover: false,
             timer: None,
@@ -3801,15 +3806,13 @@ impl App {
 
     /// Shows `kind`'s card in place of the open one: the content slides out the way the wheel
     /// went and the new one comes in from the other side (`PAGE_OUT_MS` later), while the card
-    /// springs to the new size. A card still opening is closed and grown again from the pill.
+    /// springs to the new size. A card still opening (it looks open well before its spring
+    /// ends) does the same from where its shape is, and goes on opening: hidden and grown again
+    /// from the pill, it started where it already was and the new card just appeared.
     fn switch_card(&mut self, kind: ActivityKind, step: i32) -> Result<()> {
         let now = now_ms();
         let which = OpenCard::Activity(kind);
         let Some(new) = self.card_content(which, now) else { return Ok(()) };
-        if self.card_state != CardState::Open {
-            self.hide_card_now()?;
-            return self.open_card(which, true);
-        }
         self.leave_output_page();
         let s = self.ui.card_scale;
         let old_size = self.open.and_then(|o| self.card_content(o, now)).map(|c| card_size_dip(&c));
@@ -3823,15 +3826,25 @@ impl App {
             let rel = |r: RectPx| RectPx { x: r.x - f.x, y: r.y - f.y, ..r };
             let old_r = self.open.and_then(|o| self.card_content(o, now)).map_or(s.px(36.0), |c| s.px(card_radius_dip(&c)));
             let to_r = s.px(card_radius_dip(&new));
-            self.ui.morph.resize(rel(self.card_screen), old_r, rel(to), to_r)?;
+            let (from, from_r) = if self.card_state == CardState::Opening { self.springing_shape(now, old_r) } else { (self.card_screen, old_r) };
+            self.ui.morph.resize(rel(from), from_r, rel(to), to_r)?;
             self.ui.card_window.set_hit(to, to_r as i32)?;
             self.card_screen = to;
+            self.card_from = (from, from_r, now);
         }
         let slide = s.0 * PAGE_SLIDE_DIP * if step > 0 { -1.0 } else { 1.0 };
         self.ui.morph.page_turn(slide)?;
         self.switch_pending = Some(kind);
         unsafe { SetTimer(Some(self.ui.card_window.timer_owner()), TIMER_PAGE, PAGE_OUT_MS as u32, None) };
         Ok(())
+    }
+
+    /// Where the opening card's shape is now (screen px, radius), `card_r` the radius it springs
+    /// to: `card_from`'s rect on the way to `card_screen`, as far as the spring has gone.
+    fn springing_shape(&self, now: u64, card_r: f32) -> (RectPx, f32) {
+        let (from, from_r, since) = self.card_from;
+        let t = spring_at(now.saturating_sub(since) as f32 / (SPRING_DURATION_S * 1000.0 * speed_factor()));
+        (lerp_rect(from, self.card_screen, t), from_r + (card_r - from_r) * t)
     }
 
     /// Halfway through a switch: the new activity's card comes in.
@@ -3918,6 +3931,7 @@ impl App {
             self.ui.morph.set_pill(&self.ui.pill.look(&front, &self.ui.pill_layout))?;
             self.ui.morph.open(rel(pill), self.ui.pill_layout.radius as f32, rel(to), to_r)?;
             self.ui.pill.set_opacity(0.0)?;
+            self.card_from = (pill, self.ui.pill_layout.radius as f32, now_ms());
         } else {
             self.ui.morph.set_no_pill(card_accent(&content))?;
             let from = RectPx { y: to.y + s.px(PICKER_SLIDE_DIP) as i32, ..to };

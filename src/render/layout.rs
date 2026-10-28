@@ -126,12 +126,30 @@ pub fn frame_x(bar: &TaskbarInfo, center_x: i32, w: i32) -> i32 {
     (center_x - w / 2).min(bar.rect.x + bar.rect.w - w).max(bar.rect.x)
 }
 
+/// The rect `t` of the way from `a` to `b`, past `b` while a spring overshoots: where the
+/// morph's expressions put the shape.
+pub fn lerp_rect(a: RectPx, b: RectPx, t: f32) -> RectPx {
+    let mix = |p: i32, q: i32| (p as f32 + (q - p) as f32 * t).round() as i32;
+    RectPx { x: mix(a.x, b.x), y: mix(a.y, b.y), w: mix(a.w, b.w), h: mix(a.h, b.h) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn bar(align: TaskbarAlign, widgets: bool) -> TaskbarInfo {
         TaskbarInfo { rect: RectPx { x: 0, y: 1030, w: 1920, h: 50 }, align, widgets, bottom: true }
+    }
+
+    #[test]
+    fn a_rect_between_two_follows_the_spring_past_the_end() {
+        let pill = RectPx { x: 860, y: 1036, w: 200, h: 40 };
+        let card = RectPx { x: 760, y: 586, w: 400, h: 438 };
+        assert_eq!(lerp_rect(pill, card, 0.0), pill);
+        assert_eq!(lerp_rect(pill, card, 1.0), card);
+        assert_eq!(lerp_rect(pill, card, 0.5), RectPx { x: 810, y: 811, w: 300, h: 239 });
+        // The spring overshoots a little, and so does the shape.
+        assert_eq!(lerp_rect(pill, card, 1.04), RectPx { x: 756, y: 568, w: 408, h: 454 });
     }
 
     #[test]

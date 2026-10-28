@@ -43,6 +43,12 @@ pub fn spring_samples(n: usize) -> Vec<(f32, f32)> {
         .collect()
 }
 
+/// The spring `progress` of the way through its (scaled) duration: the curve, then exactly 1,
+/// where its last key frame leaves it.
+pub fn spring_at(progress: f32) -> f32 {
+    if progress >= 1.0 { 1.0 } else { spring_step(progress.max(0.0) * SPRING_DURATION_S) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,5 +77,16 @@ mod tests {
         assert_eq!(s.len(), 30);
         assert_eq!(s.last().copied(), Some((1.0, 1.0)));
         assert!(s.windows(2).all(|w| w[1].0 > w[0].0));
+    }
+
+    #[test]
+    fn spring_at_is_the_curve_until_the_end_then_one() {
+        assert_eq!(spring_at(-0.2), 0.0);
+        assert_eq!(spring_at(0.0), 0.0);
+        assert_eq!(spring_at(0.5), spring_step(0.5 * SPRING_DURATION_S));
+        // Past its peak but not done: what the card looks like while it still says it's opening.
+        assert!(spring_at(0.7) > 1.0);
+        assert_eq!(spring_at(1.0), 1.0);
+        assert_eq!(spring_at(4.0), 1.0);
     }
 }
