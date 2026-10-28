@@ -1,11 +1,11 @@
 //! Dev tool: renders sample cards to a PNG on a stand-in for the card material, to check card
 //! layouts without touching the screen. Usage: `cardsheet [out.png]`.
 
-use nowbar::activities::buds::{BudsSnapshot, NoiseControl};
+use nowbar::activities::buds::{BudsSnapshot, Fit, FitTest, NoiseControl, Touch, Worn};
 use nowbar::activities::media::{Caps, MediaSnapshot, Timeline};
 use nowbar::platform::audio::{list_outputs, output_volume, picker_order, OutputBus, OutputKind};
 use nowbar::activities::live::{AppIcon, LiveState};
-use nowbar::render::card::{card_size_dip, card_tint, output_subline, paint_card, AppCard, AwayCard, AwayRow, BriefCard, MusicCard, MusicRow, QuestionCard, QuestionShow, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LiveCard, LyricsView, MediaCard, MediaPage, OutputPage, OutputRow, ShelfCard, ShelfTile, SubTone, WeatherCard, GameCard, WellbeingApp, WellbeingCard, GAME_COVER_DIP};
+use nowbar::render::card::{card_size_dip, card_tint, output_subline, paint_card, AppCard, BudsCard, AwayCard, AwayRow, BriefCard, MusicCard, MusicRow, QuestionCard, QuestionShow, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LiveCard, LyricsView, MediaCard, MediaPage, OutputPage, OutputRow, ShelfCard, ShelfTile, SubTone, WeatherCard, GameCard, WellbeingApp, WellbeingCard, GAME_COVER_DIP};
 use nowbar::activities::games::Store;
 use nowbar::activities::shelf::{file_kind, op_label, ops, ShelfItem, ShelfOp};
 use nowbar::activities::claude::StepKind;
@@ -192,7 +192,18 @@ fn main() -> Result<()> {
     let out = std::env::args().skip(1).find(|a| a != "--en").unwrap_or_else(|| std::env::temp_dir().join("cardsheet.png").to_string_lossy().into_owned());
     unsafe { CoInitializeEx(None, COINIT_MULTITHREADED).ok()? };
     let s = Scale(1.25);
-    let buds = BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), worn: Default::default() };
+    let buds = BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), worn: Default::default(), touch: None };
+    // The touch panel: worn, touches on, noise control on hold; then the test running, a result
+    // with touches off and volume on hold, and one bud out.
+    let touch = Touch { on: true, gestures: 0x3F, hold: [2, 2], calls: true };
+    let worn = BudsSnapshot { case: None, worn: Worn { left: true, right: true }, touch: Some(touch), ..buds };
+    let buds_cards = [
+        BudsCard { b: buds, fit: FitTest::Idle },
+        BudsCard { b: worn, fit: FitTest::Idle },
+        BudsCard { b: worn, fit: FitTest::Running { since_ms: 0 } },
+        BudsCard { b: BudsSnapshot { touch: Some(Touch { on: false, hold: [3, 3], ..touch }), ..worn }, fit: FitTest::Done(Fit::Good, Fit::Bad) },
+        BudsCard { b: BudsSnapshot { worn: Worn { left: true, right: false }, touch: Some(Touch { hold: [2, 3], ..touch }), ..worn }, fit: FitTest::Idle },
+    ];
 
     // The output page with the devices of this PC, as the app would build it.
     let devices = list_outputs();
@@ -292,7 +303,11 @@ fn main() -> Result<()> {
         CardContent::Media(Box::new(lyrics)),
         CardContent::Media(Box::new(moving)),
         CardContent::Media(Box::new(output)),
-        CardContent::Buds(buds),
+        CardContent::Buds(buds_cards[0]),
+        CardContent::Buds(buds_cards[1]),
+        CardContent::Buds(buds_cards[2]),
+        CardContent::Buds(buds_cards[3]),
+        CardContent::Buds(buds_cards[4]),
         CardContent::Weather(Box::new(weather)),
         CardContent::Weather(Box::new(windy)),
         CardContent::Wellbeing(Box::new(WellbeingCard {

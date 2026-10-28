@@ -3449,3 +3449,71 @@ msgstr "Couldn't reach GitHub"
 #: ui/pages.slint
 msgid "Denetle"
 msgstr "Check"
+
+#: src/activities/buds.rs
+msgid "Gürültü kontrolü"
+msgstr "Noise control"
+
+#: src/activities/buds.rs
+msgid "Ses düzeyi"
+msgstr "Volume"
+
+#: src/activities/buds.rs
+msgid "Sesli komut"
+msgstr "Voice command"
+
+#: src/activities/buds.rs
+msgid "iyi oturuyor"
+msgstr "good fit"
+
+#: src/activities/buds.rs
+msgid "oturmuyor"
+msgstr "loose"
+
+#: src/activities/buds.rs
+msgid "ölçülemedi"
+msgstr "not measured"
+
+#: src/activities/buds.rs
+msgid "Ölçülüyor…"
+msgstr "Measuring…"
+
+#: src/activities/buds.rs
+msgid "İkisi de iyi oturuyor"
+msgstr "Both fit well"
+
+#: src/activities/buds.rs
+msgid "Sol: {} · Sağ: {}"
+msgstr "Left: {} · Right: {}"
+
+#: src/activities/buds.rs
+msgid "Test tamamlanamadı"
+msgstr "The test didn't finish"
+
+#: src/activities/buds.rs
+msgid "İki kulaklığı da tak"
+msgstr "Put both earbuds in"
+
+#: src/activities/buds.rs
+msgid "Bir ses çalar, oturuşu ölçer"
+msgstr "Plays a tone and checks the fit"
+
+#: src/activities/buds.rs
+msgid "Durdur"
+msgstr "Stop"
+
+#: src/activities/buds.rs
+msgid "Yeniden"
+msgstr "Again"
+
+#: src/render/card.rs
+msgid "Dokunmatik kontroller"
+msgstr "Touch controls"
+
+#: src/render/card.rs
+msgid "Dokunup tutma"
+msgstr "Touch and hold"
+
+#: src/render/card.rs
+msgid "Uyum testi"
+msgstr "Fit test"

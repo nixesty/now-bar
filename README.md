@@ -34,8 +34,10 @@ skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açıl
 - **Canlı maç:** takip ettiğin futbol ve basketbol takımlarının skoru, dakikası ve gol anları.
 - **Hava durumu:** boştayken saat ve hava durumu; yağmur, kar, fırtına, kuvvetli rüzgâr, aşırı
   sıcak, don ve kötü hava kalitesinde uyarı. Şehir seçilmemişse konum Windows'tan alınır.
-- **Galaxy Buds:** iki kulaklığın ve kutunun şarjı, gürültü kontrolü. Birden fazla Buds
-  eşleştirilmişse hangisinin gösterileceği ayarlardan seçilir.
+- **Galaxy Buds:** iki kulaklığın ve kutunun şarjı, gürültü kontrolü. Buds2, Buds2 Pro ve Buds
+  FE'de kartta dokunmatik kontroller, dokunup tutma ve uyum testi de var; bunlar kulaklığın
+  kendisinde saklanır, telefonda da geçerlidir. Birden fazla Buds eşleştirilmişse hangisinin
+  gösterileceği ayarlardan seçilir.
 - **Claude Code:** Claude'un o an ne yaptığı ve görev listesi; izin istediğinde kartta
   **İzin ver / Reddet** düğmeleri çıkar ([aşağıda](#canlı-etkinlikler)).
 - **Claude'a sor:** Win+Alt+C ya da pile Ctrl ile tıklamak kartta bir yazı kutusu açar; cevap

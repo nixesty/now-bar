@@ -17,7 +17,10 @@ use windows::Networking::Sockets::StreamSocket;
 use windows::Storage::Streams::{DataReader, DataWriter, IOutputStream, InputStreamOptions};
 use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
-use super::buds::{address_text, buds_among, model_id, model_name, next_snapshot, set_noise_frame, take_frames, BudsSnapshot, NoiseControl, Paired, HELLO, SPP_STANDARD_UUID, SPP_UUID};
+use super::buds::{
+    address_text, buds_among, fit_frame, hold_frame, is_news, model_id, model_name, next_snapshot, parse_fit, set_noise_frame, take_frames, touch_frame, BudsSnapshot, Fit, HoldAction, NoiseControl, Paired, Touch, HELLO,
+    SPP_STANDARD_UUID, SPP_UUID,
+};
 use crate::platform::log::log;
 
 /// After a failed connection, retry in 5 s, 15 s, then every 60 s while the Buds stay connected.
@@ -47,23 +50,26 @@ pub struct BudsWorker {
     out: Out,
     socket: Socket,
     tx: Sender<Msg>,
+    /// One request at a time: two quick clicks would write on the stream at once.
+    writing: Arc<Mutex<()>>,
 }
 
 impl BudsWorker {
-    /// `post` runs on the worker thread with each new reading (`None`: Buds not available).
-    pub fn start(post: impl Fn(Option<BudsSnapshot>) + Send + 'static) -> Self {
+    /// `post` runs on the worker thread with each new reading (`None`: Buds not available),
+    /// `fit` with each fit test result (left, right).
+    pub fn start(post: impl Fn(Option<BudsSnapshot>) + Send + 'static, fit: impl Fn(Fit, Fit) + Send + 'static) -> Self {
         let (tx, rx) = channel::<Msg>();
         let (out, socket) = (Out::default(), Socket::default());
         let (shared, held, worker_tx) = (out.clone(), socket.clone(), tx.clone());
         std::thread::Builder::new()
             .name("buds".into())
             .spawn(move || {
-                if let Err(e) = run(worker_tx, rx, post, shared, held) {
+                if let Err(e) = run(worker_tx, rx, post, fit, shared, held) {
                     log(&format!("buds worker stopped: {e:?}"));
                 }
             })
             .expect("spawn buds thread");
-        BudsWorker { out, socket, tx }
+        BudsWorker { out, socket, tx, writing: Arc::default() }
     }
 
     /// The pair chosen in the settings changed: looks again, dropping the connection open now
@@ -80,20 +86,42 @@ impl BudsWorker {
         });
     }
 
-    /// Switches the Buds' noise control (on a short thread of its own: the write waits for the
-    /// Bluetooth stack). Nothing happens while they aren't connected.
+    /// Switches the Buds' noise control.
     pub fn set_noise(&self, mode: NoiseControl) {
+        self.send(set_noise_frame(mode), format!("noise control → {mode:?}"));
+    }
+
+    /// Switches touches on or off, the gestures as `t` has them.
+    pub fn set_touch(&self, t: &Touch, on: bool) {
+        self.send(touch_frame(t, on), format!("touch controls → {}", if on { "on" } else { "off" }));
+    }
+
+    /// Sets touch and hold on both buds.
+    pub fn set_hold(&self, action: HoldAction) {
+        self.send(hold_frame(action), format!("touch and hold → {action:?}"));
+    }
+
+    /// Starts the fit test (the Buds play a tone, then say the result) or stops it.
+    pub fn fit_test(&self, on: bool) {
+        self.send(fit_frame(on), format!("fit test → {}", if on { "start" } else { "stop" }));
+    }
+
+    /// Writes a request on a short thread of its own (the write waits for the Bluetooth stack).
+    /// Nothing happens while the Buds aren't connected.
+    fn send(&self, frame: Vec<u8>, what: String) {
         let Some(stream) = self.out.lock().ok().and_then(|o| o.clone()) else { return };
+        let writing = self.writing.clone();
         std::thread::spawn(move || {
             let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
+            let _turn = writing.lock();
             let sent = stream.resolve().and_then(|stream| DataWriter::CreateDataWriter(&stream)).and_then(|w| {
-                w.WriteBytes(&set_noise_frame(mode))?;
+                w.WriteBytes(&frame)?;
                 w.StoreAsync()?.join()?;
                 w.DetachStream().map(|_| ())
             });
             match sent {
-                Ok(()) => log(&format!("buds: noise control → {mode:?}")),
-                Err(e) => log(&format!("buds: noise control not sent: {e:?}")),
+                Ok(()) => log(&format!("buds: {what}")),
+                Err(e) => log(&format!("buds: not sent ({what}): {e:?}")),
             }
         });
     }
@@ -124,7 +152,7 @@ fn selectors() -> Result<[HSTRING; 2]> {
     ])
 }
 
-fn run(tx: Sender<Msg>, rx: Receiver<Msg>, post: impl Fn(Option<BudsSnapshot>), out: Out, socket: Socket) -> Result<()> {
+fn run(tx: Sender<Msg>, rx: Receiver<Msg>, post: impl Fn(Option<BudsSnapshot>), fit: impl Fn(Fit, Fit), out: Out, socket: Socket) -> Result<()> {
     unsafe { RoInitialize(RO_INIT_MULTITHREADED)? };
     let selectors = selectors()?;
     let mut watchers = Vec::new();
@@ -198,7 +226,7 @@ fn run(tx: Sender<Msg>, rx: Receiver<Msg>, post: impl Fn(Option<BudsSnapshot>), 
         if retry_at.is_some_and(|t| Instant::now() < t) {
             continue;
         }
-        let result = read_until_closed(&f.service, &post, &out, &socket);
+        let result = read_until_closed(&f.service, &post, &fit, &out, &socket);
         if let Ok(mut o) = out.lock() {
             *o = None;
         }
@@ -293,8 +321,9 @@ fn find(selectors: &[HSTRING; 2], tx: &Sender<Msg>) -> Vec<Found> {
     found
 }
 
-/// Connects, then posts every reading until the stream ends (`Ok`) or fails (`Err`).
-fn read_until_closed(service: &RfcommDeviceService, post: &impl Fn(Option<BudsSnapshot>), out: &Out, held: &Socket) -> Result<()> {
+/// Connects, then posts every reading and fit test result until the stream ends (`Ok`) or fails
+/// (`Err`).
+fn read_until_closed(service: &RfcommDeviceService, post: &impl Fn(Option<BudsSnapshot>), fit: &impl Fn(Fit, Fit), out: &Out, held: &Socket) -> Result<()> {
     let socket = StreamSocket::new()?;
     socket
         .ConnectWithProtectionLevelAsync(&service.ConnectionHostName()?, &service.ConnectionServiceName()?, service.ProtectionLevel()?)?
@@ -341,10 +370,16 @@ fn read_until_closed(service: &RfcommDeviceService, post: &impl Fn(Option<BudsSn
         reader.ReadBytes(&mut chunk)?;
         buf.extend_from_slice(&chunk);
         for frame in take_frames(&mut buf) {
-            if logged < LOG_FRAMES {
+            // The answers to the card's touch and fit requests are logged too: they're rare, and
+            // the only check of those requests against the real Buds.
+            let news = is_news(&frame);
+            if logged < LOG_FRAMES || news {
                 let hex: Vec<String> = frame.payload.iter().map(|b| format!("{b:02X}")).collect();
                 log(&format!("buds frame 0x{:02X}: {}", frame.id, hex.join(" ")));
-                logged += 1;
+                logged += usize::from(!news);
+            }
+            if let Some((left, right)) = parse_fit(&frame) {
+                fit(left, right);
             }
             if let (None, Some(id)) = (last, model_id(&frame)) {
                 log(&format!("buds: model {id} ({})", model_name(id)));

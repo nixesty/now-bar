@@ -19,7 +19,7 @@ use crate::activities::games::Store;
 use crate::activities::weather_alert::AlertKind;
 use crate::activities::claude::StepKind;
 use crate::activities::live::LiveState;
-use crate::activities::buds::{low_battery, percent, BudsSnapshot, NoiseControl};
+use crate::activities::buds::{fit_button, fit_can_press, fit_line, low_battery, percent, BudsSnapshot, FitTest, HoldAction, NoiseControl, Touch};
 use crate::activities::weather::{fx_accent, palette, WeatherFx};
 use crate::activities::football::{EventKind, MatchEvent, Side};
 use crate::platform::audio::{OutputBus, OutputKind};
@@ -261,7 +261,7 @@ pub enum CardContent {
     Stopwatch(StopwatchCard),
     Picker(PickerState),
     Media(Box<MediaCard>),
-    Buds(BudsSnapshot),
+    Buds(BudsCard),
     Match(Box<MatchCard>),
     Weather(Box<WeatherCard>),
     Shelf(ShelfCard),
@@ -271,6 +271,13 @@ pub enum CardContent {
     Away(Box<AwayCard>),
     Music(Box<MusicCard>),
     Question(Box<QuestionCard>),
+}
+
+/// The Buds' reading, and where the card's fit test is.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BudsCard {
+    pub b: BudsSnapshot,
+    pub fit: FitTest,
 }
 
 /// "Sen yokken": what happened while the PC was locked.
@@ -712,6 +719,12 @@ pub enum CardAction {
     Pin,
     /// A segment of the Buds card's noise control (the mode's byte).
     BudsNoise(u8),
+    /// The Buds card's touch controls switch.
+    BudsTouch,
+    /// A touch and hold chip (the action's byte).
+    BudsHold(u8),
+    /// The fit test's Başlat / Durdur.
+    BudsFit,
     /// A shelf tile's close button (its index, newest first).
     ShelfRemove(usize),
     /// The shelf card's "Temizle".
@@ -763,9 +776,7 @@ pub fn card_size_dip(c: &CardContent) -> (f32, f32) {
         }
         CardContent::Picker(_) => (370.0, 260.0),
         CardContent::Media(_) => (340.0, 350.0),
-        // The noise control row once the Buds have said their mode.
-        CardContent::Buds(b) if b.noise.is_some() => (370.0, 238.0),
-        CardContent::Buds(_) => (370.0, 150.0),
+        CardContent::Buds(c) => (370.0, buds_height_dip(&c.b)),
         CardContent::Weather(w) if w.alert.is_some() => (370.0, 196.0 + WEATHER_ALERT_ROW),
         CardContent::Weather(_) => (370.0, 196.0),
         CardContent::Brief(b) => (370.0, brief_height_dip(b)),
@@ -817,6 +828,22 @@ const BRIEF_MUSIC: f32 = 60.0;
 const HOURS_PANEL: f32 = 100.0;
 /// The weather card's alert line under the hours.
 const WEATHER_ALERT_ROW: f32 = 34.0;
+
+/// The Buds card: the header and the rings, the noise control row once the Buds have said their
+/// mode, the touch panel on the models it's set on.
+fn buds_height_dip(b: &BudsSnapshot) -> f32 {
+    buds_panel_top(b) + if b.touch.is_some() { BUDS_PANEL + 12.0 } else { 0.0 }
+}
+
+fn buds_panel_top(b: &BudsSnapshot) -> f32 {
+    if b.noise.is_some() { 238.0 } else { 150.0 }
+}
+
+// The touch panel's rows (DIP): the switch, touch and hold with its chips, the fit test.
+const BUDS_SWITCH_ROW: f32 = 52.0;
+const BUDS_HOLD_ROW: f32 = 90.0;
+const BUDS_FIT_ROW: f32 = 58.0;
+const BUDS_PANEL: f32 = BUDS_SWITCH_ROW + BUDS_HOLD_ROW + BUDS_FIT_ROW;
 
 /// Where an app card's text starts, and a line of it (DIP).
 const APP_BODY_TOP: f32 = 74.0;
@@ -984,7 +1011,7 @@ pub fn paint_card(ink: &Ink, c: &CardContent, s: &Scale, w: f32, h: f32) -> Resu
             MediaPage::Player => p.media(t),
             MediaPage::Output(o) => p.output(t, o),
         },
-        CardContent::Buds(b) => p.buds(b),
+        CardContent::Buds(c) => p.buds(c),
         CardContent::Weather(w) => p.weather(w),
         CardContent::Brief(b) => p.brief(b),
         CardContent::Live(l) => p.live(l),
@@ -1629,8 +1656,10 @@ impl Painter<'_, '_> {
         Ok(())
     }
 
-    /// "Galaxy Buds2 / Bu bilgisayara bağlı", then a ring per bud and, while known, the case.
-    fn buds(&mut self, b: &BudsSnapshot) -> Result<()> {
+    /// "Galaxy Buds2 / Bu bilgisayara bağlı", then a ring per bud and, while known, the case; the
+    /// noise control and the touch panel under them.
+    fn buds(&mut self, c: &BudsCard) -> Result<()> {
+        let b = &c.b;
         let d = |v: f32| v * self.s.0;
         let (r, g, bl) = BUDS_ACCENT;
         let circle = d(46.0);
@@ -1659,6 +1688,75 @@ impl Painter<'_, '_> {
         }
         if let Some(mode) = b.noise {
             self.noise_control(mode)?;
+        }
+        if let Some(t) = b.touch {
+            self.buds_touch(t, c)?;
+        }
+        Ok(())
+    }
+
+    /// One UI's list panel: the touch controls switch (the whole row flips it), touch and hold on
+    /// both buds (inert while touches are off), the fit test with where it is.
+    fn buds_touch(&mut self, t: Touch, c: &BudsCard) -> Result<()> {
+        let d = |v: f32| v * self.s.0;
+        let (r, g, bl) = BUDS_ACCENT;
+        let top = buds_panel_top(&c.b);
+        let (left, right) = (d(12.0), self.w - d(12.0));
+        self.ink.rrect(rect(left, d(top), right - left, d(BUDS_PANEL)), d(24.0), white(0.06))?;
+        let (x0, x1) = (d(28.0), self.w - d(28.0));
+        let title = |a: f32| TextStyle::new(Face::Text, Weight::SemiBold, d(13.5), white(a)).ellipsis();
+
+        let row = top;
+        self.ink.text(tr("Dokunmatik kontroller"), rect(x0, d(row), x1 - x0 - d(60.0), d(BUDS_SWITCH_ROW)), &title(1.0))?;
+        let (sw, sh) = (d(44.0), d(24.0));
+        let track = rect((x1 - sw).round(), (d(row + BUDS_SWITCH_ROW / 2.0) - sh / 2.0).round(), sw, sh);
+        self.ink.rrect(track, sh / 2.0, if t.on { rgba(r, g, bl, 1.0) } else { white(0.22) })?;
+        let knob = sh - d(6.0);
+        let kx = if t.on { track.right - d(3.0) - knob } else { track.left + d(3.0) };
+        self.ink.rrect(rect(kx, track.top + d(3.0), knob, knob), knob / 2.0, white(if t.on { 1.0 } else { 0.85 }))?;
+        self.hits.push((rect(left, d(row), right - left, d(BUDS_SWITCH_ROW)), CardAction::BudsTouch));
+        self.ink.line(x0, d(row + BUDS_SWITCH_ROW), x1, d(row + BUDS_SWITCH_ROW), d(1.0), white(0.08))?;
+
+        let row = row + BUDS_SWITCH_ROW;
+        let a = if t.on { 1.0 } else { 0.4 };
+        self.ink.text(tr("Dokunup tutma"), rect(x0, d(row + 14.0), x1 - x0, d(18.0)), &title(a))?;
+        let chosen = t.hold_both();
+        let n = HoldAction::ALL.len() as f32;
+        let (gap, ch) = (d(6.0), d(34.0));
+        let style = |on: bool| TextStyle::new(Face::Text, if on { Weight::SemiBold } else { Weight::Medium }, d(12.5), white(if on { 1.0 } else { 0.85 } * a)).centered().ellipsis();
+        // Each chip its label's width and a share of the rest ("Gürültü kontrolü" is half again
+        // "Ses düzeyi"); equal thirds when the labels leave too little room.
+        let labels = HoldAction::ALL.iter().map(|x| self.ink.measure(x.label(), &style(true))).collect::<Result<Vec<f32>>>()?;
+        let share = (x1 - x0 - gap * (n - 1.0) - labels.iter().sum::<f32>()) / n;
+        let mut x = x0;
+        for (i, action) in HoldAction::ALL.into_iter().enumerate() {
+            let w = if share >= d(16.0) { labels[i] + share } else { (x1 - x0 - gap * (n - 1.0)) / n };
+            let right = if i + 1 == HoldAction::ALL.len() { x1 } else { x + w };
+            let chip = rect(x.round(), d(row + 42.0).round(), right.round() - x.round(), ch);
+            x = right + gap;
+            let on = chosen == Some(action);
+            self.ink.rrect(chip, ch / 2.0, if on { rgba(r, g, bl, a) } else { white(0.09 * a) })?;
+            self.ink.text(action.label(), chip, &style(on))?;
+            if t.on {
+                self.hits.push((chip, CardAction::BudsHold(action.byte())));
+            }
+        }
+        self.ink.line(x0, d(row + BUDS_HOLD_ROW), x1, d(row + BUDS_HOLD_ROW), d(1.0), white(0.08))?;
+
+        let row = row + BUDS_HOLD_ROW;
+        let can = fit_can_press(c.fit, c.b.worn);
+        let running = matches!(c.fit, FitTest::Running { .. });
+        let bw = d(84.0);
+        let button = rect((x1 - bw).round(), (d(row + BUDS_FIT_ROW / 2.0) - ch / 2.0).round(), bw, ch);
+        let text_w = button.left - d(12.0) - x0;
+        self.ink.text(tr("Uyum testi"), rect(x0, d(row + 11.0), text_w, d(18.0)), &title(1.0))?;
+        let sub = TextStyle::new(Face::Text, Weight::Regular, d(12.5), white(0.7)).ellipsis();
+        self.ink.text(&fit_line(c.fit, c.b.worn), rect(x0, d(row + 30.0), text_w, d(17.0)), &sub)?;
+        self.ink.rrect(button, ch / 2.0, if running { rgba(r, g, bl, 1.0) } else { white(if can { 0.12 } else { 0.05 }) })?;
+        let st = TextStyle::new(Face::Text, Weight::SemiBold, d(13.0), white(if can { 1.0 } else { 0.35 })).centered();
+        self.ink.text(fit_button(c.fit), button, &st)?;
+        if can {
+            self.hits.push((button, CardAction::BudsFit));
         }
         Ok(())
     }
@@ -2797,7 +2895,7 @@ mod tests {
     #[test]
     fn output_sublines() {
         use crate::platform::audio::OutputBus;
-        let buds = BudsSnapshot { left: 74, right: 69, case: None, noise: None, worn: Default::default() };
+        let buds = BudsSnapshot { left: 74, right: 69, case: None, noise: None, worn: Default::default(), touch: None };
         assert_eq!(output_subline(OutputBus::Bluetooth, Some(&buds)), "Bluetooth · Sol %74 · Sağ %69");
         assert_eq!(output_subline(OutputBus::Bluetooth, None), "Bluetooth");
         assert_eq!(output_subline(OutputBus::Virtual, None), "Sanal");

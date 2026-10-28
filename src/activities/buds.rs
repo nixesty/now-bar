@@ -17,6 +17,15 @@
 //!   header carries no flags (responses from the Buds set 0x1000).
 //!   (GalaxyBudsClient: SppMessageEnums.cs, Constants.cs NoiseControlModes,
 //!   ExtendedStatusUpdateDecoder.cs L361, NoiseControlUpdateDecoder.cs, SppMessage.cs L86-95.)
+//! - Touch controls (Buds2 and later): 0x61 [10], bit 7 on, bits 0-5 the gestures still on
+//!   (hold, triple, double, single, double in a call, hold in a call); [11] touch and hold, high
+//!   nibble left, low right (1 voice command, 2 noise control, 3 volume, 4 Spotify, 5/6 an app's).
+//!   0x90 LOCK_TOUCHPAD [on, single, double, triple, hold (, double in a call, hold in a call)],
+//!   0x92 SET_TOUCHPAD_OPTION [left, right]. (ExtendedStatusUpdateDecoder.cs L332-353,
+//!   LockTouchpadEncoder.cs, SetTouchOptionsEncoder.cs, StandardTouchMap.cs, the device specs'
+//!   AdvancedTouchLock rules.)
+//! - Fit test: 0x9D [1] starts it (a tone plays), [0] stops it; 0x9E [left, right] the result,
+//!   0 bad, 1 good, 2 failed (FitTestPageViewModel.cs, FitTestDecoder.cs).
 //! - A bud battery of 0 means "no reading"; a case value outside 1..=100 is unknown.
 
 use windows::core::GUID;
@@ -35,8 +44,19 @@ const STATUS_UPDATED: u8 = 0x60;
 const EXTENDED_STATUS_UPDATED: u8 = 0x61;
 const NOISE_CONTROLS_UPDATE: u8 = 0x77;
 const NOISE_CONTROLS: u8 = 0x78;
+const ACK: u8 = 0x42;
+const LOCK_TOUCHPAD: u8 = 0x90;
+const TOUCH_UPDATED: u8 = 0x91;
+const SET_TOUCHPAD_OPTION: u8 = 0x92;
+const CHECK_FIT: u8 = 0x9D;
+const FIT_RESULT: u8 = 0x9E;
 /// Where 0x61 keeps the noise control mode (Buds Pro and later, Buds2 included).
 const NOISE_AT: usize = 12;
+/// Where 0x61 keeps the touch controls and touch and hold (Buds Live and later).
+const TOUCH_AT: usize = 10;
+const HOLD_AT: usize = 11;
+const TOUCH_ON: u8 = 0x80;
+const GESTURES: u8 = 0x3F;
 const WEARING: u8 = 1;
 const IN_OPEN_CASE: u8 = 3;
 const IN_CLOSED_CASE: u8 = 4;
@@ -49,7 +69,8 @@ pub struct Frame {
 }
 
 /// One battery reading. `case` is known only while a bud sits in the case; `noise` once the
-/// Buds have said it (an extended status or a noise control update).
+/// Buds have said it (an extended status or a noise control update); `touch` from an extended
+/// status, on the models it's set on here.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BudsSnapshot {
     pub left: u8,
@@ -57,6 +78,139 @@ pub struct BudsSnapshot {
     pub case: Option<u8>,
     pub noise: Option<NoiseControl>,
     pub worn: Worn,
+    pub touch: Option<Touch>,
+}
+
+/// Galaxy Wearable's touch controls: whether touching the buds does anything, which gestures
+/// do, and what touching and holding each bud does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Touch {
+    pub on: bool,
+    /// 0x61 [10]'s gesture bits, sent back as they are when touches are switched.
+    pub gestures: u8,
+    /// Touch and hold, left and right, as the Buds say it.
+    pub hold: [u8; 2],
+    /// The lock request carries the two in-a-call gestures.
+    pub calls: bool,
+}
+
+impl Touch {
+    /// The touch and hold both buds share, when the card offers it.
+    pub fn hold_both(&self) -> Option<HoldAction> {
+        (self.hold[0] == self.hold[1]).then(|| HoldAction::from_byte(self.hold[0])).flatten()
+    }
+}
+
+/// Touch and hold as the card offers it: Spotify and an app's own need the phone.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HoldAction {
+    NoiseControl,
+    /// Down on the left, up on the right.
+    Volume,
+    /// The phone's assistant.
+    Voice,
+}
+
+impl HoldAction {
+    pub const ALL: [HoldAction; 3] = [HoldAction::NoiseControl, HoldAction::Volume, HoldAction::Voice];
+
+    pub fn byte(self) -> u8 {
+        match self {
+            HoldAction::Voice => 1,
+            HoldAction::NoiseControl => 2,
+            HoldAction::Volume => 3,
+        }
+    }
+
+    pub fn from_byte(b: u8) -> Option<HoldAction> {
+        HoldAction::ALL.into_iter().find(|a| a.byte() == b)
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            HoldAction::NoiseControl => crate::i18n::tr("Gürültü kontrolü"),
+            HoldAction::Volume => crate::i18n::tr("Ses düzeyi"),
+            HoldAction::Voice => crate::i18n::tr("Sesli komut"),
+        }
+    }
+}
+
+/// How a bud sits in the ear, by the fit test.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Fit {
+    Good,
+    Bad,
+    Failed,
+}
+
+impl Fit {
+    fn from_byte(b: u8) -> Option<Fit> {
+        match b {
+            0 => Some(Fit::Bad),
+            1 => Some(Fit::Good),
+            2 => Some(Fit::Failed),
+            _ => None,
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Fit::Good => crate::i18n::tr("iyi oturuyor"),
+            Fit::Bad => crate::i18n::tr("oturmuyor"),
+            Fit::Failed => crate::i18n::tr("ölçülemedi"),
+        }
+    }
+}
+
+/// Without a result this long the fit test is over (the Buds' tone takes a few seconds).
+pub const FIT_TIMEOUT_MS: u64 = 20_000;
+
+/// Where the card's fit test is.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FitTest {
+    #[default]
+    Idle,
+    Running {
+        since_ms: u64,
+    },
+    Done(Fit, Fit),
+    TimedOut,
+}
+
+impl FitTest {
+    /// A test still running after `FIT_TIMEOUT_MS` got no result.
+    pub fn expired(self, now_ms: u64) -> FitTest {
+        match self {
+            FitTest::Running { since_ms } if now_ms.saturating_sub(since_ms) > FIT_TIMEOUT_MS => FitTest::TimedOut,
+            other => other,
+        }
+    }
+}
+
+/// The fit test row's second line. The test needs both buds in; a result stays.
+pub fn fit_line(t: FitTest, worn: Worn) -> String {
+    use crate::i18n::{tr, trf};
+    match t {
+        FitTest::Running { .. } => tr("Ölçülüyor…").into(),
+        FitTest::Done(Fit::Good, Fit::Good) => tr("İkisi de iyi oturuyor").into(),
+        FitTest::Done(l, r) => trf("Sol: {} · Sağ: {}", &[&l.label(), &r.label()]),
+        FitTest::TimedOut => tr("Test tamamlanamadı").into(),
+        FitTest::Idle if worn.count() < 2 => tr("İki kulaklığı da tak").into(),
+        FitTest::Idle => tr("Bir ses çalar, oturuşu ölçer").into(),
+    }
+}
+
+pub fn fit_button(t: FitTest) -> &'static str {
+    match t {
+        FitTest::Idle => crate::i18n::tr("Başlat"),
+        FitTest::Running { .. } => crate::i18n::tr("Durdur"),
+        FitTest::Done(..) | FitTest::TimedOut => crate::i18n::tr("Yeniden"),
+    }
+}
+
+/// A running test can always be stopped; a new one needs both buds in.
+pub fn fit_can_press(t: FitTest, worn: Worn) -> bool {
+    matches!(t, FitTest::Running { .. }) || worn.count() == 2
 }
 
 /// Which buds are in an ear.
@@ -160,7 +314,7 @@ impl NoiseControl {
 pub fn next_snapshot(f: &Frame, last: Option<BudsSnapshot>) -> Option<BudsSnapshot> {
     match f.id {
         EXTENDED_STATUS_UPDATED => parse_status(f),
-        STATUS_UPDATED => parse_status(f).map(|s| BudsSnapshot { noise: last.and_then(|l| l.noise), ..s }),
+        STATUS_UPDATED => parse_status(f).map(|s| BudsSnapshot { noise: last.and_then(|l| l.noise), touch: last.and_then(|l| l.touch), ..s }),
         NOISE_CONTROLS_UPDATE => last.map(|l| BudsSnapshot { noise: f.payload.first().and_then(|b| NoiseControl::from_byte(*b)), ..l }),
         _ => None,
     }
@@ -247,6 +401,63 @@ pub fn encode(id: u8, payload: &[u8]) -> Vec<u8> {
 /// The request that switches the Buds' noise control.
 pub fn set_noise_frame(mode: NoiseControl) -> Vec<u8> {
     encode(NOISE_CONTROLS, &[mode.byte()])
+}
+
+/// Whether touches are set here for a model at an extended status revision, and whether the
+/// lock request carries the in-a-call gestures (GalaxyBudsClient's device specs). Buds3 and later
+/// add swipes the request doesn't carry; Buds Pro and older have a one-byte lock.
+fn touch_rules(model: u16, revision: u8) -> Option<bool> {
+    match model {
+        313..=321 if revision >= 4 => Some(revision >= 7),
+        325..=328 => Some(revision >= 1),
+        330..=331 => Some(true),
+        _ => None,
+    }
+}
+
+/// The touch controls an extended status carries, on the models they're set on here.
+fn parse_touch(f: &Frame) -> Option<Touch> {
+    let calls = touch_rules(model_id(f)?, *f.payload.first()?)?;
+    let (lock, hold) = (*f.payload.get(TOUCH_AT)?, *f.payload.get(HOLD_AT)?);
+    Some(Touch { on: lock & TOUCH_ON != 0, gestures: lock & GESTURES, hold: [hold >> 4, hold & 0x0F], calls })
+}
+
+/// The request that switches touches on or off, the gestures as they are.
+pub fn touch_frame(t: &Touch, on: bool) -> Vec<u8> {
+    let bit = |n: u8| (t.gestures >> n) & 1;
+    let mut payload = vec![on as u8, bit(3), bit(2), bit(1), bit(0)];
+    if t.calls {
+        payload.extend([bit(4), bit(5)]);
+    }
+    encode(LOCK_TOUCHPAD, &payload)
+}
+
+/// The request that sets touch and hold, the same on both buds.
+pub fn hold_frame(action: HoldAction) -> Vec<u8> {
+    encode(SET_TOUCHPAD_OPTION, &[action.byte(), action.byte()])
+}
+
+/// The request that starts the fit test (its tone) or stops it.
+pub fn fit_frame(on: bool) -> Vec<u8> {
+    encode(CHECK_FIT, &[on as u8])
+}
+
+/// The Buds' answers to the touch and fit requests (0x42 ACK [id, …]), a touch change made
+/// elsewhere (0x91), a fit result: what the worker logs beyond the first frames.
+pub fn is_news(f: &Frame) -> bool {
+    match f.id {
+        ACK => matches!(f.payload.first(), Some(&(LOCK_TOUCHPAD | SET_TOUCHPAD_OPTION | CHECK_FIT))),
+        TOUCH_UPDATED | FIT_RESULT => true,
+        _ => false,
+    }
+}
+
+/// The fit test's result, left and right.
+pub fn parse_fit(f: &Frame) -> Option<(Fit, Fit)> {
+    if f.id != FIT_RESULT {
+        return None;
+    }
+    Some((Fit::from_byte(*f.payload.first()?)?, Fit::from_byte(*f.payload.get(1)?)?))
 }
 
 /// CRC-16/XMODEM.
@@ -337,7 +548,7 @@ pub fn parse_status(f: &Frame) -> Option<BudsSnapshot> {
     let in_case = docked(p[placement] >> 4) || docked(p[placement] & 0x0F);
     let case = Some(p[case]).filter(|c| in_case && (1..=100).contains(c));
     let worn = Worn { left: p[placement] >> 4 == WEARING, right: p[placement] & 0x0F == WEARING };
-    Some(BudsSnapshot { left: p[left], right: p[right], case, noise: parse_noise(f), worn })
+    Some(BudsSnapshot { left: p[left], right: p[right], case, noise: parse_noise(f), worn, touch: parse_touch(f) })
 }
 
 /// Below this (settings, 15 % by default) the Buds come to the front and their rings turn red.
@@ -387,7 +598,7 @@ mod tests {
 
     #[test]
     fn adaptive_is_read_not_mistaken_for_the_last_mode() {
-        let anc = BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: Worn::default() };
+        let anc = BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: Worn::default(), touch: None };
         assert_eq!(next_snapshot(&extended_with_noise(3), Some(anc)).unwrap().noise, Some(NoiseControl::Adaptive));
         assert_eq!(next_snapshot(&extended_with_noise(9), Some(anc)).unwrap().noise, None, "an unknown mode is unknown, not the last one");
         let update = |b: u8| Frame { id: 0x77, payload: vec![b] };
@@ -514,22 +725,141 @@ mod tests {
         assert_eq!(ear_action(BOTH_IN, LEFT_IN, stale, 1_000 + 20 * 60_000), Some(EarAction::Pause));
     }
 
+    /// The capture's touch controls: off, every gesture on, noise control on both buds.
+    const CAPTURE_TOUCH: Touch = Touch { on: false, gestures: 0x3F, hold: [2, 2], calls: true };
+
+    /// REAL_EXTENDED with its revision [0], touch controls [10] and touch and hold [11] set.
+    fn extended_with_touch(revision: u8, touch: u8, hold: u8) -> Frame {
+        let mut f = take_frames(&mut hex(REAL_EXTENDED)).remove(0);
+        f.payload[0] = revision;
+        f.payload[10] = touch;
+        f.payload[11] = hold;
+        f
+    }
+
+    #[test]
+    fn touch_controls_come_from_the_extended_status() {
+        assert_eq!(parse_status(&frames_of(&hex(REAL_EXTENDED))[0]).unwrap().touch, Some(CAPTURE_TOUCH));
+        let on = parse_status(&extended_with_touch(11, 0xBF, 0x23)).unwrap().touch.unwrap();
+        assert!(on.on);
+        assert_eq!(on.gestures, 0x3F);
+        assert_eq!(on.hold, [2, 3], "high nibble left, low nibble right");
+        assert!(!parse_status(&extended_with_touch(6, 0xBF, 0x22)).unwrap().touch.unwrap().calls, "Buds2 before revision 7: no in-a-call gestures");
+        assert_eq!(parse_status(&extended_with_touch(3, 0xBF, 0x22)).unwrap().touch, None, "Buds2 before revision 4: the old lock, not set here");
+    }
+
+    #[test]
+    fn touch_only_on_the_models_it_is_set_on() {
+        let with_model = |id: u16| {
+            let mut f = extended_with_touch(10, 0xBF, 0x22);
+            f.payload[14..16].copy_from_slice(&id.to_le_bytes());
+            parse_status(&f).unwrap().touch
+        };
+        assert!(with_model(326).is_some(), "Buds2 Pro");
+        assert!(with_model(330).is_some(), "Buds FE");
+        assert_eq!(with_model(334), None, "Buds3: swipes the request doesn't carry");
+        assert_eq!(with_model(298), None, "Buds Pro: the old lock");
+        assert_eq!(parse_status(&frames_of(&hex(STATUS_IN_CASE))[0]).unwrap().touch, None, "0x60 doesn't carry it");
+    }
+
+    #[test]
+    fn touch_is_kept_by_the_other_updates() {
+        let last = parse_status(&frames_of(&hex(REAL_EXTENDED))[0]);
+        let status = frames_of(&hex(STATUS_IN_CASE)).remove(0);
+        assert_eq!(next_snapshot(&status, last).unwrap().touch, Some(CAPTURE_TOUCH));
+        assert_eq!(next_snapshot(&Frame { id: 0x77, payload: vec![2] }, last).unwrap().touch, Some(CAPTURE_TOUCH));
+    }
+
+    #[test]
+    fn the_lock_request_keeps_the_gestures() {
+        // Hold, single and hold in a call on; the others off.
+        let t = Touch { on: true, gestures: 0b10_1001, hold: [2, 2], calls: true };
+        assert_eq!(frames_of(&touch_frame(&t, false)), vec![Frame { id: 0x90, payload: vec![0, 1, 0, 0, 1, 0, 1] }]);
+        assert_eq!(frames_of(&touch_frame(&t, true))[0].payload[0], 1);
+        assert_eq!(frames_of(&touch_frame(&Touch { calls: false, ..t }, true))[0].payload, vec![1, 1, 0, 0, 1]);
+    }
+
+    #[test]
+    fn touch_and_hold_on_both_buds() {
+        assert_eq!(frames_of(&hold_frame(HoldAction::Volume)), vec![Frame { id: 0x92, payload: vec![3, 3] }]);
+        assert_eq!(CAPTURE_TOUCH.hold_both(), Some(HoldAction::NoiseControl));
+        assert_eq!(Touch { hold: [2, 3], ..CAPTURE_TOUCH }.hold_both(), None, "the buds differ");
+        assert_eq!(Touch { hold: [4, 4], ..CAPTURE_TOUCH }.hold_both(), None, "Spotify isn't offered");
+        assert_eq!(HoldAction::Voice.label(), "Sesli komut");
+    }
+
+    #[test]
+    fn fit_test_frames_and_result() {
+        assert_eq!(frames_of(&fit_frame(true)), vec![Frame { id: 0x9D, payload: vec![1] }]);
+        assert_eq!(frames_of(&fit_frame(false)), vec![Frame { id: 0x9D, payload: vec![0] }]);
+        assert_eq!(parse_fit(&Frame { id: 0x9E, payload: vec![1, 0] }), Some((Fit::Good, Fit::Bad)));
+        assert_eq!(parse_fit(&Frame { id: 0x9E, payload: vec![2, 1] }), Some((Fit::Failed, Fit::Good)));
+        assert_eq!(parse_fit(&Frame { id: 0x9E, payload: vec![7, 1] }), None);
+        assert_eq!(parse_fit(&Frame { id: 0x9E, payload: vec![1] }), None);
+        assert_eq!(parse_fit(&Frame { id: 0x61, payload: vec![1, 1] }), None);
+    }
+
+    #[test]
+    fn the_answers_to_touch_and_fit_requests_are_news() {
+        assert!(is_news(&Frame { id: 0x42, payload: vec![0x90, 1, 1, 1, 1, 1, 1, 1] }), "the lock's ACK");
+        assert!(is_news(&Frame { id: 0x42, payload: vec![0x92, 3, 3] }));
+        assert!(is_news(&Frame { id: 0x42, payload: vec![0x9D, 1] }));
+        assert!(is_news(&Frame { id: 0x91, payload: vec![1] }), "touch changed elsewhere");
+        assert!(is_news(&Frame { id: 0x9E, payload: vec![1, 1] }));
+        assert!(!is_news(&Frame { id: 0x42, payload: vec![0x78, 1] }), "noise control switches are many");
+        assert!(!is_news(&Frame { id: 0x42, payload: vec![] }));
+        assert!(!is_news(&frames_of(&hex(REAL_EXTENDED))[0]));
+    }
+
+    #[test]
+    fn a_fit_test_without_a_result_gives_up() {
+        let running = FitTest::Running { since_ms: 1_000 };
+        assert_eq!(running.expired(1_000 + FIT_TIMEOUT_MS), running);
+        assert_eq!(running.expired(1_000 + FIT_TIMEOUT_MS + 1), FitTest::TimedOut);
+        assert_eq!(FitTest::Done(Fit::Good, Fit::Good).expired(u64::MAX), FitTest::Done(Fit::Good, Fit::Good));
+    }
+
+    #[test]
+    fn the_fit_row_says_where_the_test_is() {
+        assert_eq!(fit_line(FitTest::Idle, BOTH_IN), "Bir ses çalar, oturuşu ölçer");
+        assert_eq!(fit_line(FitTest::Idle, LEFT_IN), "İki kulaklığı da tak");
+        assert_eq!(fit_line(FitTest::Running { since_ms: 0 }, BOTH_IN), "Ölçülüyor…");
+        assert_eq!(fit_line(FitTest::Done(Fit::Good, Fit::Good), BOTH_IN), "İkisi de iyi oturuyor");
+        assert_eq!(fit_line(FitTest::Done(Fit::Good, Fit::Bad), BOTH_IN), "Sol: iyi oturuyor · Sağ: oturmuyor");
+        assert_eq!(fit_line(FitTest::Done(Fit::Failed, Fit::Good), LEFT_IN), "Sol: ölçülemedi · Sağ: iyi oturuyor", "a result stays when a bud comes out");
+        assert_eq!(fit_line(FitTest::TimedOut, BOTH_IN), "Test tamamlanamadı");
+        assert_eq!(fit_button(FitTest::Idle), "Başlat");
+        assert_eq!(fit_button(FitTest::Running { since_ms: 0 }), "Durdur");
+        assert_eq!(fit_button(FitTest::TimedOut), "Yeniden");
+        assert!(fit_can_press(FitTest::Running { since_ms: 0 }, NONE_IN), "stopping always works");
+        assert!(!fit_can_press(FitTest::Idle, LEFT_IN));
+        assert!(fit_can_press(FitTest::TimedOut, BOTH_IN));
+    }
+
+    #[test]
+    fn the_fit_row_in_english() {
+        crate::i18n::in_language(crate::i18n::Language::English, || {
+            assert_eq!(fit_line(FitTest::Done(Fit::Good, Fit::Bad), BOTH_IN), "Left: good fit · Right: loose");
+            assert_eq!(HoldAction::NoiseControl.label(), "Noise control");
+        });
+    }
+
     #[test]
     fn parse_extended_status() {
         let f = &frames_of(&hex(EXTENDED_IN_CASE))[0];
-        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 85, right: 80, case: Some(60), noise: Some(NoiseControl::Anc), worn: LEFT_IN }));
+        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 85, right: 80, case: Some(60), noise: Some(NoiseControl::Anc), worn: LEFT_IN, touch: Some(CAPTURE_TOUCH) }));
     }
 
     #[test]
     fn parse_short_status() {
         let f = &frames_of(&hex(STATUS_IN_CASE))[0];
-        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: LEFT_IN }));
+        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: LEFT_IN, touch: None }));
     }
 
     #[test]
     fn case_hidden_when_no_bud_in_case() {
         let f = &frames_of(&hex(REAL_EXTENDED))[0];
-        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: BOTH_IN }));
+        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: BOTH_IN, touch: Some(CAPTURE_TOUCH) }));
     }
 
     #[test]
@@ -542,23 +872,23 @@ mod tests {
     /// A bud reporting 0 has no reading (it is out of range), not an empty battery.
     #[test]
     fn zero_means_no_reading() {
-        let s = BudsSnapshot { left: 0, right: 80, case: None, noise: None, worn: Worn::default() };
+        let s = BudsSnapshot { left: 0, right: 80, case: None, noise: None, worn: Worn::default(), touch: None };
         assert_eq!(buds_labels(&s).0, "— · %80");
         assert!(!is_low(&s));
     }
 
     #[test]
     fn labels_show_case_only_when_known() {
-        let s = BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: Worn::default() };
+        let s = BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: Worn::default(), touch: None };
         assert_eq!(buds_labels(&s), ("%85 · %80".to_string(), Some("Kutu %60".to_string())));
         assert_eq!(buds_labels(&BudsSnapshot { case: None, ..s }).1, None);
     }
 
     #[test]
     fn low_battery_below_15() {
-        assert!(is_low(&BudsSnapshot { left: 14, right: 80, case: None, noise: None, worn: Worn::default() }));
-        assert!(is_low(&BudsSnapshot { left: 80, right: 9, case: Some(100), noise: None, worn: Worn::default() }));
-        assert!(!is_low(&BudsSnapshot { left: 15, right: 80, case: None, noise: None, worn: Worn::default() }));
+        assert!(is_low(&BudsSnapshot { left: 14, right: 80, case: None, noise: None, worn: Worn::default(), touch: None }));
+        assert!(is_low(&BudsSnapshot { left: 80, right: 9, case: Some(100), noise: None, worn: Worn::default(), touch: None }));
+        assert!(!is_low(&BudsSnapshot { left: 15, right: 80, case: None, noise: None, worn: Worn::default(), touch: None }));
     }
 
     fn paired(address: &str, name: &str, samsung: bool) -> Paired {

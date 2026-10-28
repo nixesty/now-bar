@@ -17,7 +17,7 @@ use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, KillTimer, PostQuitM
 
 use crate::i18n::{percent, tr, trc, trf};
 use crate::activities::timer::{format_duration_label, format_elapsed, format_stopwatch, format_timer, RunState, Stopwatch, Timer};
-use crate::activities::buds::{ear_action, is_low, BudsSnapshot, EarAction, EarPause, NoiseControl, EAR_RESUME_MS};
+use crate::activities::buds::{ear_action, fit_can_press, is_low, BudsSnapshot, EarAction, EarPause, Fit, FitTest, HoldAction, NoiseControl, EAR_RESUME_MS, FIT_TIMEOUT_MS};
 use crate::activities::buds_worker::BudsWorker;
 use crate::activities::football::{centre_text, minute_text, moments, shown, EventKind, MatchSnapshot, MatchStatus, Moment, Side, Team};
 use crate::activities::football_worker::crest_path;
@@ -81,6 +81,7 @@ use crate::platform::hotkey::{register_hotkey, register_question_hotkey};
 use crate::activities::question::{lines_estimate, plain, Edit as FieldEdit, Field};
 use crate::activities::question_worker::{AskBox, AskMailbox, AskState, AskWorker};
 use crate::render::card::{QuestionCard, QuestionShow};
+use crate::render::card::BudsCard;
 use crate::platform::dragdrop::{self, DropZone};
 use crate::platform::log::log;
 use crate::platform::taskbar::{self, ItemsMailbox};
@@ -665,7 +666,11 @@ pub struct App {
     /// Latest Buds reading and when they connected (GetTickCount64 ms).
     buds: Option<(BudsSnapshot, u64)>,
     buds_mailbox: std::sync::Arc<std::sync::Mutex<Option<Option<BudsSnapshot>>>>,
+    /// The latest fit test result from the Buds, waiting for the UI thread.
+    buds_fit_mailbox: std::sync::Arc<std::sync::Mutex<Option<(Fit, Fit)>>>,
     buds_worker: BudsWorker,
+    /// The Buds card's fit test (a result stays until the card closes).
+    buds_fit: FitTest,
     /// A noise control switch made on the Buds or the phone: the mode and when (ms).
     buds_mode_moment: Option<(NoiseControl, u64)>,
     /// The media card's pin: it stays open (no closing on leave or a click outside).
@@ -896,12 +901,22 @@ impl App {
         });
         let buds_mailbox: std::sync::Arc<std::sync::Mutex<Option<Option<BudsSnapshot>>>> = Default::default();
         let mailbox = buds_mailbox.clone();
-        let buds_worker = BudsWorker::start(move |reading| {
-            if let Ok(mut slot) = mailbox.lock() {
-                *slot = Some(reading);
-            }
-            post_buds();
-        });
+        let buds_fit_mailbox: std::sync::Arc<std::sync::Mutex<Option<(Fit, Fit)>>> = Default::default();
+        let fit_mailbox = buds_fit_mailbox.clone();
+        let buds_worker = BudsWorker::start(
+            move |reading| {
+                if let Ok(mut slot) = mailbox.lock() {
+                    *slot = Some(reading);
+                }
+                post_buds();
+            },
+            move |left, right| {
+                if let Ok(mut slot) = fit_mailbox.lock() {
+                    *slot = Some((left, right));
+                }
+                post_buds();
+            },
+        );
         crate::platform::settings_watch::start();
         let matches_mailbox: std::sync::Arc<std::sync::Mutex<Option<Vec<MatchSnapshot>>>> = Default::default();
         let mailbox = matches_mailbox.clone();
@@ -946,7 +961,9 @@ impl App {
             swipe: Swipe::default(),
             buds: None,
             buds_mailbox,
+            buds_fit_mailbox,
             buds_worker,
+            buds_fit: FitTest::Idle,
             buds_mode_moment: None,
             buds_mode_sent: None,
             ear_pause: None,
@@ -1124,6 +1141,7 @@ impl App {
         }
         self.leave_question();
         self.leave_output_page();
+        self.leave_buds_fit();
         self.ui.card_window.hide();
         self.ui.pill.set_opacity(1.0)?;
         self.card_state = CardState::Closed;
@@ -1788,7 +1806,7 @@ impl App {
                 }
                 CardContent::Media(Box::new(card))
             }),
-            OpenCard::Activity(ActivityKind::Buds) => self.buds.map(|(b, _)| CardContent::Buds(shown_buds(b))),
+            OpenCard::Activity(ActivityKind::Buds) => self.buds.map(|(b, _)| CardContent::Buds(BudsCard { b: shown_buds(b), fit: self.buds_fit.expired(now) })),
             OpenCard::Activity(ActivityKind::Match(key)) => self.match_of(key).map(|m| CardContent::Match(Box::new(self.match_card(m, now)))),
             // A moment has no card.
             OpenCard::Activity(
@@ -2302,6 +2320,12 @@ impl App {
     fn refresh(&mut self) -> Result<()> {
         let now = now_ms();
         self.follow_taskbar_items();
+        // A fit test without a result: the Buds stop their tone too.
+        if matches!(self.buds_fit, FitTest::Running { .. }) && self.buds_fit.expired(now) == FitTest::TimedOut {
+            log("buds: fit test, no result");
+            self.buds_worker.fit_test(false);
+            self.buds_fit = FitTest::TimedOut;
+        }
         for id in self.live.waiting_asks() {
             let title = HSTRING::from(id.as_str());
             if unsafe { windows::Win32::UI::WindowsAndMessaging::FindWindowW(crate::platform::ask::ASK_CLASS, windows::core::PCWSTR(title.as_ptr())) }.is_err() {
@@ -2550,6 +2574,9 @@ impl App {
             if age < BUDS_MODE_MOMENT_MS {
                 sooner(BUDS_MODE_MOMENT_MS - age + 5);
             }
+        }
+        if let FitTest::Running { since_ms } = self.buds_fit {
+            sooner((since_ms + FIT_TIMEOUT_MS).saturating_sub(now) + 5);
         }
         // A new lyric line moving into place: repaint each frame until it lands.
         if let (Some(OpenCard::Activity(ActivityKind::Media(id))), true) = (self.open, self.show_lyrics) {
@@ -2878,6 +2905,29 @@ impl App {
                     self.buds_worker.set_noise(mode);
                 }
             }
+            // Shown at once like the noise control; the next extended status says what's true.
+            CardAction::BudsTouch => {
+                if let Some(t) = self.buds.as_mut().and_then(|(b, _)| b.touch.as_mut()) {
+                    t.on = !t.on;
+                    self.buds_worker.set_touch(t, t.on);
+                }
+            }
+            CardAction::BudsHold(byte) => {
+                if let (Some(action), Some(t)) = (HoldAction::from_byte(byte), self.buds.as_mut().and_then(|(b, _)| b.touch.as_mut())) {
+                    t.hold = [byte, byte];
+                    self.buds_worker.set_hold(action);
+                }
+            }
+            CardAction::BudsFit => {
+                let now = now_ms();
+                let fit = self.buds_fit.expired(now);
+                if matches!(fit, FitTest::Running { .. }) {
+                    self.leave_buds_fit();
+                } else if self.buds.is_some_and(|(b, _)| fit_can_press(fit, b.worn)) {
+                    self.buds_fit = FitTest::Running { since_ms: now };
+                    self.buds_worker.fit_test(true);
+                }
+            }
             CardAction::ShelfRemove(i) => {
                 self.shelf.remove(i);
                 self.shelf_hover = None;
@@ -2966,8 +3016,18 @@ impl App {
         Ok(())
     }
 
-    /// Takes the Buds worker's latest reading; a first reading marks the moment they connected.
+    /// Takes the Buds worker's latest reading (a first reading marks the moment they connected)
+    /// and fit test result.
     fn take_buds(&mut self) -> Result<()> {
+        if let Some((left, right)) = self.buds_fit_mailbox.lock().ok().and_then(|mut slot| slot.take()) {
+            log(&format!("buds: fit L {left:?} R {right:?}"));
+            // The Buds stop their tone on a stop request (Galaxy Buds Manager sends one too).
+            if matches!(self.buds_fit.expired(now_ms()), FitTest::Running { .. }) {
+                self.buds_worker.fit_test(false);
+                self.buds_fit = FitTest::Done(left, right);
+                self.refresh()?;
+            }
+        }
         let fresh = self.buds_mailbox.lock().ok().and_then(|mut slot| slot.take());
         if let Some(reading) = fresh {
             let connected_ms = self.buds.map_or_else(now_ms, |(_, at)| at);
@@ -2986,6 +3046,9 @@ impl App {
                     log(&format!("buds: worn L {} R {} (was L {} R {})", new.worn.left, new.worn.right, old.worn.left, old.worn.right));
                     self.follow_ears(old.worn, new.worn, now);
                 }
+            }
+            if reading.is_none() {
+                self.buds_fit = FitTest::Idle;
             }
             self.buds = reading.map(|b| (b, connected_ms));
             self.refresh()?;
@@ -3266,6 +3329,15 @@ impl App {
             None => return Ok(()),
         }
         self.refresh()
+    }
+
+    /// The fit test stops (the Buds' tone with it) and its result goes: the card closed or shows
+    /// something else.
+    fn leave_buds_fit(&mut self) {
+        if matches!(self.buds_fit, FitTest::Running { .. }) {
+            self.buds_worker.fit_test(false);
+        }
+        self.buds_fit = FitTest::Idle;
     }
 
     fn leave_output_page(&mut self) {
@@ -3814,6 +3886,7 @@ impl App {
         let which = OpenCard::Activity(kind);
         let Some(new) = self.card_content(which, now) else { return Ok(()) };
         self.leave_output_page();
+        self.leave_buds_fit();
         let s = self.ui.card_scale;
         let old_size = self.open.and_then(|o| self.card_content(o, now)).map(|c| card_size_dip(&c));
         let (wd, hd) = card_size_dip(&new);
@@ -3970,6 +4043,7 @@ impl App {
         self.card_hover = false;
         self.leave_question();
         self.leave_output_page();
+        self.leave_buds_fit();
         self.ui.card_window.hide_hit();
         // Into the pill as it is now (after a resize the shape's start is the previous card).
         self.stop_brief_idle();
