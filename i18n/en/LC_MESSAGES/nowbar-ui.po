@@ -3517,3 +3517,183 @@ msgstr "Touch and hold"
 #: src/render/card.rs
 msgid "Uyum testi"
 msgstr "Fit test"
+
+#: src/activities/buds.rs
+msgid "Bilgisayarda"
+msgstr "On the PC"
+
+#: src/activities/buds_controls.rs
+msgid "Bas güçlendirme"
+msgstr "Bass boost"
+
+#: src/activities/buds_controls.rs
+msgid "Yumuşak"
+msgstr "Soft"
+
+#: src/activities/buds_controls.rs
+msgid "Dinamik"
+msgstr "Dynamic"
+
+#: src/activities/buds_controls.rs
+msgid "Net"
+msgstr "Clear"
+
+#: src/activities/buds_controls.rs
+msgid "Tiz güçlendirme"
+msgstr "Treble boost"
+
+#: src/activities/buds_controls.rs
+msgid "Yaklaşık {}"
+msgstr "About {}"
+
+#: src/render/card/buds.rs
+msgid "Ekolayzer"
+msgstr "Equalizer"
+
+#: src/render/card/buds.rs
+msgid "Kulaklığımı bul"
+msgstr "Find my earbuds"
+
+#: src/render/card/buds.rs
+msgid "Dokunmatik"
+msgstr "Touch"
+
+#: src/render/card/buds.rs
+msgid "Gelişmiş ayarlar"
+msgstr "Advanced settings"
+
+#: src/render/card/buds.rs
+msgid "Şarjda"
+msgstr "Charging"
+
+#: src/render/card/buds.rs
+msgid "Kulakta"
+msgstr "In the ear"
+
+#: src/render/card/buds.rs
+msgid "Kutuda"
+msgstr "In the case"
+
+#: src/render/card/buds.rs
+msgid "Dışarıda"
+msgstr "Out"
+
+#: src/render/card/buds.rs
+msgid "Bağlı değil"
+msgstr "Not connected"
+
+#: src/render/card/buds.rs
+msgid "Mikrofonu kapat"
+msgstr "Mute the microphone"
+
+#: src/render/card/buds.rs
+msgid "Oynat / duraklat"
+msgstr "Play / pause"
+
+#: src/render/card/buds.rs
+msgid "Sonraki parça"
+msgstr "Next track"
+
+#: src/render/card/buds.rs
+msgid "{} dinleme"
+msgstr "{} of listening"
+
+#: src/render/card/buds.rs
+msgid "Çalıyor"
+msgstr "Ringing"
+
+#: src/render/card/buds.rs
+msgid "Ortam sesi düzeyi"
+msgstr "Ambient sound level"
+
+#: src/render/card/buds.rs
+msgid "Düşük"
+msgstr "Low"
+
+#: src/render/card/buds.rs
+msgid "Yüksek"
+msgstr "High"
+
+#: src/render/card/buds.rs
+msgid "Tek kulaklıkla gürültü kontrolü"
+msgstr "Noise control with one earbud"
+
+#: src/render/card/buds.rs
+msgid "Ortam sesini özelleştir"
+msgstr "Customise ambient sound"
+
+#: src/render/card/buds.rs
+msgid "Ton"
+msgstr "Tone"
+
+#: src/render/card/buds.rs
+msgid "Kulaklıklar çalıyor"
+msgstr "The earbuds are ringing"
+
+#: src/render/card/buds.rs
+msgid "Kulaklıklar yüksek sesle öter"
+msgstr "The earbuds ring loudly"
+
+#: src/render/card/buds.rs
+msgid "Önce kulaklıkları kulağından çıkar"
+msgstr "Take the earbuds out of your ears first"
+
+#: src/render/card/buds.rs
+msgid "Solu sustur"
+msgstr "Mute left"
+
+#: src/render/card/buds.rs
+msgid "Sol susturuldu"
+msgstr "Left muted"
+
+#: src/render/card/buds.rs
+msgid "Sağı sustur"
+msgstr "Mute right"
+
+#: src/render/card/buds.rs
+msgid "Sağ susturuldu"
+msgstr "Right muted"
+
+#: src/render/card/buds.rs
+msgid "Basılı tutunca bilgisayar şunu yapar:"
+msgstr "A long press makes the PC:"
+
+#: src/render/card/buds.rs
+msgid "Kenara çift dokunma"
+msgstr "Double tap the edge"
+
+#: src/render/card/buds.rs
+msgid "Solda sesi kısar, sağda açar"
+msgstr "Volume down on the left, up on the right"
+
+#: src/render/card/buds.rs
+msgid "Görüşmede kendi sesini duy"
+msgstr "Hear your own voice in calls"
+
+#: src/render/card/buds.rs
+msgid "Konuşurken sesin kulaklıktan da gelir"
+msgstr "You hear yourself as you talk"
+
+#: src/render/card/buds.rs
+msgid "Kesintisiz bağlantı"
+msgstr "Seamless connection"
+
+#: src/render/card/buds.rs
+msgid "Galaxy cihazların arasında kendiliğinden geçer"
+msgstr "Switches between your Galaxy devices by itself"
+
+#: src/render/card/buds.rs
+msgid "Model"
+msgstr "Model"
+
+#: src/render/card/buds.rs
+msgid "Yazılım sürümü"
+msgstr "Software version"
+
+#: src/render/card/buds.rs
+msgid "Sol kulaklık"
+msgstr "Left earbud"
+
+#: src/render/card/buds.rs
+msgid "Sağ kulaklık"
+msgstr "Right earbud"

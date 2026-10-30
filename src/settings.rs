@@ -36,6 +36,17 @@ pub enum TrayClick {
     Settings,
 }
 
+/// What a long press on the Buds does when their touch and hold is the PC's.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BudsPcAction {
+    #[default]
+    MicMute,
+    PlayPause,
+    Next,
+    Screenshot,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PillSize {
@@ -199,6 +210,8 @@ pub struct Settings {
     pub buds_ear_pause: bool,
     /// The pair to use (`None`: whichever paired Buds connect).
     pub buds_device: Option<BudsDevice>,
+    /// A long press on the Buds when the card set touch and hold to "Bilgisayarda".
+    pub buds_pc_action: BudsPcAction,
     // Canlı maç
     pub match_teams: Vec<FollowedTeam>,
     pub match_show_before_min: u32,
@@ -343,6 +356,7 @@ impl Default for Settings {
             buds_show_case: true,
             buds_ear_pause: true,
             buds_device: None,
+            buds_pc_action: BudsPcAction::MicMute,
             match_teams: Vec::new(),
             match_show_before_min: 60,
             match_keep_after_min: 30,
@@ -546,6 +560,13 @@ pub fn with_api_answer(disk: Option<Settings>, running: &Settings, answer: ApiAp
     s.sanitized()
 }
 
+/// The Buds card's choice of what a long press does on the PC, over the file's settings.
+pub fn with_buds_pc_action(disk: Option<Settings>, running: &Settings, action: BudsPcAction) -> Settings {
+    let mut s = disk.unwrap_or_else(|| running.clone());
+    s.buds_pc_action = action;
+    s.sanitized()
+}
+
 /// The settings window's answers before it changes one: the file's (the Now Bar may have kept
 /// one since the window opened), in its working copy and in what it last saved, so its save
 /// changes only the one it touched.
@@ -598,6 +619,14 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("nowbar-settings-test-{}-{name}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         dir.join("settings.json")
+    }
+
+    #[test]
+    fn the_buds_pc_action_is_kept() {
+        assert_eq!(Settings::default().buds_pc_action, BudsPcAction::MicMute);
+        assert_eq!(parse(r#"{"buds_pc_action": "next"}"#).buds_pc_action, BudsPcAction::Next);
+        let changed = with_buds_pc_action(None, &Settings::default(), BudsPcAction::Screenshot);
+        assert_eq!(changed.buds_pc_action, BudsPcAction::Screenshot);
     }
 
     #[test]

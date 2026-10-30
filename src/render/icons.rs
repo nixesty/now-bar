@@ -49,10 +49,16 @@ pub enum Icon {
     Share,
     Copy,
     Shrink,
+    /// The Buds card's rows: a page's chevron, the equalizer, touch, the system page, charging.
+    ChevronRight,
+    Equalizer,
+    Touch,
+    Info,
+    Bolt,
 }
 
 impl Icon {
-    pub const ALL: [Icon; 42] = [
+    pub const ALL: [Icon; 47] = [
         Icon::Play,
         Icon::Pause,
         Icon::Prev,
@@ -95,6 +101,11 @@ impl Icon {
         Icon::Share,
         Icon::Copy,
         Icon::Shrink,
+        Icon::ChevronRight,
+        Icon::Equalizer,
+        Icon::Touch,
+        Icon::Info,
+        Icon::Bolt,
     ];
 }
 
@@ -145,6 +156,11 @@ pub fn glyph(i: Icon) -> char {
         Icon::Copy => '\u{E8C8}',
         // BackToWindow: two arrows coming in.
         Icon::Shrink => '\u{E73F}',
+        Icon::ChevronRight => '\u{E76C}',
+        Icon::Equalizer => '\u{E9E9}',
+        Icon::Touch => '\u{E815}',
+        Icon::Info => '\u{E946}',
+        Icon::Bolt => '\u{E945}',
     }
 }
 

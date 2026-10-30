@@ -10,7 +10,7 @@ use windows::Win32::Media::Audio::Endpoints::{
     IAudioEndpointVolume, IAudioEndpointVolumeCallback, IAudioEndpointVolumeCallback_Impl, IAudioMeterInformation,
 };
 use windows::Win32::Media::Audio::{
-    eConsole, eMultimedia, eRender, AUDIO_VOLUME_NOTIFICATION_DATA, EDataFlow, ERole, IMMDevice, IMMDeviceEnumerator, IMMNotificationClient,
+    eCapture, eCommunications, eConsole, eMultimedia, eRender, AUDIO_VOLUME_NOTIFICATION_DATA, EDataFlow, ERole, IMMDevice, IMMDeviceEnumerator, IMMNotificationClient,
     IMMNotificationClient_Impl, MMDeviceEnumerator, PKEY_AudioEndpoint_FormFactor, DEVICE_STATE, DEVICE_STATE_ACTIVE,
 };
 use windows::Win32::System::Com::StructuredStorage::{PropVariantToStringAlloc, PropVariantToUInt32};
@@ -229,6 +229,16 @@ pub fn output_muted(id: &str) -> Option<bool> {
 
 pub fn set_output_mute(id: &str, mute: bool) -> Result<()> {
     unsafe { endpoint_volume(id)?.SetMute(mute, std::ptr::null()) }
+}
+
+/// Mutes or unmutes the microphone calls use (the default communications one); its new state.
+pub fn toggle_mic_mute() -> Result<bool> {
+    unsafe {
+        let volume: IAudioEndpointVolume = enumerator()?.GetDefaultAudioEndpoint(eCapture, eCommunications)?.Activate(CLSCTX_ALL, None)?;
+        let muted = !volume.GetMute()?.as_bool();
+        volume.SetMute(muted, std::ptr::null())?;
+        Ok(muted)
+    }
 }
 
 #[implement(IAudioEndpointVolumeCallback)]

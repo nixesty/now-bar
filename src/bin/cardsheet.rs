@@ -1,11 +1,13 @@
 //! Dev tool: renders sample cards to a PNG on a stand-in for the card material, to check card
 //! layouts without touching the screen. Usage: `cardsheet [out.png]`.
 
-use nowbar::activities::buds::{BudsSnapshot, Fit, FitTest, NoiseControl, Touch, Worn};
+use nowbar::activities::buds::{BudsSnapshot, Charging, Fit, FitTest, NoiseControl, Place, Touch, Worn};
+use nowbar::activities::buds_controls::{AmbientCustom, Buds2Settings, Equalizer, Health};
+use nowbar::settings::BudsPcAction;
 use nowbar::activities::media::{Caps, MediaSnapshot, Timeline};
 use nowbar::platform::audio::{list_outputs, output_volume, picker_order, OutputBus, OutputKind};
 use nowbar::activities::live::{AppIcon, LiveState};
-use nowbar::render::card::{card_size_dip, card_tint, output_subline, paint_card, AppCard, BudsCard, AwayCard, AwayRow, BriefCard, MusicCard, MusicRow, QuestionCard, QuestionShow, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LiveCard, LyricsView, MediaCard, MediaPage, OutputPage, OutputRow, ShelfCard, ShelfTile, SubTone, WeatherCard, GameCard, WellbeingApp, WellbeingCard, GAME_COVER_DIP};
+use nowbar::render::card::{card_size_dip, card_tint, output_subline, paint_card, AppCard, BudsCard, BudsPage, AwayCard, AwayRow, BriefCard, MusicCard, MusicRow, QuestionCard, QuestionShow, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LiveCard, LyricsView, MediaCard, MediaPage, OutputPage, OutputRow, ShelfCard, ShelfTile, SubTone, WeatherCard, GameCard, WellbeingApp, WellbeingCard, GAME_COVER_DIP};
 use nowbar::activities::games::Store;
 use nowbar::activities::shelf::{file_kind, op_label, ops, ShelfItem, ShelfOp};
 use nowbar::activities::claude::StepKind;
@@ -192,17 +194,43 @@ fn main() -> Result<()> {
     let out = std::env::args().skip(1).find(|a| a != "--en").unwrap_or_else(|| std::env::temp_dir().join("cardsheet.png").to_string_lossy().into_owned());
     unsafe { CoInitializeEx(None, COINIT_MULTITHREADED).ok()? };
     let s = Scale(1.25);
-    let buds = BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), worn: Default::default(), touch: None };
-    // The touch panel: worn, touches on, noise control on hold; then the test running, a result
-    // with touches off and volume on hold, and one bud out.
+    // The Buds manager: a Buds2 (made-up readings) on every page, then a model whose settings
+    // aren't read here.
     let touch = Touch { on: true, gestures: 0x3F, hold: [2, 2], calls: true };
-    let worn = BudsSnapshot { case: None, worn: Worn { left: true, right: true }, touch: Some(touch), ..buds };
+    let settings = Buds2Settings { eq: Equalizer::BassBoost, ambient: 1, seamless: true, anc_one: Some(false), custom: Some(AmbientCustom { on: true, left: 1, right: 2, tone: 3 }), edge_tap: Some(true), sidetone: Some(false) };
+    let buds2 = BudsSnapshot {
+        left: 93,
+        right: 83,
+        case: Some(60),
+        noise: Some(NoiseControl::Anc),
+        worn: Worn { left: false, right: true },
+        touch: Some(touch),
+        place: [Place::InCase, Place::Worn],
+        charging: Some(Charging { left: true, ..Default::default() }),
+        model: Some(316),
+        settings: Some(settings),
+    };
+    let buds = BudsCard {
+        b: buds2,
+        health: Some(Health { temp: [35.9, 34.1], volt: [4.30, 4.01] }),
+        firmware: Some("R177XXU0AXL3".into()),
+        capacity: Some(58),
+        remaining: Some(nowbar::activities::buds_controls::remaining_text(200)),
+        ..Default::default()
+    };
+    let out_of_ears = BudsSnapshot { worn: Worn::default(), place: [Place::Out, Place::Out], charging: Some(Charging::default()), ..buds2 };
+    let pc = BudsSnapshot { touch: Some(Touch { hold: [5, 6], ..touch }), ..buds2 };
     let buds_cards = [
-        BudsCard { b: buds, fit: FitTest::Idle },
-        BudsCard { b: worn, fit: FitTest::Idle },
-        BudsCard { b: worn, fit: FitTest::Running { since_ms: 0 } },
-        BudsCard { b: BudsSnapshot { touch: Some(Touch { on: false, hold: [3, 3], ..touch }), ..worn }, fit: FitTest::Done(Fit::Good, Fit::Bad) },
-        BudsCard { b: BudsSnapshot { worn: Worn { left: true, right: false }, touch: Some(Touch { hold: [2, 3], ..touch }), ..worn }, fit: FitTest::Idle },
+        buds.clone(),
+        BudsCard { page: BudsPage::Noise, ..buds.clone() },
+        BudsCard { page: BudsPage::Equalizer, ..buds.clone() },
+        BudsCard { page: BudsPage::Find, ..buds.clone() },
+        BudsCard { page: BudsPage::Find, b: out_of_ears, finding: true, muted: [true, false], ..buds.clone() },
+        BudsCard { page: BudsPage::Touch, b: pc, pc_action: BudsPcAction::PlayPause, ..buds.clone() },
+        BudsCard { page: BudsPage::Advanced, fit: FitTest::Done(Fit::Good, Fit::Bad), ..buds.clone() },
+        BudsCard { page: BudsPage::System, ..buds.clone() },
+        BudsCard { b: BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), ..Default::default() }, ..Default::default() },
+        BudsCard { b: BudsSnapshot { model: Some(314), place: [Place::Worn, Place::Worn], charging: Some(Charging { case: true, ..Default::default() }), ..buds2 }, ..buds.clone() },
     ];
 
     // The output page with the devices of this PC, as the app would build it.
@@ -214,7 +242,7 @@ fn main() -> Result<()> {
         .map(|(i, &d)| {
             let d = &devices[d];
             let is_buds = d.bus == OutputBus::Bluetooth && d.name.contains("Buds");
-            let sub = if i == 0 && !is_buds { "Şu anda çalıyor".to_string() } else { output_subline(d.bus, is_buds.then_some(&buds)) };
+            let sub = if i == 0 && !is_buds { "Şu anda çalıyor".to_string() } else { output_subline(d.bus, is_buds.then_some(&buds.b)) };
             let tone = if i == 2 { SubTone::Busy } else { SubTone::Normal };
             OutputRow { name: d.name.clone(), kind: d.kind, earbuds: d.kind == OutputKind::Bluetooth && is_buds, sub, tone }
         })
@@ -303,11 +331,16 @@ fn main() -> Result<()> {
         CardContent::Media(Box::new(lyrics)),
         CardContent::Media(Box::new(moving)),
         CardContent::Media(Box::new(output)),
-        CardContent::Buds(buds_cards[0]),
-        CardContent::Buds(buds_cards[1]),
-        CardContent::Buds(buds_cards[2]),
-        CardContent::Buds(buds_cards[3]),
-        CardContent::Buds(buds_cards[4]),
+        CardContent::Buds(buds_cards[0].clone()),
+        CardContent::Buds(buds_cards[1].clone()),
+        CardContent::Buds(buds_cards[2].clone()),
+        CardContent::Buds(buds_cards[3].clone()),
+        CardContent::Buds(buds_cards[4].clone()),
+        CardContent::Buds(buds_cards[5].clone()),
+        CardContent::Buds(buds_cards[6].clone()),
+        CardContent::Buds(buds_cards[7].clone()),
+        CardContent::Buds(buds_cards[8].clone()),
+        CardContent::Buds(buds_cards[9].clone()),
         CardContent::Weather(Box::new(weather)),
         CardContent::Weather(Box::new(windy)),
         CardContent::Wellbeing(Box::new(WellbeingCard {

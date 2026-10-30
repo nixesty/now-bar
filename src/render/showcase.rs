@@ -49,7 +49,7 @@ pub fn pills() -> Vec<PillContent> {
         PillContent::media(song),
         PillContent::Live { key: 1, title: "now-bar".into(), status: "4:12".into(), claude: true, state: LiveState::Run, action: format!("{}: app.rs", crate::i18n::tr("Düzenliyor")) },
         PillContent::Match(Box::new(game)),
-        PillContent::Buds(BudsSnapshot { left: 80, right: 75, case: Some(60), noise: None, worn: Worn { left: true, right: true }, touch: None }),
+        PillContent::Buds(BudsSnapshot { left: 80, right: 75, case: Some(60), noise: None, worn: Worn { left: true, right: true }, ..Default::default() }),
         PillContent::Shelf {
             label: "sunum-final.pdf".into(),
             count: 3,

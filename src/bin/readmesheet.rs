@@ -252,8 +252,8 @@ fn main() -> Result<()> {
         alert: None,
     };
     sheet.card("card-weather", &CardContent::Weather(Box::new(weather)), &s)?;
-    let buds = BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), worn: Default::default(), touch: None };
-    sheet.card("card-buds", &CardContent::Buds(BudsCard { b: buds, fit: Default::default() }), &s)?;
+    let buds = BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), worn: Default::default(), ..Default::default() };
+    sheet.card("card-buds", &CardContent::Buds(BudsCard { b: buds, ..Default::default() }), &s)?;
     let claude = ClaudeCard {
         key: 1,
         title: "now-bar".into(),
@@ -344,7 +344,7 @@ fn main() -> Result<()> {
         ("pill-weather", PillContent::Weather { symbol: symbol(0, true).into(), temp: "24°".into(), desc: describe(0).into(), fx: WeatherFx::Sunny }),
         ("pill-rain", PillContent::Rain { snow: false, when: "~20 dk içinde".into() }),
         ("pill-power", PillContent::Power { pct: 80, low: false }),
-        ("pill-buds", PillContent::Buds(BudsSnapshot { left: 60, right: 70, case: Some(40), noise: None, worn: Worn { left: true, right: true }, touch: None })),
+        ("pill-buds", PillContent::Buds(BudsSnapshot { left: 60, right: 70, case: Some(40), noise: None, worn: Worn { left: true, right: true }, ..Default::default() })),
         ("pill-claude", PillContent::Live { key: 1, title: "now-bar".into(), status: "İzin istiyor".into(), claude: true, state: LiveState::Wait, action: "Bash".into() }),
         ("pill-privacy", PillContent::Privacy { app: "Zoom".into(), mic: true, cam: true, more: 0 }),
         ("pill-game", PillContent::Game { key: 1, store: Store::Steam, title: "Counter-Strike 2".into(), line: "%48 · 18 MB/sn".into(), progress: Some(0.48), art: None, done: false, paused: false }),

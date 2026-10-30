@@ -9,6 +9,7 @@ pub mod basketball;
 pub mod basketball_worker;
 pub mod brief;
 pub mod buds;
+pub mod buds_controls;
 pub mod buds_worker;
 pub mod capture;
 pub mod claude;

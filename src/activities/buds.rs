@@ -71,7 +71,7 @@ pub struct Frame {
 /// One battery reading. `case` is known only while a bud sits in the case; `noise` once the
 /// Buds have said it (an extended status or a noise control update); `touch` from an extended
 /// status, on the models it's set on here.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct BudsSnapshot {
     pub left: u8,
     pub right: u8,
@@ -79,6 +79,53 @@ pub struct BudsSnapshot {
     pub noise: Option<NoiseControl>,
     pub worn: Worn,
     pub touch: Option<Touch>,
+    /// Where each bud is, left and right.
+    pub place: [Place; 2],
+    /// From an extended status at revision 10 and later; plain statuses follow it then.
+    pub charging: Option<Charging>,
+    /// The model id (with its colour), from an extended status.
+    pub model: Option<u16>,
+    /// A Buds2's other settings.
+    pub settings: Option<crate::activities::buds_controls::Buds2Settings>,
+}
+
+/// Where a bud is.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Place {
+    /// Not linked to its pair.
+    Off,
+    Worn,
+    /// Out of the ear and the case.
+    #[default]
+    Out,
+    /// In the case, open or closed.
+    InCase,
+}
+
+impl Place {
+    fn from_nibble(n: u8) -> Place {
+        match n {
+            0 => Place::Off,
+            WEARING => Place::Worn,
+            IN_OPEN_CASE | IN_CLOSED_CASE => Place::InCase,
+            _ => Place::Out,
+        }
+    }
+}
+
+/// What charges: 0x61 [36] / 0x60 [7], 0x10 left, 0x04 right, 0x01 the case (GBC knows no other
+/// bit).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Charging {
+    pub left: bool,
+    pub right: bool,
+    pub case: bool,
+}
+
+impl Charging {
+    fn from_byte(b: u8) -> Charging {
+        Charging { left: b & 0x10 != 0, right: b & 0x04 != 0, case: b & 0x01 != 0 }
+    }
 }
 
 /// Galaxy Wearable's touch controls: whether touching the buds does anything, which gestures
@@ -95,13 +142,13 @@ pub struct Touch {
 }
 
 impl Touch {
-    /// The touch and hold both buds share, when the card offers it.
+    /// The touch and hold the buds have together, when the card offers it.
     pub fn hold_both(&self) -> Option<HoldAction> {
-        (self.hold[0] == self.hold[1]).then(|| HoldAction::from_byte(self.hold[0])).flatten()
+        HoldAction::from_bytes(self.hold)
     }
 }
 
-/// Touch and hold as the card offers it: Spotify and an app's own need the phone.
+/// Touch and hold as the card offers it (Spotify needs the phone).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HoldAction {
     NoiseControl,
@@ -109,21 +156,25 @@ pub enum HoldAction {
     Volume,
     /// The phone's assistant.
     Voice,
+    /// The Buds tell the PC (5 left, 6 right), which does what the settings say.
+    Pc,
 }
 
 impl HoldAction {
-    pub const ALL: [HoldAction; 3] = [HoldAction::NoiseControl, HoldAction::Volume, HoldAction::Voice];
+    pub const ALL: [HoldAction; 4] = [HoldAction::NoiseControl, HoldAction::Volume, HoldAction::Voice, HoldAction::Pc];
 
-    pub fn byte(self) -> u8 {
+    /// Left and right.
+    pub fn bytes(self) -> [u8; 2] {
         match self {
-            HoldAction::Voice => 1,
-            HoldAction::NoiseControl => 2,
-            HoldAction::Volume => 3,
+            HoldAction::Voice => [1, 1],
+            HoldAction::NoiseControl => [2, 2],
+            HoldAction::Volume => [3, 3],
+            HoldAction::Pc => [5, 6],
         }
     }
 
-    pub fn from_byte(b: u8) -> Option<HoldAction> {
-        HoldAction::ALL.into_iter().find(|a| a.byte() == b)
+    pub fn from_bytes(b: [u8; 2]) -> Option<HoldAction> {
+        HoldAction::ALL.into_iter().find(|a| a.bytes() == b)
     }
 
     pub fn label(self) -> &'static str {
@@ -131,6 +182,7 @@ impl HoldAction {
             HoldAction::NoiseControl => crate::i18n::tr("Gürültü kontrolü"),
             HoldAction::Volume => crate::i18n::tr("Ses düzeyi"),
             HoldAction::Voice => crate::i18n::tr("Sesli komut"),
+            HoldAction::Pc => crate::i18n::tr("Bilgisayarda"),
         }
     }
 }
@@ -314,7 +366,12 @@ impl NoiseControl {
 pub fn next_snapshot(f: &Frame, last: Option<BudsSnapshot>) -> Option<BudsSnapshot> {
     match f.id {
         EXTENDED_STATUS_UPDATED => parse_status(f),
-        STATUS_UPDATED => parse_status(f).map(|s| BudsSnapshot { noise: last.and_then(|l| l.noise), touch: last.and_then(|l| l.touch), ..s }),
+        // What only an extended status says stays; the charging byte counts once it said the
+        // revision has one.
+        STATUS_UPDATED => parse_status(f).map(|s| {
+            let charging = last.and_then(|l| l.charging).and(f.payload.get(7)).map(|b| Charging::from_byte(*b));
+            BudsSnapshot { noise: last.and_then(|l| l.noise), touch: last.and_then(|l| l.touch), model: last.and_then(|l| l.model), settings: last.and_then(|l| l.settings), charging, ..s }
+        }),
         NOISE_CONTROLS_UPDATE => last.map(|l| BudsSnapshot { noise: f.payload.first().and_then(|b| NoiseControl::from_byte(*b)), ..l }),
         _ => None,
     }
@@ -432,9 +489,9 @@ pub fn touch_frame(t: &Touch, on: bool) -> Vec<u8> {
     encode(LOCK_TOUCHPAD, &payload)
 }
 
-/// The request that sets touch and hold, the same on both buds.
+/// The request that sets touch and hold on both buds.
 pub fn hold_frame(action: HoldAction) -> Vec<u8> {
-    encode(SET_TOUCHPAD_OPTION, &[action.byte(), action.byte()])
+    encode(SET_TOUCHPAD_OPTION, &action.bytes())
 }
 
 /// The request that starts the fit test (its tone) or stops it.
@@ -442,12 +499,16 @@ pub fn fit_frame(on: bool) -> Vec<u8> {
     encode(CHECK_FIT, &[on as u8])
 }
 
-/// The Buds' answers to the touch and fit requests (0x42 ACK [id, …]), a touch change made
-/// elsewhere (0x91), a fit result: what the worker logs beyond the first frames.
+/// The Buds' answers to the card's requests (0x42 ACK [id, …]; not the noise control's, which
+/// are many), a touch change made elsewhere (0x91), a fit result, a long press for the PC (0x93),
+/// find my earbuds stopping or muting (0xA1, 0xA3): what the worker logs beyond the first frames.
 pub fn is_news(f: &Frame) -> bool {
+    // The card's other requests: equalizer, ambient sound, its customisation, one-earbud noise
+    // control, edge taps, sidetone, seamless connection, find my earbuds and its mute.
+    const SETTINGS: [u8; 10] = [0x86, 0x84, 0x82, 0x6F, 0x95, 0x8B, 0xAF, 0xA0, 0xA1, 0xA2];
     match f.id {
-        ACK => matches!(f.payload.first(), Some(&(LOCK_TOUCHPAD | SET_TOUCHPAD_OPTION | CHECK_FIT))),
-        TOUCH_UPDATED | FIT_RESULT => true,
+        ACK => f.payload.first().is_some_and(|id| matches!(*id, LOCK_TOUCHPAD | SET_TOUCHPAD_OPTION | CHECK_FIT) || SETTINGS.contains(id)),
+        TOUCH_UPDATED | FIT_RESULT | 0x93 | 0xA1 | 0xA3 => true,
         _ => false,
     }
 }
@@ -548,7 +609,21 @@ pub fn parse_status(f: &Frame) -> Option<BudsSnapshot> {
     let in_case = docked(p[placement] >> 4) || docked(p[placement] & 0x0F);
     let case = Some(p[case]).filter(|c| in_case && (1..=100).contains(c));
     let worn = Worn { left: p[placement] >> 4 == WEARING, right: p[placement] & 0x0F == WEARING };
-    Some(BudsSnapshot { left: p[left], right: p[right], case, noise: parse_noise(f), worn, touch: parse_touch(f) })
+    let place = [Place::from_nibble(p[placement] >> 4), Place::from_nibble(p[placement] & 0x0F)];
+    // Buds2's [36] from revision 10 (later models keep it elsewhere: GBC's decoder L534-593).
+    let charging = (f.id == EXTENDED_STATUS_UPDATED && p[0] >= 10 && matches!(model_id(f), Some(313..=321))).then(|| p.get(36).map(|b| Charging::from_byte(*b))).flatten();
+    Some(BudsSnapshot {
+        left: p[left],
+        right: p[right],
+        case,
+        noise: parse_noise(f),
+        worn,
+        touch: parse_touch(f),
+        place,
+        charging,
+        model: model_id(f),
+        settings: crate::activities::buds_controls::parse_settings(f),
+    })
 }
 
 /// Below this (settings, 15 % by default) the Buds come to the front and their rings turn red.
@@ -598,7 +673,7 @@ mod tests {
 
     #[test]
     fn adaptive_is_read_not_mistaken_for_the_last_mode() {
-        let anc = BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: Worn::default(), touch: None };
+        let anc = BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: Worn::default(), ..Default::default() };
         assert_eq!(next_snapshot(&extended_with_noise(3), Some(anc)).unwrap().noise, Some(NoiseControl::Adaptive));
         assert_eq!(next_snapshot(&extended_with_noise(9), Some(anc)).unwrap().noise, None, "an unknown mode is unknown, not the last one");
         let update = |b: u8| Frame { id: 0x77, payload: vec![b] };
@@ -800,12 +875,62 @@ mod tests {
     }
 
     #[test]
+    fn where_each_bud_is() {
+        let s = parse_status(&frames_of(&hex(EXTENDED_IN_CASE))[0]).unwrap();
+        assert_eq!(s.place, [Place::Worn, Place::InCase]);
+        let mut f = take_frames(&mut hex(REAL_EXTENDED)).remove(0);
+        f.payload[6] = 0x20;
+        assert_eq!(parse_status(&f).unwrap().place, [Place::Out, Place::Off]);
+        f.payload[6] = 0x42;
+        assert_eq!(parse_status(&f).unwrap().place, [Place::InCase, Place::Out], "the closed case too");
+    }
+
+    #[test]
+    fn charging_from_revision_10() {
+        let mut f = take_frames(&mut hex(REAL_EXTENDED)).remove(0);
+        assert_eq!(parse_status(&f).unwrap().charging, Some(Charging::default()), "the capture: nothing charging");
+        f.payload[36] = 0x55;
+        assert_eq!(parse_status(&f).unwrap().charging, Some(Charging { left: true, right: true, case: true }));
+        f.payload[0] = 9;
+        assert_eq!(parse_status(&f).unwrap().charging, None);
+        // 0x60 [7] once an extended status said the revision has it.
+        let last = parse_status(&take_frames(&mut hex(REAL_EXTENDED)).remove(0));
+        let status = take_frames(&mut hex(STATUS_IN_CASE)).remove(0);
+        assert_eq!(next_snapshot(&status, last).unwrap().charging, Some(Charging { left: false, right: true, case: false }));
+        assert_eq!(next_snapshot(&status, None).unwrap().charging, None);
+    }
+
+    #[test]
+    fn the_model_and_settings_stay_through_other_updates() {
+        let last = parse_status(&take_frames(&mut hex(REAL_EXTENDED)).remove(0));
+        assert_eq!(last.unwrap().model, Some(316));
+        assert!(last.unwrap().settings.is_some());
+        let status = take_frames(&mut hex(STATUS_IN_CASE)).remove(0);
+        let next = next_snapshot(&status, last).unwrap();
+        assert_eq!((next.model, next.settings), (last.unwrap().model, last.unwrap().settings));
+        assert_eq!(parse_status(&status).unwrap().model, None, "0x60 alone doesn't say");
+    }
+
+    #[test]
+    fn touch_and_hold_on_the_pc() {
+        assert_eq!(frames_of(&hold_frame(HoldAction::Pc)), vec![Frame { id: 0x92, payload: vec![5, 6] }], "5 left, 6 right");
+        assert_eq!(Touch { hold: [5, 6], ..CAPTURE_TOUCH }.hold_both(), Some(HoldAction::Pc));
+        assert_eq!(Touch { hold: [5, 5], ..CAPTURE_TOUCH }.hold_both(), None);
+        assert_eq!(HoldAction::Pc.label(), "Bilgisayarda");
+    }
+
+    #[test]
     fn the_answers_to_touch_and_fit_requests_are_news() {
         assert!(is_news(&Frame { id: 0x42, payload: vec![0x90, 1, 1, 1, 1, 1, 1, 1] }), "the lock's ACK");
         assert!(is_news(&Frame { id: 0x42, payload: vec![0x92, 3, 3] }));
         assert!(is_news(&Frame { id: 0x42, payload: vec![0x9D, 1] }));
         assert!(is_news(&Frame { id: 0x91, payload: vec![1] }), "touch changed elsewhere");
         assert!(is_news(&Frame { id: 0x9E, payload: vec![1, 1] }));
+        assert!(is_news(&Frame { id: 0x42, payload: vec![0x86, 1] }), "the equalizer's ACK, and the other settings'");
+        assert!(is_news(&Frame { id: 0x42, payload: vec![0xAF, 0] }));
+        assert!(is_news(&Frame { id: 0x42, payload: vec![0xA0] }), "find my earbuds");
+        assert!(is_news(&Frame { id: 0x93, payload: vec![5] }), "a long press for the PC");
+        assert!(is_news(&Frame { id: 0xA3, payload: vec![0, 1] }));
         assert!(!is_news(&Frame { id: 0x42, payload: vec![0x78, 1] }), "noise control switches are many");
         assert!(!is_news(&Frame { id: 0x42, payload: vec![] }));
         assert!(!is_news(&frames_of(&hex(REAL_EXTENDED))[0]));
@@ -844,22 +969,27 @@ mod tests {
         });
     }
 
+    /// The fields every status has.
+    fn basics(s: BudsSnapshot) -> (u8, u8, Option<u8>, Option<NoiseControl>, Worn, Option<Touch>) {
+        (s.left, s.right, s.case, s.noise, s.worn, s.touch)
+    }
+
     #[test]
     fn parse_extended_status() {
         let f = &frames_of(&hex(EXTENDED_IN_CASE))[0];
-        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 85, right: 80, case: Some(60), noise: Some(NoiseControl::Anc), worn: LEFT_IN, touch: Some(CAPTURE_TOUCH) }));
+        assert_eq!(basics(parse_status(f).unwrap()), (85, 80, Some(60), Some(NoiseControl::Anc), LEFT_IN, Some(CAPTURE_TOUCH)));
     }
 
     #[test]
     fn parse_short_status() {
         let f = &frames_of(&hex(STATUS_IN_CASE))[0];
-        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: LEFT_IN, touch: None }));
+        assert_eq!(basics(parse_status(f).unwrap()), (85, 80, Some(60), None, LEFT_IN, None));
     }
 
     #[test]
     fn case_hidden_when_no_bud_in_case() {
         let f = &frames_of(&hex(REAL_EXTENDED))[0];
-        assert_eq!(parse_status(f), Some(BudsSnapshot { left: 100, right: 100, case: None, noise: Some(NoiseControl::Anc), worn: BOTH_IN, touch: Some(CAPTURE_TOUCH) }));
+        assert_eq!(basics(parse_status(f).unwrap()), (100, 100, None, Some(NoiseControl::Anc), BOTH_IN, Some(CAPTURE_TOUCH)));
     }
 
     #[test]
@@ -872,23 +1002,23 @@ mod tests {
     /// A bud reporting 0 has no reading (it is out of range), not an empty battery.
     #[test]
     fn zero_means_no_reading() {
-        let s = BudsSnapshot { left: 0, right: 80, case: None, noise: None, worn: Worn::default(), touch: None };
+        let s = BudsSnapshot { left: 0, right: 80, case: None, noise: None, worn: Worn::default(), ..Default::default() };
         assert_eq!(buds_labels(&s).0, "— · %80");
         assert!(!is_low(&s));
     }
 
     #[test]
     fn labels_show_case_only_when_known() {
-        let s = BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: Worn::default(), touch: None };
+        let s = BudsSnapshot { left: 85, right: 80, case: Some(60), noise: None, worn: Worn::default(), ..Default::default() };
         assert_eq!(buds_labels(&s), ("%85 · %80".to_string(), Some("Kutu %60".to_string())));
         assert_eq!(buds_labels(&BudsSnapshot { case: None, ..s }).1, None);
     }
 
     #[test]
     fn low_battery_below_15() {
-        assert!(is_low(&BudsSnapshot { left: 14, right: 80, case: None, noise: None, worn: Worn::default(), touch: None }));
-        assert!(is_low(&BudsSnapshot { left: 80, right: 9, case: Some(100), noise: None, worn: Worn::default(), touch: None }));
-        assert!(!is_low(&BudsSnapshot { left: 15, right: 80, case: None, noise: None, worn: Worn::default(), touch: None }));
+        assert!(is_low(&BudsSnapshot { left: 14, right: 80, case: None, noise: None, worn: Worn::default(), ..Default::default() }));
+        assert!(is_low(&BudsSnapshot { left: 80, right: 9, case: Some(100), noise: None, worn: Worn::default(), ..Default::default() }));
+        assert!(!is_low(&BudsSnapshot { left: 15, right: 80, case: None, noise: None, worn: Worn::default(), ..Default::default() }));
     }
 
     fn paired(address: &str, name: &str, samsung: bool) -> Paired {

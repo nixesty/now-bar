@@ -34,10 +34,13 @@ skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açıl
 - **Canlı maç:** takip ettiğin futbol ve basketbol takımlarının skoru, dakikası ve gol anları.
 - **Hava durumu:** boştayken saat ve hava durumu; yağmur, kar, fırtına, kuvvetli rüzgâr, aşırı
   sıcak, don ve kötü hava kalitesinde uyarı. Şehir seçilmemişse konum Windows'tan alınır.
-- **Galaxy Buds:** iki kulaklığın ve kutunun şarjı, gürültü kontrolü. Buds2, Buds2 Pro ve Buds
-  FE'de kartta dokunmatik kontroller, dokunup tutma ve uyum testi de var; bunlar kulaklığın
-  kendisinde saklanır, telefonda da geçerlidir. Birden fazla Buds eşleştirilmişse hangisinin
-  gösterileceği ayarlardan seçilir.
+- **Galaxy Buds:** kart Galaxy Wearable gibi: iki kulaklık ve kutu, şarjları, nerede oldukları,
+  sıcaklıkları ve kalan dinleme süresi; gürültü kontrolü. Buds2'de ekolayzer, ortam sesi düzeyi
+  ve ayarı, kulaklığımı bul, dokunmatik kontroller ve dokunup tutma (istersen basılı tutunca
+  bilgisayar mikrofonu kapatır, şarkıyı geçer…), kenara çift dokunma, görüşmede kendi sesini
+  duyma, kesintisiz bağlantı ve uyum testi de var; bunlar kulaklığın kendisinde saklanır,
+  telefonda da geçerlidir. Birden fazla Buds eşleştirilmişse hangisinin gösterileceği
+  ayarlardan seçilir.
 - **Claude Code:** Claude'un o an ne yaptığı ve görev listesi; izin istediğinde kartta
   **İzin ver / Reddet** düğmeleri çıkar ([aşağıda](#canlı-etkinlikler)).
 - **Claude'a sor:** Win+Alt+C ya da pile Ctrl ile tıklamak kartta bir yazı kutusu açar; cevap
@@ -334,6 +337,9 @@ Bu lisansın dışında kalanlar:
 
 - Galaxy Buds'ın gürültü kontrolü simgeleri (`src/activities/buds.rs`, `NoiseControl::icon`)
   Samsung'un SystemUI'ından çizildi ve Samsung'a aittir; README görsellerinde de görünürler.
+- Galaxy Buds2 görselleri (`assets/buds/`)
+  [GalaxyBudsClient](https://github.com/timschneeb/GalaxyBudsClient)'tan alındı; Samsung'un
+  ürün görselleridir ve Samsung'a aittir.
 - Claude'un işareti (`src/render/pill.rs`, `CLAUDE_ICON`) Anthropic'e aittir; o da görsellerde
   görünür.
 - Ayarlar penceresinin yazı tipi Inter, kendi lisansıyla gelir (SIL Open Font License,
@@ -342,4 +348,4 @@ Bu lisansın dışında kalanlar:
 ---
 
 <sub>Samsung ile bir ilgisi yoktur; One UI'dan esinlenmiş bağımsız bir projedir. Galaxy Buds'ın
-gürültü kontrolü simgeleri Samsung'a aittir.</sub>
+gürültü kontrolü simgeleri ve Buds2 görselleri Samsung'a aittir.</sub>
