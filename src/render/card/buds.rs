@@ -221,6 +221,18 @@ fn bud_colour(model: Option<u16>) -> (u8, u8, u8) {
     }
 }
 
+/// A Buds2 case's matte white.
+const CASE_WHITE: (u8, u8, u8) = (0xEC, 0xEC, 0xEA);
+
+/// The case's outside: a Buds2's is white with the colour inside it (Samsung: Olive, Lavender and
+/// the editions), but for Graphite, Onyx and the grey; the other models' cases are their colour.
+fn case_colour(model: Option<u16>) -> (u8, u8, u8) {
+    match model {
+        Some(313) | Some(315..=319) => CASE_WHITE,
+        m => bud_colour(m),
+    }
+}
+
 /// Buds3 and later have stems, and a wide case with a clear lid.
 fn has_stems(model: Option<u16>) -> bool {
     matches!(model, Some(333..=361))
@@ -381,7 +393,10 @@ impl Painter<'_, '_> {
                     Some(p) => self.ink.image_rounded(&p.px, p.size, rect(0.0, 0.0, p.size.0 as f32, p.size.1 as f32), picture, 0.0)?,
                     None => self.ink.svg(&bud_svg(i == 1), picture, rgba(cr, cg, cb, 1.0))?,
                 },
-                None => self.ink.svg(&if has_stems(c.b.model) { stem_case_svg(false) } else { case_svg(false) }, picture, rgba(cr, cg, cb, 1.0))?,
+                None => {
+                    let (r, g, b) = case_colour(c.b.model);
+                    self.ink.svg(&if has_stems(c.b.model) { stem_case_svg(false) } else { case_svg(false) }, picture, rgba(r, g, b, 1.0))?
+                }
             }
         }
 
@@ -442,7 +457,10 @@ impl Painter<'_, '_> {
                     None => self.ink.svg(&bud_svg(i == 1), picture, rgba(cr, cg, cb, 1.0))?,
                 },
                 // A case with no bud in it doesn't say its battery: it's drawn dim.
-                None => self.ink.svg(&if has_stems(b.model) { stem_case_svg(charge) } else { case_svg(charge) }, picture, rgba(cr, cg, cb, if pct.is_some() { 1.0 } else { 0.45 }))?,
+                None => {
+                    let (r, g, bl) = case_colour(b.model);
+                    self.ink.svg(&if has_stems(b.model) { stem_case_svg(charge) } else { case_svg(charge) }, picture, rgba(r, g, bl, if pct.is_some() { 1.0 } else { 0.45 }))?
+                }
             }
             let top = BLOCK_TOP + BUD_SIDE + 2.0;
             let pct_st = TextStyle::new(Face::Display, Weight::SemiBold, d(18.0), white(1.0)).tabular();
@@ -890,6 +908,19 @@ mod tests {
         assert!(render_of(315).is_none() && render_of(279).is_none(), "Buds2's yellow, a Buds Live");
         assert_eq!(bud_colour(Some(999)), (0x4A, 0x4C, 0x52));
         assert!(has_stems(Some(333)) && has_stems(Some(361)) && !has_stems(Some(331)));
+    }
+
+    #[test]
+    fn a_buds2_case_is_white_outside_but_for_the_dark_ones() {
+        // Olive, Lavender and the editions: a white case, the colour inside it.
+        for id in [313, 315, 316, 317, 318, 319] {
+            assert_eq!(case_colour(Some(id)), CASE_WHITE, "{id}");
+        }
+        // Graphite, Onyx and the grey: dark all over.
+        for id in [314, 320, 321] {
+            assert_eq!(case_colour(Some(id)), bud_colour(Some(id)), "{id}");
+        }
+        assert_eq!(case_colour(Some(328)), bud_colour(Some(328)), "a Buds2 Pro's case is its colour");
     }
 
     #[test]
