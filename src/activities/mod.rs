@@ -10,6 +10,8 @@ pub mod basketball_worker;
 pub mod brief;
 pub mod buds;
 pub mod buds_controls;
+pub mod buds_nearby;
+pub mod buds_nearby_worker;
 pub mod buds_worker;
 pub mod capture;
 pub mod claude;
@@ -196,6 +198,8 @@ fn rank(p: &Presence, now_ms: u64, keep_ms: u64, buds_front: u64) -> Option<u8> 
         (ActivityKind::Power, _) => None,
         (ActivityKind::Match(_), PresenceState::MatchMoment) => Some(1),
         (ActivityKind::Buds, PresenceState::Moment) if age < BUDS_MODE_MOMENT_MS => Some(1),
+        // The offer to connect (the case opened), while it waits.
+        (ActivityKind::Buds, PresenceState::Waiting) => Some(1),
         (ActivityKind::Timer | ActivityKind::Stopwatch, _) => Some(2),
         (ActivityKind::Match(_), PresenceState::MatchLive) => Some(3),
         (ActivityKind::Media(_), PresenceState::Playing) => Some(4),
@@ -447,6 +451,13 @@ mod tests {
         for kind in [Volume, Power, Privacy, Headset(3)] {
             assert!(!has_card(kind), "{kind:?}");
         }
+    }
+
+    #[test]
+    fn the_buds_offer_waits_at_the_front() {
+        // The case opened: the offer to connect stays ahead until it's answered or gone.
+        let live = [p(Media(1), Playing, 100), p(Buds, Waiting, 1_000)];
+        assert_eq!(stack_order(&live, 60_000, Some((Media(1), 2_000))).first(), Some(&Buds));
     }
 
     #[test]

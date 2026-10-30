@@ -24,6 +24,7 @@ impl App {
             finding: self.buds_find.running(now),
             muted: self.buds_find.muted,
             pc_action: settings::current().buds_pc_action,
+            offer: None,
         }
     }
 
@@ -49,6 +50,7 @@ impl App {
                 }
                 BudsNews::Muted(m) => self.buds_find.muted = m,
                 BudsNews::HoldPressed(side) => self.on_pc_hold(side),
+                n @ (BudsNews::Link { .. } | BudsNews::LidOpened { .. } | BudsNews::Sent(_)) => self.take_offer_news(n, now),
             }
         }
         self.refresh()
@@ -74,6 +76,9 @@ impl App {
         }
         match reading {
             Some(b) => {
+                // They're talking: an offer is answered, and the model is kept for the next.
+                self.buds_offer = None;
+                self.remember_buds_model(b.model);
                 // Ringing is loud: a bud going into an ear stops it.
                 if self.buds_find.since_ms.is_some() && b.worn.count() > 0 {
                     self.stop_finding("a bud went in");

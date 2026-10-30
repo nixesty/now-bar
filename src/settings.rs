@@ -212,6 +212,11 @@ pub struct Settings {
     pub buds_device: Option<BudsDevice>,
     /// A long press on the Buds when the card set touch and hold to "Bilgisayarda".
     pub buds_pc_action: BudsPcAction,
+    /// Opening the case while the Buds aren't connected here offers to connect them.
+    pub buds_offer: bool,
+    /// The model id (with its colour) of the Buds last connected: the offer draws them before
+    /// they connect.
+    pub buds_model: Option<u16>,
     // Canlı maç
     pub match_teams: Vec<FollowedTeam>,
     pub match_show_before_min: u32,
@@ -357,6 +362,8 @@ impl Default for Settings {
             buds_ear_pause: true,
             buds_device: None,
             buds_pc_action: BudsPcAction::MicMute,
+            buds_offer: true,
+            buds_model: None,
             match_teams: Vec::new(),
             match_show_before_min: 60,
             match_keep_after_min: 30,
@@ -567,6 +574,13 @@ pub fn with_buds_pc_action(disk: Option<Settings>, running: &Settings, action: B
     s.sanitized()
 }
 
+/// The Buds that connected, remembered over the file's settings.
+pub fn with_buds_model(disk: Option<Settings>, running: &Settings, model: u16) -> Settings {
+    let mut s = disk.unwrap_or_else(|| running.clone());
+    s.buds_model = Some(model);
+    s.sanitized()
+}
+
 /// The settings window's answers before it changes one: the file's (the Now Bar may have kept
 /// one since the window opened), in its working copy and in what it last saved, so its save
 /// changes only the one it touched.
@@ -619,6 +633,15 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("nowbar-settings-test-{}-{name}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         dir.join("settings.json")
+    }
+
+    #[test]
+    fn the_buds_offer_and_the_remembered_model() {
+        let s = Settings::default();
+        assert!(s.buds_offer);
+        assert_eq!(s.buds_model, None);
+        assert!(!parse(r#"{"buds_offer": false}"#).buds_offer);
+        assert_eq!(with_buds_model(None, &s, 316).buds_model, Some(316));
     }
 
     #[test]

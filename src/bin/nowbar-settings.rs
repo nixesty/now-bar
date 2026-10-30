@@ -475,6 +475,7 @@ fn fill(ui: &SettingsWindow, s: &Settings, live_apps: &[String]) {
     st.set_buds_front(index_of(&BUDS_FRONT_S, &s.buds_front_on_connect_s, 1));
     st.set_buds_case(s.buds_show_case);
     st.set_buds_ear_pause(s.buds_ear_pause);
+    st.set_buds_offer(s.buds_offer);
     st.set_match_on(s.match_enabled);
     st.set_teams(model(followed_rows(s)));
     st.set_show_before(s.match_show_before_min as f32);
@@ -584,6 +585,7 @@ fn read(ui: &SettingsWindow, base: &Settings) -> Settings {
         buds_front_on_connect_s: pick(&BUDS_FRONT_S, st.get_buds_front(), 5),
         buds_show_case: st.get_buds_case(),
         buds_ear_pause: st.get_buds_ear_pause(),
+        buds_offer: st.get_buds_offer(),
         buds_device: base.buds_device.clone(),
         match_enabled: st.get_match_on(),
         match_show_before_min: st.get_show_before().round() as u32,

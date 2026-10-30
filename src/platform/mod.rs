@@ -2,6 +2,7 @@ pub mod api_server;
 pub mod ask;
 pub mod audio;
 pub mod autostart;
+pub mod bt_audio;
 pub mod bt_battery;
 pub mod captures;
 pub mod clipboard;

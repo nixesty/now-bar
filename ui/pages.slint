@@ -1030,6 +1030,17 @@ export component BudsInspector inherits VerticalLayout {
             }
         }
     }
+    ISection {
+        title: @tr("Bağlantı");
+        IRow {
+            label: @tr("Kutu açılınca bağlanmayı öner");
+            note: @tr("Bağlı değilken pilde sorar");
+            Toggle {
+                checked <=> Store.buds-offer;
+                toggled => { Ui.changed(); }
+            }
+        }
+    }
 }
 
 // ================================================================== 5 Canlı maç

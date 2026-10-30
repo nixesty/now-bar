@@ -74,6 +74,7 @@ pub const INDEX: &[Entry] = &[
     e(4, "buds-front", n_("Pilde"), n_("Bağlanınca öne gel"), n_("Kulaklık bağlanınca pil kısa süre önde"), "bağlantı öne"),
     e(4, "buds-case", n_("Pilde"), n_("Kutu pilini göster"), n_("Bir kulaklık kutudayken"), "kutu şarj"),
     e(4, "buds-ear-pause", n_("Müzik"), n_("Kulaktan çıkınca duraklat"), n_("Bir kulaklık çıkınca müzik durur, geri takınca devam eder"), "kulak çıkar tak duraklat devam müzik otomatik"),
+    e(4, "buds-offer", n_("Bağlantı"), n_("Kutu açılınca bağlanmayı öner"), n_("Bağlı değilken pilde sorar"), "kutu kapak aç bağlan öner bağlantı telefon"),
     e(5, "match-on", n_("Canlı maç"), n_("Canlı maçı göster"), n_("Yalnızca takip ettiğin takımlar"), "futbol maç skor"),
     e(5, "team-add", n_("Takım ekle"), n_("Takım ekle"), n_("Sonuçlar ESPN'den gelir"), "takım ara fenerbahçe galatasaray"),
     e(5, "teams", n_("Takip edilenler"), n_("Takip edilen takımlar"), n_("Takip ettiğin takımlar"), "takım takip"),

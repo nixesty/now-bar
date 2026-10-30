@@ -12,6 +12,8 @@ use nowbar::activities::weather::{describe, symbol, WeatherFx};
 use nowbar::activities::weather_alert::AlertKind;
 use nowbar::activities::games::Store;
 use nowbar::render::pill::{paint_media_still, paint_pill_content, PillContent, PillThumb};
+use nowbar::render::card::bud_art;
+use nowbar::activities::buds_nearby::Offer;
 use nowbar::activities::media::{Caps, MediaSnapshot};
 use nowbar::activities::transfer::TransferKind;
 
@@ -152,6 +154,10 @@ fn main() -> Result<()> {
         ("Ekran gör. (önizlemesiz)", PillContent::Capture { thumb: None, size: String::new() }),
         ("Buds", PillContent::Buds(BudsSnapshot { left: 60, right: 70, case: Some(40), noise: None, worn: Worn { left: true, right: true }, ..Default::default() })),
         ("Buds (kutusuz)", PillContent::Buds(BudsSnapshot { left: 100, right: 95, case: None, noise: None, worn: Worn::default(), ..Default::default() })),
+        ("Buds teklifi", PillContent::BudsOffer { title: "Galaxy Buds2".into(), offer: Offer::Asking { since: 0 }, art: bud_art(Some(316), 0, s.px(19.0) as u32) }),
+        ("Buds bağlanıyor", PillContent::BudsOffer { title: "Galaxy Buds2".into(), offer: Offer::Connecting { since: 0 }, art: bud_art(Some(316), 0, s.px(19.0) as u32) }),
+        ("Buds bağlandı", PillContent::BudsOffer { title: "Galaxy Buds2".into(), offer: Offer::Connected { at: 0 }, art: bud_art(Some(314), 0, s.px(19.0) as u32) }),
+        ("Buds bağlanamadı", PillContent::BudsOffer { title: "Galaxy Buds2".into(), offer: Offer::Failed { at: 0 }, art: bud_art(Some(340), 0, s.px(19.0) as u32) }),
         ("Buds modu", PillContent::BudsMode(NoiseControl::Anc)),
         ("Buds modu", PillContent::BudsMode(NoiseControl::Ambient)),
         ("Buds modu", PillContent::BudsMode(NoiseControl::Off)),

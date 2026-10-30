@@ -3697,3 +3697,51 @@ msgstr "Left earbud"
 #: src/render/card/buds.rs
 msgid "Sağ kulaklık"
 msgstr "Right earbud"
+
+#: src/settings_ui.rs
+msgid "Bağlantı"
+msgstr "Connection"
+
+#: src/settings_ui.rs
+msgid "Kutu açılınca bağlanmayı öner"
+msgstr "Offer to connect when the case opens"
+
+#: src/settings_ui.rs
+msgid "Bağlı değilken pilde sorar"
+msgstr "Asks in the pill while not connected"
+
+#: src/activities/buds_nearby.rs
+msgid "Bağlansın mı?"
+msgstr "Connect?"
+
+#: src/activities/buds_nearby.rs
+msgid "Bağlanıyor…"
+msgstr "Connecting…"
+
+#: src/activities/buds_nearby.rs
+msgid "Bağlandı"
+msgstr "Connected"
+
+#: src/activities/buds_nearby.rs
+msgid "Bağlanamadı"
+msgstr "Couldn't connect"
+
+#: src/render/card/buds.rs
+msgid "Kutu açıldı"
+msgstr "Case opened"
+
+#: src/render/card/buds.rs
+msgid "Bu bilgisayara bağlansın mı?"
+msgstr "Connect to this PC?"
+
+#: src/render/card/buds.rs
+msgid "Şimdi değil"
+msgstr "Not now"
+
+#: src/render/card/buds.rs
+msgid "Bağlan"
+msgstr "Connect"
+
+#: src/render/card/buds.rs
+msgid "Bağlantıyı kes"
+msgstr "Disconnect"

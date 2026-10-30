@@ -4,6 +4,7 @@
 use nowbar::activities::buds::{BudsSnapshot, Charging, Fit, FitTest, NoiseControl, Place, Touch, Worn};
 use nowbar::activities::buds_controls::{AmbientCustom, Buds2Settings, Equalizer, Health};
 use nowbar::settings::BudsPcAction;
+use nowbar::activities::buds_nearby::Offer;
 use nowbar::activities::media::{Caps, MediaSnapshot, Timeline};
 use nowbar::platform::audio::{list_outputs, output_volume, picker_order, OutputBus, OutputKind};
 use nowbar::activities::live::{AppIcon, LiveState};
@@ -235,6 +236,10 @@ fn main() -> Result<()> {
         BudsCard { b: BudsSnapshot { model: Some(299), settings: None, ..buds2 }, ..buds.clone() },
         BudsCard { b: BudsSnapshot { model: Some(340), settings: None, ..buds2 }, ..buds.clone() },
         BudsCard { b: BudsSnapshot { model: Some(361), settings: None, ..buds2 }, ..buds.clone() },
+        // The offer to connect: asking (a Buds2), connecting (a Buds3 Pro), failed.
+        BudsCard { b: BudsSnapshot { model: Some(316), ..Default::default() }, page: BudsPage::Offer, offer: Some(Offer::Asking { since: 0 }), ..Default::default() },
+        BudsCard { b: BudsSnapshot { model: Some(340), ..Default::default() }, page: BudsPage::Offer, offer: Some(Offer::Connecting { since: 0 }), ..Default::default() },
+        BudsCard { b: BudsSnapshot { model: Some(316), ..Default::default() }, page: BudsPage::Offer, offer: Some(Offer::Failed { at: 0 }), ..Default::default() },
     ];
 
     // The output page with the devices of this PC, as the app would build it.
@@ -348,6 +353,9 @@ fn main() -> Result<()> {
         CardContent::Buds(buds_cards[10].clone()),
         CardContent::Buds(buds_cards[11].clone()),
         CardContent::Buds(buds_cards[12].clone()),
+        CardContent::Buds(buds_cards[13].clone()),
+        CardContent::Buds(buds_cards[14].clone()),
+        CardContent::Buds(buds_cards[15].clone()),
         CardContent::Weather(Box::new(weather)),
         CardContent::Weather(Box::new(windy)),
         CardContent::Wellbeing(Box::new(WellbeingCard {

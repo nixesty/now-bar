@@ -54,6 +54,12 @@ pub enum BudsNews {
     Muted([bool; 2]),
     /// A long press on a bud whose touch and hold is the PC's.
     HoldPressed(Side),
+    /// The paired Buds' address and whether they're connected to this PC (each change).
+    Link { address: Option<String>, connected: bool },
+    /// The case opened nearby (`buds_nearby_worker`): the lid counter, the signal (dBm).
+    LidOpened { counter: u8, rssi: i16 },
+    /// The audio's reconnect or disconnect went out, or why not.
+    Sent(std::result::Result<(), String>),
 }
 
 enum Msg {
@@ -238,6 +244,7 @@ fn run(tx: Sender<Msg>, rx: Receiver<Msg>, post: impl Fn(BudsNews), out: Out, so
     let mut retry_at: Option<Instant> = None;
     let mut in_use_said = false;
     let mut pending = Some(Msg::Rescan);
+    let mut last_link = None;
     loop {
         let msg = match pending.take() {
             Some(m) => Ok(m),
@@ -269,6 +276,15 @@ fn run(tx: Sender<Msg>, rx: Receiver<Msg>, post: impl Fn(BudsNews), out: Out, so
             }
             Err(RecvTimeoutError::Timeout) => {}
             Err(RecvTimeoutError::Disconnected) => return Ok(()),
+        }
+        // Where the Buds are, for the offer to connect: the connected pair's address, else the
+        // first found.
+        let address = |f: &Found| f.device.BluetoothAddress().ok().map(address_text);
+        let on = found.iter().find(|f| connected(&f.device));
+        let link = (on.or(found.first()).and_then(address), on.is_some());
+        if last_link.as_ref() != Some(&link) {
+            post(BudsNews::Link { address: link.0.clone(), connected: link.1 });
+            last_link = Some(link);
         }
         // Whichever pair is connected now (two pairs can be paired; either may connect).
         let Some(f) = found.iter().find(|f| connected(&f.device)) else {

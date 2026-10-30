@@ -39,8 +39,9 @@ skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açıl
   ve ayarı, kulaklığımı bul, dokunmatik kontroller ve dokunup tutma (istersen basılı tutunca
   bilgisayar mikrofonu kapatır, şarkıyı geçer…), kenara çift dokunma, görüşmede kendi sesini
   duyma, kesintisiz bağlantı ve uyum testi de var; bunlar kulaklığın kendisinde saklanır,
-  telefonda da geçerlidir. Birden fazla Buds eşleştirilmişse hangisinin gösterileceği
-  ayarlardan seçilir.
+  telefonda da geçerlidir. Kulaklık bu bilgisayara bağlı değilken kutuyu açınca Now Bar
+  bağlanmayı önerir, tek tıkla bilgisayara alır. Birden fazla Buds eşleştirilmişse hangisinin
+  gösterileceği ayarlardan seçilir.
 - **Claude Code:** Claude'un o an ne yaptığı ve görev listesi; izin istediğinde kartta
   **İzin ver / Reddet** düğmeleri çıkar ([aşağıda](#canlı-etkinlikler)).
 - **Claude'a sor:** Win+Alt+C ya da pile Ctrl ile tıklamak kartta bir yazı kutusu açar; cevap

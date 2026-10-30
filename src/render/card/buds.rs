@@ -5,6 +5,7 @@
 
 use super::*;
 use crate::activities::buds::{model_name, Place};
+use crate::activities::buds_nearby::Offer;
 use crate::activities::buds_controls::{find_can_start, temp_text, volt_text, AmbientCustom, Equalizer, Health, Toggle};
 use crate::settings::BudsPcAction;
 
@@ -19,6 +20,8 @@ pub enum BudsPage {
     Touch,
     Advanced,
     System,
+    /// The case opened while the Buds aren't connected here: connect them?
+    Offer,
 }
 
 impl BudsPage {
@@ -31,6 +34,7 @@ impl BudsPage {
             BudsPage::Touch => tr("Dokunmatik"),
             BudsPage::Advanced => tr("Gelişmiş ayarlar"),
             BudsPage::System => tr("Sistem"),
+            BudsPage::Offer => "Galaxy Buds",
         }
     }
 }
@@ -52,6 +56,8 @@ pub struct BudsCard {
     pub finding: bool,
     pub muted: [bool; 2],
     pub pc_action: BudsPcAction,
+    /// The offer to connect, on its page.
+    pub offer: Option<Offer>,
 }
 
 /// The pages the home page lists: those with something on this model.
@@ -82,6 +88,9 @@ const HOME_ROW: f32 = 42.0;
 const ROW: f32 = 44.0;
 /// The noise page's panel, under its modes.
 const NOISE_PANEL_TOP: f32 = 150.0;
+/// The offer: its question under the drawn buds, its buttons under that.
+const OFFER_TEXT_TOP: f32 = BLOCK_TOP + BUD_SIDE + 12.0;
+const OFFER_BUTTONS_TOP: f32 = OFFER_TEXT_TOP + 38.0;
 /// A page's content starts under its back button and title.
 const PAGE_TOP: f32 = 64.0;
 /// A panel's padding above its first row and under its last, and the card's under the panel.
@@ -128,8 +137,9 @@ fn advanced_rows(b: &BudsSnapshot) -> f32 {
     sidetone + seamless + fit
 }
 
+/// Model, firmware, capacity, each bud's health, and Bağlantıyı kes.
 fn system_rows(c: &BudsCard) -> usize {
-    2 + c.capacity.is_some() as usize + if c.health.is_some() { 2 } else { 0 }
+    3 + c.capacity.is_some() as usize + if c.health.is_some() { 2 } else { 0 }
 }
 
 fn home_list_top(b: &BudsSnapshot) -> f32 {
@@ -146,6 +156,7 @@ pub(in crate::render) fn buds_height_dip(c: &BudsCard) -> f32 {
         BudsPage::Touch => PAGE_TOP + panel_h(touch_rows(c)) + BOTTOM,
         BudsPage::Advanced => PAGE_TOP + panel_h(advanced_rows(&c.b)) + BOTTOM,
         BudsPage::System => PAGE_TOP + panel_h(system_rows(c) as f32 * ROW) + BOTTOM,
+        BudsPage::Offer => OFFER_BUTTONS_TOP + 36.0 + 16.0,
     }
 }
 
@@ -220,7 +231,11 @@ thread_local! {
     static RENDERS: std::cell::RefCell<std::collections::HashMap<(u16, usize, u32), Option<Crest>>> = Default::default();
 }
 
-/// A bud's render `px`×`px`, decoded once.
+/// A bud's render `px`×`px` (0 left, 1 right), decoded once; the pill's offer draws it too.
+pub fn bud_art(model: Option<u16>, side: usize, px: u32) -> Option<Crest> {
+    bud_picture(model, side, px)
+}
+
 fn bud_picture(model: Option<u16>, side: usize, px: u32) -> Option<Crest> {
     let bytes = render_of(model?)?.0[side];
     RENDERS.with(|r| r.borrow_mut().entry((model?, side, px)).or_insert_with(|| crate::render::crest::from_bytes(bytes, px)).clone())
@@ -282,6 +297,7 @@ impl Painter<'_, '_> {
     pub(super) fn buds(&mut self, c: &BudsCard) -> Result<()> {
         match c.page {
             BudsPage::Home => self.buds_home(c),
+            BudsPage::Offer => self.buds_offer(c),
             page => {
                 self.page_header(page.title())?;
                 match page {
@@ -337,6 +353,64 @@ impl Painter<'_, '_> {
                 self.ink.line(d(60.0), d(y), self.w - d(28.0), d(y), d(1.0), white(0.07))?;
             }
             self.list_row(y, *page, value.as_deref())?;
+        }
+        Ok(())
+    }
+
+    /// The offer, One UI's popup in the card: the header, the Buds drawn as on the home page, the
+    /// question (then how it goes), Şimdi değil / Bağlan (Kapat / Tekrar dene after a failure).
+    fn buds_offer(&mut self, c: &BudsCard) -> Result<()> {
+        let d = |v: f32| v * self.s.0;
+        let (r, g, bl) = BUDS_ACCENT;
+        let Some(offer) = c.offer else { return Ok(()) };
+        let circle = d(46.0);
+        let badge = rect(d(15.0), d(15.0), circle, circle);
+        self.ink.rrect(badge, circle / 2.0, rgba(r, g, bl, 1.0))?;
+        self.ink.text(&glyph(Icon::Headphones).to_string(), badge, &TextStyle::new(Face::Icons, Weight::Regular, d(24.0), white(1.0)).centered())?;
+        let name = c.b.model.map(model_name).filter(|n| n.starts_with("Galaxy")).unwrap_or("Galaxy Buds");
+        self.ink.text(name, rect(d(73.0), d(17.0), d(280.0), d(22.0)), &TextStyle::new(Face::Text, Weight::SemiBold, d(16.0), white(1.0)).top())?;
+        self.ink.text(tr("Kutu açıldı"), rect(d(73.0), d(40.0), d(280.0), d(20.0)), &TextStyle::new(Face::Text, Weight::Regular, d(13.0), white(0.8)).top())?;
+
+        // The buds and the case, as on the home page, without numbers: they haven't said any yet.
+        let (cr, cg, cb) = bud_colour(c.b.model);
+        let (mid, side) = (self.w / 2.0, d(BUD_SIDE).round());
+        for (i, cx) in [(Some(0), mid - d(COLUMN_FROM_CENTRE)), (None, mid), (Some(1), mid + d(COLUMN_FROM_CENTRE))] {
+            let picture = rect((cx - side / 2.0).round(), d(BLOCK_TOP).round(), side, side);
+            match i {
+                Some(i) => match bud_picture(c.b.model, i, side as u32) {
+                    Some(p) => self.ink.image_rounded(&p.px, p.size, rect(0.0, 0.0, p.size.0 as f32, p.size.1 as f32), picture, 0.0)?,
+                    None => self.ink.svg(&bud_svg(i == 1), picture, rgba(cr, cg, cb, 1.0))?,
+                },
+                None => self.ink.svg(&if has_stems(c.b.model) { stem_case_svg(false) } else { case_svg(false) }, picture, rgba(cr, cg, cb, 1.0))?,
+            }
+        }
+
+        let question = match offer {
+            Offer::Asking { .. } => tr("Bu bilgisayara bağlansın mı?"),
+            other => other.status(),
+        };
+        let st = TextStyle::new(Face::Text, Weight::SemiBold, d(15.0), white(1.0)).centered();
+        self.ink.text(question, rect(d(20.0), d(OFFER_TEXT_TOP), self.w - d(40.0), d(24.0)), &st)?;
+
+        let (gap, bh) = (d(10.0), d(36.0));
+        let (x0, x1) = (d(20.0), self.w - d(20.0));
+        let half = (x1 - x0 - gap) / 2.0;
+        let top = d(OFFER_BUTTONS_TOP).round();
+        let label = TextStyle::new(Face::Text, Weight::SemiBold, d(13.5), white(1.0)).centered();
+        match offer {
+            Offer::Asking { .. } | Offer::Failed { .. } => {
+                let failed = matches!(offer, Offer::Failed { .. });
+                let left = rect(x0.round(), top, half.round(), bh);
+                self.ink.rrect(left, bh / 2.0, white(0.12))?;
+                self.ink.text(if failed { tr("Kapat") } else { tr("Şimdi değil") }, left, &label)?;
+                self.hits.push((left, CardAction::BudsDismiss));
+                let right = rect((x0 + half + gap).round(), top, (x1 - x0 - half - gap).round(), bh);
+                self.ink.rrect(right, bh / 2.0, rgba(r, g, bl, 1.0))?;
+                self.ink.text(if failed { tr("Tekrar dene") } else { tr("Bağlan") }, right, &label)?;
+                self.hits.push((right, CardAction::BudsConnect));
+            }
+            // The line above says how it goes; nothing to press meanwhile.
+            Offer::Connecting { .. } | Offer::Connected { .. } => {}
         }
         Ok(())
     }
@@ -743,7 +817,7 @@ impl Painter<'_, '_> {
                 rows.push((side, v));
             }
         }
-        self.panel(PAGE_TOP, panel_h(rows.len() as f32 * ROW))?;
+        self.panel(PAGE_TOP, panel_h((rows.len() + 1) as f32 * ROW))?;
         let key = TextStyle::new(Face::Text, Weight::Regular, d(13.5), white(0.75)).ellipsis();
         let value = TextStyle::new(Face::Text, Weight::SemiBold, d(13.5), white(1.0)).trailing().ellipsis().tabular();
         for (i, (k, v)) in rows.iter().enumerate() {
@@ -754,6 +828,12 @@ impl Painter<'_, '_> {
             self.ink.text(k, rect(d(28.0), d(y), d(140.0), d(ROW)), &key)?;
             self.ink.text(v, rect(d(150.0), d(y), self.w - d(178.0), d(ROW)), &value)?;
         }
+        // One UI's destructive row: red text, the whole row a button.
+        let y = PAGE_TOP + PANEL_PAD + rows.len() as f32 * ROW;
+        self.divider(y)?;
+        let (lr, lg, lb) = LOW_ACCENT;
+        self.ink.text(tr("Bağlantıyı kes"), rect(d(28.0), d(y), self.w - d(56.0), d(ROW)), &TextStyle::new(Face::Text, Weight::SemiBold, d(13.5), rgba(lr, lg, lb, 1.0)))?;
+        self.hits.push((rect(d(12.0), d(y), self.w - d(24.0), d(ROW)), CardAction::BudsDisconnect));
         Ok(())
     }
 }

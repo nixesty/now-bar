@@ -25,6 +25,7 @@ use super::card::kind_style;
 use crate::activities::shelf::FileKind;
 use crate::i18n::{percent, tr};
 use crate::activities::buds::{buds_labels, BudsSnapshot, NoiseControl};
+use crate::activities::buds_nearby::Offer;
 use crate::activities::weather::{fx_accent, palette, WeatherFx};
 use crate::activities::weather_alert::AlertKind;
 use crate::activities::games::Store;
@@ -202,6 +203,9 @@ pub enum PillContent {
     /// [`APP_PILL_ICON_DIP`]'s pixels, or a glyph), the title and " · text", "%40" / "4:12" /
     /// "Bitti" / "İzin istiyor" on the right; `ring` while it waits for the user.
     App { key: u32, title: String, text: String, status: String, icon: Option<AppIcon>, accent: (u8, u8, u8), ring: bool },
+    /// The Buds' case opened while they aren't connected here: their render in the circle,
+    /// "Galaxy Buds2" and " · Bağlansın mı?" (and how the connecting goes).
+    BudsOffer { title: String, offer: Offer, art: Option<Crest> },
 }
 
 /// An app's icon in the pill, in DIP (a picture is scaled to exactly this many pixels).
@@ -314,7 +318,7 @@ impl PillContent {
             PillContent::Capture { .. } => 260.0,
             // "Kuvvetli rüzgâr · 65 km/sa · 21:00" whole.
             PillContent::WeatherAlert { .. } => 260.0,
-            PillContent::Game { .. } => 260.0,
+            PillContent::Game { .. } | PillContent::BudsOffer { .. } => 260.0,
             PillContent::Usage { .. } => 260.0,
             // "While you were away · 12 things" whole.
             PillContent::Away { .. } => 240.0,
@@ -332,7 +336,7 @@ impl PillContent {
         match self {
             PillContent::Timer { .. } | PillContent::Stopwatch { .. } | PillContent::Volume { .. } | PillContent::Shelf { .. } => timer_accent(),
             PillContent::Media(m) => (m.accent[0], m.accent[1], m.accent[2]),
-            PillContent::Buds(_) | PillContent::BudsMode(_) => BUDS_ACCENT,
+            PillContent::Buds(_) | PillContent::BudsMode(_) | PillContent::BudsOffer { .. } => BUDS_ACCENT,
             PillContent::Power { low: false, .. } => CHARGING_ACCENT,
             PillContent::Power { low: true, .. } => LOW_ACCENT,
             PillContent::Capture { .. } | PillContent::Away { .. } => timer_accent(),
@@ -1071,7 +1075,8 @@ fn paint_layer(
         | PillContent::Transfer { .. }
         | PillContent::Capture { .. }
         | PillContent::Live { .. }
-        | PillContent::App { .. } => {
+        | PillContent::App { .. }
+        | PillContent::BudsOffer { .. } => {
             layer.bars.SetOpacity(0.0)?;
             paint_surface(g, &layer.content_surface, l.content_w, l.pill_h, |ink| paint_pill_content(ink, front, w, h, s))?;
             layer.marquee.SetSize(Vector2 { X: 0.0, Y: 0.0 })?;
@@ -1122,7 +1127,8 @@ fn paint_timer(ink: &Ink, front: &PillContent, w: f32, h: f32, s: &Scale) -> Res
         | PillContent::Transfer { .. }
         | PillContent::Capture { .. }
         | PillContent::Live { .. }
-        | PillContent::App { .. } => {
+        | PillContent::App { .. }
+        | PillContent::BudsOffer { .. } => {
             unreachable!("painted by paint_pill_content")
         }
     };
@@ -1168,6 +1174,7 @@ pub fn paint_pill_content(ink: &Ink, c: &PillContent, w: f32, h: f32, s: &Scale)
         PillContent::Capture { thumb, size } => paint_capture(ink, c, thumb.as_ref(), size, w, h, s),
         PillContent::Live { title, status, claude, state, action, .. } => paint_live(ink, c, (title, action), status, *claude, *state, w, h, s),
         PillContent::App { title, text, status, icon, ring, .. } => paint_app(ink, c, icon.as_ref(), (title, text), status, *ring, w, h, s),
+        PillContent::BudsOffer { title, offer, art } => paint_buds_offer(ink, title, *offer, art.as_ref(), w, h, s),
     }
 }
 
@@ -1675,6 +1682,47 @@ fn paint_game(ink: &Ink, store: Store, (title, line): (&str, &str), progress: Op
     let room = w - x - d(14.0);
     let tail = format!(" · {line}");
     // The line keeps its room (it changes every second), the title gives way.
+    let tail_w = ink.measure(&tail, &rest)?.min(room * 0.6);
+    let title_w = ink.measure(title, &head)?.min(room - tail_w);
+    ink.text(title, rect(x, 0.0, title_w + d(2.0), h), &head)?;
+    ink.text(&tail, rect(x + title_w, 0.0, (room - title_w).max(0.0), h), &rest)
+}
+
+/// The Buds' render on a faint circle, the accent's ring round it while the offer waits (a
+/// quarter while it connects), a badge once it's done: a tick, or a cross when it failed; then
+/// "Galaxy Buds2 · Bağlansın mı?".
+fn paint_buds_offer(ink: &Ink, title: &str, offer: Offer, art: Option<&Crest>, w: f32, h: f32, s: &Scale) -> Result<()> {
+    let d = |v: f32| v * s.0;
+    let (r, g, b) = BUDS_ACCENT;
+    let (cx, cy) = (d(16.0), (h / 2.0).round());
+    let side = d(19.0).round();
+    let dot = rect(cx - side / 2.0, cy - side / 2.0, side, side);
+    ink.rrect(dot, side / 2.0, white(0.14))?;
+    match art {
+        Some(a) => {
+            let inner = side * 0.86;
+            ink.image_rounded(&a.px, a.size, rect(0.0, 0.0, a.size.0 as f32, a.size.1 as f32), rect(cx - inner / 2.0, cy - inner / 2.0, inner, inner), 0.0)?
+        }
+        None => ink.text(&glyph(Icon::Earbuds).to_string(), dot, &TextStyle::new(Face::Icons, Weight::Regular, side * 0.6, white(1.0)).centered())?,
+    }
+    match offer {
+        Offer::Asking { .. } => ink.ring(cx, cy, d(11.0), d(2.0), 1.0, white(0.2), rgba(r, g, b, 1.0))?,
+        Offer::Connecting { .. } => ink.ring(cx, cy, d(11.0), d(2.0), 0.25, white(0.2), lighten((r, g, b)))?,
+        Offer::Connected { .. } | Offer::Failed { .. } => {
+            let ((br, bg, bb), icon) = if matches!(offer, Offer::Connected { .. }) { (CHARGING_ACCENT, Icon::Check) } else { (LOW_ACCENT, Icon::Close) };
+            let (badge, ring) = (d(9.0).round(), d(1.5).round());
+            let (bx, by) = (dot.right - badge + ring, dot.bottom - badge + ring);
+            ink.rrect(rect(bx - ring, by - ring, badge + 2.0 * ring, badge + 2.0 * ring), badge / 2.0 + ring, rgba(18, 18, 18, 1.0))?;
+            let mark = rect(bx, by, badge, badge);
+            ink.rrect(mark, badge / 2.0, rgba(br, bg, bb, 1.0))?;
+            ink.text(&glyph(icon).to_string(), mark, &TextStyle::new(Face::Icons, Weight::Regular, badge * 0.7, white(1.0)).centered())?;
+        }
+    }
+    let head = TextStyle::new(Face::Text, Weight::SemiBold, d(12.5), white(1.0)).ellipsis();
+    let rest = TextStyle::new(Face::Text, Weight::Regular, d(12.5), white(0.7)).ellipsis();
+    let x = d(36.0);
+    let room = w - x - d(14.0);
+    let tail = format!(" · {}", offer.status());
     let tail_w = ink.measure(&tail, &rest)?.min(room * 0.6);
     let title_w = ink.measure(title, &head)?.min(room - tail_w);
     ink.text(title, rect(x, 0.0, title_w + d(2.0), h), &head)?;

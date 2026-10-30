@@ -10,7 +10,7 @@ use super::icons::{glyph, Icon};
 use super::layout::Scale;
 
 mod buds;
-pub use buds::{buds_pages, BudsCard, BudsPage};
+pub use buds::{bud_art, buds_pages, BudsCard, BudsPage};
 use super::color::media_gradient;
 use super::pill::{
     alert_style, lighten, paint_app_icon, paint_live_mark, store_accent, timer_accent, BUDS_ACCENT, CLAUDE_ACCENT, CLAUDE_ICON, LOW_ACCENT, RAIN_ACCENT, RAIN_ICON, SNOW_ACCENT, SNOW_ICON,
@@ -734,6 +734,11 @@ pub enum CardAction {
     BudsMute(u8),
     /// What a long press does on the PC.
     BudsPc(crate::settings::BudsPcAction),
+    /// The offer's Bağlan (and Tekrar dene), Şimdi değil (and Kapat); the Sistem page's
+    /// Bağlantıyı kes.
+    BudsConnect,
+    BudsDismiss,
+    BudsDisconnect,
     /// The fit test's Başlat / Durdur.
     BudsFit,
     /// A shelf tile's close button (its index, newest first).
