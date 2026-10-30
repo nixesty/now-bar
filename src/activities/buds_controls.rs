@@ -345,6 +345,32 @@ pub fn drain_level(b: &crate::activities::buds::BudsSnapshot) -> Option<u8> {
     [(b.worn.left, b.left), (b.worn.right, b.right)].into_iter().filter(|(worn, level)| *worn && *level > 0).map(|(_, level)| level).min()
 }
 
+/// Samsung's rated listening on the buds alone (minutes): noise cancelling on, off.
+fn rated(model: Option<u16>) -> (u32, u32) {
+    match model {
+        // Buds Pro, Buds2 Pro
+        Some(298..=301) | Some(325..=328) => (300, 480),
+        // Buds FE
+        Some(330..=331) => (360, 510),
+        // Buds3
+        Some(333..=334) => (300, 360),
+        // Buds3 Pro
+        Some(340..=341) => (360, 420),
+        // Buds2, and what Samsung's figures aren't known for
+        _ => (300, 450),
+    }
+}
+
+/// Minutes left by Samsung's figures until the drain is measured: the worn bud that runs out
+/// first, its share of the rated time in the mode it's in (ambient costs about what noise
+/// cancelling does).
+pub fn rated_remaining_min(b: &crate::activities::buds::BudsSnapshot) -> Option<u32> {
+    let level = drain_level(b)? as u32;
+    let (anc, off) = rated(b.model);
+    let full = if b.noise == Some(crate::activities::buds::NoiseControl::Off) { off } else { anc };
+    Some(full * level / 100)
+}
+
 /// "Yaklaşık 3 sa 20 dk", in tens of minutes.
 pub fn remaining_text(minutes: u32) -> String {
     let rounded = (minutes / 10 * 10).max(10) as u64;
@@ -561,6 +587,19 @@ mod tests {
         assert_eq!(drain_level(&BudsSnapshot { worn: Worn::default(), ..both }), None);
         assert_eq!(drain_level(&BudsSnapshot { right: 0, ..both }), Some(70), "0 is no reading");
         assert_eq!(drain_level(&BudsSnapshot { charging: Some(Charging { right: true, ..Default::default() }), ..both }), None);
+    }
+
+    #[test]
+    fn a_rated_estimate_until_the_drain_is_known() {
+        use crate::activities::buds::{BudsSnapshot, NoiseControl};
+        let worn = BudsSnapshot { left: 80, right: 60, worn: Worn { left: true, right: true }, model: Some(316), noise: Some(NoiseControl::Anc), ..Default::default() };
+        // Buds2: 5 h with noise cancelling, 7.5 h without; the bud at 60 % runs out first.
+        assert_eq!(rated_remaining_min(&worn), Some(180));
+        assert_eq!(rated_remaining_min(&BudsSnapshot { noise: Some(NoiseControl::Off), ..worn }), Some(270));
+        assert_eq!(rated_remaining_min(&BudsSnapshot { noise: Some(NoiseControl::Ambient), ..worn }), Some(180), "ambient sound costs about what noise cancelling does");
+        assert_eq!(rated_remaining_min(&BudsSnapshot { model: Some(331), ..worn }), Some(216), "Buds FE: 6 h");
+        assert_eq!(rated_remaining_min(&BudsSnapshot { model: None, ..worn }), Some(180), "unknown: Buds2's");
+        assert_eq!(rated_remaining_min(&BudsSnapshot { worn: Worn::default(), ..worn }), None, "not in the ears");
     }
 
     #[test]

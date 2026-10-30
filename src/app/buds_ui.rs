@@ -3,7 +3,7 @@
 
 use super::*;
 use crate::activities::buds::{fit_can_press, Fit, FitTest};
-use crate::activities::buds_controls::{drain_level, find_can_start, remaining_text, Side, FIND_MAX_MS};
+use crate::activities::buds_controls::{drain_level, find_can_start, rated_remaining_min, remaining_text, Side, FIND_MAX_MS};
 use crate::activities::buds::FIT_TIMEOUT_MS;
 use crate::render::card::BudsCard;
 use crate::settings::BudsPcAction;
@@ -20,7 +20,8 @@ impl App {
             health: self.buds_health,
             firmware: self.buds_firmware.clone(),
             capacity: self.buds_capacity,
-            remaining: self.buds_drain.remaining_min().map(remaining_text),
+            // Measured once there is a steady fall; Samsung's figures until then.
+            remaining: self.buds_drain.remaining_min().or_else(|| rated_remaining_min(&b)).map(remaining_text),
             finding: self.buds_find.running(now),
             muted: self.buds_find.muted,
             pc_action: settings::current().buds_pc_action,

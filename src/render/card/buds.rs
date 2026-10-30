@@ -622,7 +622,7 @@ impl Painter<'_, '_> {
             self.noise_control(mode, PAGE_TOP + 6.0)?;
         }
         let Some(s) = c.b.settings else { return Ok(()) };
-        let top = NOISE_TOP - 34.0;
+        let top = NOISE_PANEL_TOP;
         self.panel(top, panel_h(noise_rows(&c.b)))?;
         let mut y = top + PANEL_PAD;
         let title = TextStyle::new(Face::Text, Weight::SemiBold, d(13.5), white(1.0));
