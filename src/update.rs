@@ -76,6 +76,71 @@ pub fn update_line(state: Option<&UpdateState>, current: &str) -> (String, bool)
     }
 }
 
+/// What the Hakkında row is doing.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Asking {
+    /// Nothing: the row says what update.json says.
+    #[default]
+    Idle,
+    /// Its own ask to GitHub.
+    Checking,
+    /// An install it asked the Now Bar for at this time (unix ms).
+    Installing(i64),
+    /// How the last one it asked for went.
+    Ended(Outcome),
+}
+
+/// The Hakkında row.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AboutRow {
+    pub line: String,
+    /// A newer release is known: a click installs it (else it asks GitHub).
+    pub installs: bool,
+    /// Not while it asks or installs.
+    pub clickable: bool,
+}
+
+/// The Hakkında row: where it stands, what is under way or how the last ask went.
+pub fn about_row(state: Option<&UpdateState>, current: &str, asking: Asking) -> AboutRow {
+    use crate::i18n::{tr, trf};
+    let (line, installs) = update_line(state, current);
+    let latest = state.map_or(current, |s| s.latest.as_str());
+    let (line, clickable) = match asking {
+        Asking::Idle | Asking::Ended(Outcome::Current) => (line, true),
+        Asking::Checking => (tr("Denetleniyor…").to_string(), false),
+        Asking::Installing(_) => (trf("{} indiriliyor…", &[&latest]), false),
+        Asking::Ended(Outcome::Installed) => (trf("{} kuruldu · yeniden başlıyor", &[&latest]), false),
+        Asking::Ended(failed) => {
+            let line = match failed {
+                Outcome::Download => trf("{} indirilemedi", &[&latest]),
+                Outcome::Checksum => trf("{} doğrulanamadı", &[&latest]),
+                Outcome::Swap => trf("{} kurulamadı", &[&latest]),
+                Outcome::Reverted => trf("{} açılamadı · eski sürüm geri kondu", &[&latest]),
+                Outcome::NotRunning => tr("Now Bar çalışmıyor").to_string(),
+                Outcome::Silent => tr("Now Bar yanıt vermedi").to_string(),
+                _ => tr("GitHub'a ulaşılamadı").to_string(),
+            };
+            (line, true)
+        }
+    };
+    AboutRow { line, installs, clickable }
+}
+
+/// How long the Now Bar has to say how an install went: a big download on a slow line, then
+/// the window stops waiting.
+pub const SILENT_AFTER_MS: i64 = 5 * 60 * 1000;
+
+/// The row's next state by update.json at `now` (unix ms): an install it asked for ends when
+/// the Now Bar writes how it went (only what ended after the ask is that install's).
+pub fn follow(asking: Asking, state: Option<&UpdateState>, now: i64) -> Asking {
+    let Asking::Installing(asked) = asking else { return asking };
+    match state.filter(|s| s.ended_ms > asked).and_then(|s| s.outcome) {
+        Some(outcome) => Asking::Ended(outcome),
+        None if now - asked > SILENT_AFTER_MS => Asking::Ended(Outcome::Silent),
+        None => asking,
+    }
+}
+
 /// `sha256sum`'s lines ("<hex>  <name>" or "<hex> *<name>"): (name, lowercase hex).
 pub fn parse_sums(text: &str) -> Vec<(String, String)> {
     text.lines()
@@ -196,6 +261,58 @@ mod tests {
         assert_eq!(update_line(None, "0.2.0"), ("0.2.0 · denetlenmedi".to_string(), false));
         assert_eq!(update_line(Some(&state("0.2.0")), "0.2.0"), ("0.2.0 · güncel".to_string(), false));
         assert_eq!(update_line(Some(&state("0.3.0")), "0.2.0"), ("0.3.0 hazır · şimdiki 0.2.0".to_string(), true));
+    }
+
+    fn ended(latest: &str, at: i64, outcome: Outcome) -> UpdateState {
+        UpdateState { latest: latest.into(), checked: 1, ended_ms: at, outcome: Some(outcome), ..UpdateState::default() }
+    }
+
+    #[test]
+    fn the_about_row_checks_installs_and_says_how_it_went() {
+        let row = |state: Option<&UpdateState>, asking| about_row(state, "0.4.1", asking);
+        let row_of = |line: &str, installs, clickable| AboutRow { line: line.into(), installs, clickable };
+        let (current, newer) = (ended("0.4.1", 0, Outcome::Current), ended("0.4.2", 0, Outcome::Current));
+        // Nothing asked: a click asks GitHub, or installs what it found.
+        assert_eq!(row(None, Asking::Idle), row_of("0.4.1 · denetlenmedi", false, true));
+        assert_eq!(row(Some(&current), Asking::Idle), row_of("0.4.1 · güncel", false, true));
+        assert_eq!(row(Some(&newer), Asking::Idle), row_of("0.4.2 hazır · şimdiki 0.4.1", true, true));
+        // Under way: no second click.
+        assert_eq!(row(None, Asking::Checking), row_of("Denetleniyor…", false, false));
+        assert_eq!(row(Some(&newer), Asking::Installing(5)), row_of("0.4.2 indiriliyor…", true, false));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Installed)), row_of("0.4.2 kuruldu · yeniden başlıyor", true, false));
+        // Nothing newer after all: where it stands.
+        assert_eq!(row(Some(&current), Asking::Ended(Outcome::Current)), row_of("0.4.1 · güncel", false, true));
+        // Failed: what went wrong, and a click tries again.
+        assert_eq!(row(None, Asking::Ended(Outcome::Unreachable)), row_of("GitHub'a ulaşılamadı", false, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Download)), row_of("0.4.2 indirilemedi", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Checksum)), row_of("0.4.2 doğrulanamadı", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Swap)), row_of("0.4.2 kurulamadı", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Reverted)), row_of("0.4.2 açılamadı · eski sürüm geri kondu", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::NotRunning)), row_of("Now Bar çalışmıyor", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Silent)), row_of("Now Bar yanıt vermedi", true, true));
+        crate::i18n::in_language(crate::i18n::Language::English, || {
+            assert_eq!(row(Some(&newer), Asking::Installing(5)).line, "Downloading 0.4.2…");
+            assert_eq!(row(None, Asking::Ended(Outcome::Unreachable)).line, "Couldn't reach GitHub");
+        });
+    }
+
+    #[test]
+    fn the_window_follows_an_install_by_update_json() {
+        let asked = 2_000;
+        let installing = Asking::Installing(asked);
+        // Still under way: what's there is an older install's.
+        assert_eq!(follow(installing, Some(&ended("0.4.2", 1_500, Outcome::Download)), asked + 50), installing);
+        assert_eq!(follow(installing, None, asked + 50), installing);
+        // Ended since it was asked.
+        assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Checksum)), asked + 60), Asking::Ended(Outcome::Checksum));
+        assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Installed)), asked + 60), Asking::Ended(Outcome::Installed));
+        // The Now Bar never says.
+        assert_eq!(follow(installing, None, asked + SILENT_AFTER_MS + 1), Asking::Ended(Outcome::Silent));
+        // A failure stays until the next click, even when the window had nothing to do with it.
+        let failed = Asking::Ended(Outcome::Download);
+        assert_eq!(follow(failed, Some(&ended("0.4.2", asked + 9, Outcome::Download)), asked + 600_000), failed);
+        assert_eq!(follow(Asking::Checking, Some(&ended("0.4.2", asked + 9, Outcome::Swap)), asked + 60), Asking::Checking);
+        assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", asked + 9, Outcome::Swap)), asked + 60), Asking::Idle);
     }
 
     #[test]

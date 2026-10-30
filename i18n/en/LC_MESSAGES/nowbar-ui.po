@@ -3405,3 +3405,47 @@ msgstr "opens the question card"
 #: ui/pages.slint
 msgid "ya da Ctrl + pile tık"
 msgstr "or Ctrl-click the pill"
+
+#: src/update.rs
+msgid "Denetleniyor…"
+msgstr "Checking…"
+
+#: src/update.rs
+msgid "{} indiriliyor…"
+msgstr "Downloading {}…"
+
+#: src/update.rs
+msgid "{} kuruldu · yeniden başlıyor"
+msgstr "{} installed · restarting"
+
+#: src/update.rs
+msgid "{} indirilemedi"
+msgstr "Couldn't download {}"
+
+#: src/update.rs
+msgid "{} doğrulanamadı"
+msgstr "Couldn't verify {}"
+
+#: src/update.rs
+msgid "{} kurulamadı"
+msgstr "Couldn't install {}"
+
+#: src/update.rs
+msgid "{} açılamadı · eski sürüm geri kondu"
+msgstr "{} didn't start · the old version is back"
+
+#: src/update.rs
+msgid "Now Bar çalışmıyor"
+msgstr "Now Bar isn't running"
+
+#: src/update.rs
+msgid "Now Bar yanıt vermedi"
+msgstr "Now Bar didn't answer"
+
+#: src/update.rs
+msgid "GitHub'a ulaşılamadı"
+msgstr "Couldn't reach GitHub"
+
+#: ui/pages.slint
+msgid "Denetle"
+msgstr "Check"

@@ -240,8 +240,10 @@ export global Store {
     in-out property <bool> update-check: true;
     /// "0.3.0 hazır · şimdiki 0.2.0", "0.2.0 · güncel".
     in-out property <string> update-line: "";
-    /// A newer release is out: the row installs it.
+    /// A newer release is out: the row installs it (else it asks GitHub).
     in-out property <bool> update-ready: false;
+    /// The row is asking GitHub or installing: no click until it's done.
+    in-out property <bool> update-busy: false;
     // Window state (remembered in settings.json, not settings of the Now Bar itself)
     /// 0 Görünüm, 1 Genel, 2 Medya, 3 Zamanlayıcı, 4 Galaxy Buds, 5 Canlı maç, 6 Tam ekran, 7 Hakkında, 8 Sistem.
     in-out property <int> page: 0;

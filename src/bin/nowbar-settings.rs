@@ -4,7 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use nowbar::activities::football::{competition_name, known_team, TeamHit};
 use nowbar::activities::football_worker::{crest_path, fetch_crest, try_search_teams};
@@ -19,6 +19,7 @@ use nowbar::settings::{
 use nowbar::activities::buds::Paired;
 use nowbar::i18n::{self, Language, LanguagePick};
 use nowbar::settings_ui::{app_badge, badge_letter, buds_choices, exception_name, page_arg, search, stand_in_colour, team_code, tidy_presets};
+use nowbar::update::{about_row, follow, Asking, Outcome, UpdateState};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use slint::winit_030::winit::window::ResizeDirection;
 use slint::winit_030::WinitWindowAccessor;
@@ -523,9 +524,7 @@ fn fill(ui: &SettingsWindow, s: &Settings, live_apps: &[String]) {
     st.set_running_apps(model(running_rows(s)));
     st.set_version(i18n::trf("Sürüm {}", &[&env!("CARGO_PKG_VERSION")]).into());
     st.set_update_check(s.update_check);
-    let (line, ready) = nowbar::update::update_line(nowbar::platform::updater::state().as_ref(), env!("CARGO_PKG_VERSION"));
-    st.set_update_line(line.into());
-    st.set_update_ready(ready);
+    show_update(&st, &nowbar::platform::updater::state(), ASKING.with(Cell::get));
     st.set_page(s.settings_page as i32);
     st.set_preview_collapsed(s.settings_preview_collapsed);
     st.set_system_dark(system_dark());
@@ -876,6 +875,19 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(ui) = ui_weak.upgrade() {
                 show_located(&ui.global::<Store>());
             }
+        });
+    }
+    // The Hakkında row follows update.json: the Now Bar's daily check, and how an install it was
+    // asked for went.
+    let update_poll = slint::Timer::default();
+    {
+        let ui_weak = ui.as_weak();
+        update_poll.start(slint::TimerMode::Repeated, Duration::from_millis(500), move || {
+            let Some(ui) = ui_weak.upgrade() else { return };
+            let state = nowbar::platform::updater::state();
+            let asking = follow(ASKING.with(Cell::get), state.as_ref(), unix_ms());
+            ASKING.with(|a| a.set(asking));
+            show_update(&ui.global::<Store>(), &state, asking);
         });
     }
     // Another launch asks for a page through a file (see above): switch to it.
@@ -1301,10 +1313,9 @@ fn main() -> Result<(), slint::PlatformError> {
         let (ui_weak, bridge, live_apps) = (ui.as_weak(), bridge.clone(), live_apps.clone());
         st.on_action(move |what| match what.as_str() {
             "log" => open_path(&nowbar::platform::log::log_path()),
-            // The running Now Bar downloads, swaps and restarts itself.
             "update" => {
-                if let Ok(exe) = std::env::current_exe() {
-                    let _ = std::process::Command::new(exe.with_file_name("nowbar.exe")).arg("update").spawn();
+                if let Some(ui) = ui_weak.upgrade() {
+                    update_clicked(&ui);
                 }
             }
             "file" => {
@@ -1433,6 +1444,51 @@ fn shoot_pages(ui: &SettingsWindow, dir: &str) -> Result<(), slint::PlatformErro
 thread_local! {
     /// The window's bridge, for answers that come back from worker threads (an `Rc` can't go there).
     static BRIDGE: RefCell<Option<Rc<RefCell<Bridge>>>> = const { RefCell::new(None) };
+    /// What the Hakkında row is doing.
+    static ASKING: Cell<Asking> = const { Cell::new(Asking::Idle) };
+}
+
+fn unix_ms() -> i64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
+}
+
+/// The Hakkında row, by update.json and what the row is doing.
+fn show_update(st: &Store, state: &Option<UpdateState>, asking: Asking) {
+    let row = about_row(state.as_ref(), env!("CARGO_PKG_VERSION"), asking);
+    st.set_update_line(row.line.into());
+    st.set_update_ready(row.installs);
+    st.set_update_busy(!row.clickable);
+}
+
+fn set_asking(st: &Store, asking: Asking) {
+    ASKING.with(|a| a.set(asking));
+    show_update(st, &nowbar::platform::updater::state(), asking);
+}
+
+/// The Hakkında row's click: installs the newer release found, else asks GitHub now.
+fn update_clicked(ui: &SettingsWindow) {
+    let st = ui.global::<Store>();
+    // Enter reaches a busy row too.
+    if st.get_update_busy() {
+        return;
+    }
+    if st.get_update_ready() {
+        // The running Now Bar downloads, checks, swaps and restarts itself; update.json says how
+        // it went (the poll in main follows it).
+        let sent = nowbar::platform::ipc::send(&nowbar::platform::ipc::Command::Update);
+        set_asking(&st, if sent { Asking::Installing(unix_ms()) } else { Asking::Ended(Outcome::NotRunning) });
+        return;
+    }
+    set_asking(&st, Asking::Checking);
+    let ui_weak = ui.as_weak();
+    std::thread::spawn(move || {
+        let found = nowbar::platform::updater::check().is_some();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                set_asking(&ui.global::<Store>(), if found { Asking::Idle } else { Asking::Ended(Outcome::Unreachable) });
+            }
+        });
+    });
 }
 
 /// Shows a team search's results (`None`: ESPN couldn't be reached) unless a newer search has

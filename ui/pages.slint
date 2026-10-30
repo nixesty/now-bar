@@ -1374,14 +1374,15 @@ export component AboutBody inherits VerticalLayout {
         title: @tr("Güncelleme");
         count: Store.update-check ? @tr("günde bir kez GitHub'dan") : @tr("denetim kapalı");
     }
+    // Installs what was found, else asks GitHub now; the line says what is under way and how it went.
     LRow {
-        title: Store.update-ready ? @tr("Güncelle") : @tr("Sürüm");
+        title: Store.update-ready ? @tr("Güncelle") : @tr("Denetle");
         sub: Store.update-line;
-        clickable: Store.update-ready;
+        clickable: !Store.update-busy;
         lead: 1;
-        glyph: "\u{E896}";
+        glyph: Store.update-ready ? "\u{E896}" : "\u{E895}";
         clicked => { Store.action("update"); }
-        if Store.update-ready: Keycap { key: "↵"; }
+        if !Store.update-busy: Keycap { key: "↵"; }
     }
     H4 {
         title: @tr("Dosyalar");

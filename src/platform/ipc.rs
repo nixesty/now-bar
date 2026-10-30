@@ -19,7 +19,7 @@ pub const MAX_BYTES: usize = 4096;
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Command {
     Live(Box<LiveMsg>),
-    /// Apply the update the updater found (the settings window's button).
+    /// Install the latest release if it's newer (the settings window's row, `nowbar.exe update`).
     Update,
     /// The card's answer to a permission, to the hook process waiting for it (`id`), with the
     /// ask's nonce (proof it comes from the Now Bar).

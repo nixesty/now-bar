@@ -224,12 +224,14 @@ kullanır. Ayarlar penceresi Inter'i kendi içinde barındırır (`ui\fonts`, SI
 ## Güncelleme
 
 Now Bar açıldıktan bir dakika sonra ve ardından günde bir kez GitHub'dan son sürümü sorar
-(`api.github.com`; sorgu dışında hiçbir şey gönderilmez). Yeni sürüm varsa tepsi menüsünde
-**Güncelle: x.y.z** ve Ayarlar → Hakkında'da bir satır belirir. Tıklayınca iki exe indirilir,
-`SHA256SUMS.txt` ile doğrulanır, eskilerinin yerine konur ve Now Bar yeniden başlar; ayarlar ve
-otomatik başlatma olduğu gibi kalır. Adımlardan biri bile başarısız olursa eski exe'ler yerinde
-kalır. Now Bar'ın yazma izni olmayan bir klasöre (Program Files gibi) kurulduysa sürüm sayfası
-açılır. Güncelleme denetimi Ayarlar → Hakkında → Güncellemeleri denetle ile kapatılabilir.
+(`api.github.com`; sorgu dışında hiçbir şey gönderilmez). Ayarlar → Hakkında'daki **Denetle**
+satırı beklemeden sorar. Yeni sürüm varsa tepsi menüsünde **Güncelle: x.y.z** belirir, Hakkında'daki
+satır da **Güncelle** olur. Tıklayınca iki exe indirilir, `SHA256SUMS.txt` ile doğrulanır,
+eskilerinin yerine konur ve Now Bar yeniden başlar; ayarlar ve otomatik başlatma olduğu gibi kalır.
+Hakkında satırı o sırada ne olduğunu, olmazsa nedenini yazar. Adımlardan biri bile başarısız olursa
+eski exe'ler yerinde kalır. Now Bar'ın yazma izni olmayan bir klasöre (Program Files gibi)
+kurulduysa sürüm sayfası açılır. Günlük denetim Ayarlar → Hakkında → Güncellemeleri denetle ile
+kapatılabilir.
 
 ## Gizlilik ve ağ
 
