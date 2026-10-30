@@ -13,7 +13,7 @@ use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
 use super::http::get_bytes;
 use super::log::{log, log_path};
-use crate::update::{is_newer, latest_url, parse_release, parse_sums, rollback, swap_plan, Release, UpdateState, ASSETS, REPO};
+use crate::update::{is_newer, latest_url, parse_release, parse_sums, rollback, swap_plan, Outcome, Release, UpdateState, ASSETS, REPO};
 
 /// The running version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -58,38 +58,36 @@ impl Updater {
                     post();
                 };
                 let mut enabled = crate::settings::current().update_check;
-                let mut found: Option<Release> = None;
                 let mut next = Instant::now() + FIRST;
+                // Swapped in, the restart under way: another ask would download again and rename
+                // over the exe still running as nowbar.old.exe.
+                let mut installed = false;
                 loop {
-                    match rx.recv_timeout(next.saturating_duration_since(Instant::now())) {
+                    let result = match rx.recv_timeout(next.saturating_duration_since(Instant::now())) {
                         Ok(Msg::Enable(on)) => {
                             if on && !enabled {
                                 next = Instant::now() + FIRST;
                             }
                             enabled = on;
+                            continue;
                         }
-                        Ok(Msg::Apply) => {
-                            if found.is_none() {
-                                found = check().map(|(r, _)| r);
-                            }
-                            let result = match found.as_ref().filter(|r| is_newer(r, VERSION)) {
-                                Some(r) => download(r).and_then(|dir| install(&dir, &r.page)),
-                                None => Err("no newer release".into()),
-                            };
-                            report(result.map_or_else(Progress::Failed, |()| Progress::Installed));
-                        }
-                        Ok(Msg::ApplyFrom(dir)) => report(verify(&dir).and_then(|()| install(&dir, "")).map_or_else(Progress::Failed, |()| Progress::Installed)),
+                        Ok(Msg::Apply | Msg::ApplyFrom(_)) if installed => continue,
+                        Ok(Msg::Apply) => apply(&report),
+                        Ok(Msg::ApplyFrom(dir)) => verify(&dir).and_then(|()| install(&dir, "")),
                         Err(RecvTimeoutError::Timeout) => {
                             if enabled && !REPO.is_empty() {
-                                if let Some((r, state)) = check() {
-                                    found = Some(r);
+                                if let Some((_, state)) = check() {
                                     report(Progress::Found(state));
                                 }
                             }
                             next = Instant::now() + EVERY;
+                            continue;
                         }
                         Err(RecvTimeoutError::Disconnected) => return,
-                    }
+                    };
+                    installed = result.is_ok();
+                    record(result.as_ref().map_or_else(|(o, _)| *o, |()| Outcome::Installed));
+                    report(result.map_or_else(|(_, why)| Progress::Failed(why), |()| Progress::Installed));
                 }
             })
             .expect("spawn update thread");
@@ -125,8 +123,23 @@ fn unix_now() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
 }
 
-/// Asks GitHub for the latest release and keeps the answer in update.json.
-fn check() -> Option<(Release, UpdateState)> {
+/// Writes update.json whole (the settings window reads it twice a second while it waits).
+fn write_state(state: &UpdateState) {
+    let (path, tmp) = (state_path(), state_path().with_extension("json.tmp"));
+    if std::fs::write(&tmp, serde_json::to_vec(state).unwrap_or_default()).is_ok() {
+        let _ = std::fs::rename(&tmp, &path);
+    }
+}
+
+/// Keeps how the install asked for ended in update.json, for the settings window that asked.
+fn record(outcome: Outcome) {
+    let ended_ms = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
+    write_state(&UpdateState { ended_ms, outcome: Some(outcome), ..state().unwrap_or_default() });
+}
+
+/// Asks GitHub for the latest release and keeps the answer in update.json (the settings window's
+/// "Denetle" asks too).
+pub fn check() -> Option<(Release, UpdateState)> {
     let (status, body) = get_bytes(&latest_url(REPO), &[("Accept", "application/vnd.github+json")])
         .inspect_err(|e| log(&format!("update: {e}")))
         .ok()?;
@@ -136,23 +149,39 @@ fn check() -> Option<(Release, UpdateState)> {
     }
     let r = parse_release(&serde_json::from_slice(&body).ok()?)?;
     let (a, b, c) = r.version;
-    let state = UpdateState { latest: format!("{a}.{b}.{c}"), page: r.page.clone(), checked: unix_now() };
-    let _ = std::fs::write(state_path(), serde_json::to_vec(&state).unwrap_or_default());
+    let state = UpdateState { latest: format!("{a}.{b}.{c}"), page: r.page.clone(), checked: unix_now(), ..state().unwrap_or_default() };
+    write_state(&state);
     log(&format!("update: latest {} (running {VERSION})", r.tag));
     Some((r, state))
 }
 
+/// A failed step: what the settings window says, and what the log says.
+type Failed = (Outcome, String);
+
+/// Asks GitHub again (what the daily check found may be a release behind by now), then downloads,
+/// checks and swaps in the latest.
+fn apply(report: &impl Fn(Progress)) -> Result<(), Failed> {
+    let (r, state) = check().ok_or((Outcome::Unreachable, "GitHub didn't answer with a release".to_string()))?;
+    report(Progress::Found(state));
+    if !is_newer(&r, VERSION) {
+        return Err((Outcome::Current, "no newer release".into()));
+    }
+    let dir = download(&r)?;
+    install(&dir, &r.page)
+}
+
 /// The release's files into `%LOCALAPPDATA%\NowBar\update\<tag>\`, checked.
-fn download(r: &Release) -> Result<PathBuf, String> {
+fn download(r: &Release) -> Result<PathBuf, Failed> {
+    let failed = |why: String| (Outcome::Download, why);
     let dir = log_path().with_file_name("update").join(&r.tag);
-    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    std::fs::create_dir_all(&dir).map_err(|e| failed(format!("{}: {e}", dir.display())))?;
     for name in ASSETS {
-        let url = r.asset(name).ok_or(format!("{} has no {name}", r.tag))?;
-        let (status, bytes) = get_bytes(url, &[])?;
+        let url = r.asset(name).ok_or_else(|| failed(format!("{} has no {name}", r.tag)))?;
+        let (status, bytes) = get_bytes(url, &[]).map_err(failed)?;
         if status != 200 {
-            return Err(format!("{name}: HTTP {status}"));
+            return Err(failed(format!("{name}: HTTP {status}")));
         }
-        std::fs::write(dir.join(name), bytes).map_err(|e| format!("{name}: {e}"))?;
+        std::fs::write(dir.join(name), bytes).map_err(|e| failed(format!("{name}: {e}")))?;
     }
     verify(&dir).inspect_err(|_| {
         let _ = std::fs::remove_dir_all(&dir);
@@ -161,13 +190,14 @@ fn download(r: &Release) -> Result<PathBuf, String> {
 }
 
 /// Both exes in `dir` match its SHA256SUMS.txt.
-fn verify(dir: &Path) -> Result<(), String> {
-    let sums = parse_sums(&std::fs::read_to_string(dir.join("SHA256SUMS.txt")).map_err(|e| format!("SHA256SUMS.txt: {e}"))?);
+fn verify(dir: &Path) -> Result<(), Failed> {
+    let failed = |why: String| (Outcome::Checksum, why);
+    let sums = parse_sums(&std::fs::read_to_string(dir.join("SHA256SUMS.txt")).map_err(|e| failed(format!("SHA256SUMS.txt: {e}")))?);
     for exe in EXES {
-        let want = sums.iter().find(|(n, _)| n == exe).map(|(_, h)| h).ok_or(format!("{exe} isn't in SHA256SUMS.txt"))?;
-        let got = sha256_hex(&std::fs::read(dir.join(exe)).map_err(|e| format!("{exe}: {e}"))?);
+        let want = sums.iter().find(|(n, _)| n == exe).map(|(_, h)| h).ok_or_else(|| failed(format!("{exe} isn't in SHA256SUMS.txt")))?;
+        let got = sha256_hex(&std::fs::read(dir.join(exe)).map_err(|e| failed(format!("{exe}: {e}")))?);
         if &got != want {
-            return Err(format!("{exe}: checksum {got}, expected {want}"));
+            return Err(failed(format!("{exe}: checksum {got}, expected {want}")));
         }
     }
     Ok(())
@@ -187,9 +217,9 @@ static PENDING: Mutex<Option<(PathBuf, Renames)>> = Mutex::new(None);
 /// Swaps the exes in the running one's folder for those in `staged`; the new Now Bar starts once
 /// this one has quit (`restart_after_update`). A folder it may not write (Program Files) opens
 /// `page` instead.
-fn install(staged: &Path, page: &str) -> Result<(), String> {
-    let exe = std::env::current_exe().map_err(|e| format!("current exe: {e}"))?;
-    let dir = exe.parent().ok_or("the exe has no folder")?;
+fn install(staged: &Path, page: &str) -> Result<(), Failed> {
+    let exe = std::env::current_exe().map_err(|e| (Outcome::Swap, format!("current exe: {e}")))?;
+    let dir = exe.parent().ok_or((Outcome::Swap, "the exe has no folder".to_string()))?;
     match swap(dir, staged) {
         Ok(done) => {
             if let Ok(mut p) = PENDING.lock() {
@@ -204,7 +234,7 @@ fn install(staged: &Path, page: &str) -> Result<(), String> {
                     ShellExecuteW(None, w!("open"), &HSTRING::from(page), None, None, SW_SHOWNORMAL);
                 }
             }
-            Err(format!("{step}: {e}"))
+            Err((Outcome::Swap, format!("{step}: {e}")))
         }
     }
 }
@@ -224,6 +254,7 @@ pub fn restart_after_update() {
     if !start_and_watch(&exe, &["--after-update"], Duration::from_secs(2)) {
         log("update: the new Now Bar died at start; the old exes are back");
         undo(&done);
+        record(Outcome::Reverted);
         let _ = std::process::Command::new(&exe).arg("--after-update").spawn();
     }
 }

@@ -101,6 +101,31 @@ pub fn rollback(done: &[(PathBuf, PathBuf)]) -> Vec<(PathBuf, PathBuf)> {
     done.iter().rev().map(|(from, to)| (to.clone(), from.clone())).collect()
 }
 
+/// How an update asked for went. The Now Bar keeps the last one in update.json for the settings
+/// window, which adds the two only it can tell.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Outcome {
+    /// The new exes are in: the Now Bar restarts.
+    Installed,
+    /// Nothing newer than the running one after all.
+    Current,
+    /// GitHub didn't answer with a release.
+    Unreachable,
+    /// A file of the release didn't download.
+    Download,
+    /// The files don't match SHA256SUMS.txt.
+    Checksum,
+    /// The exes couldn't be swapped (a locked or protected folder).
+    Swap,
+    /// The new Now Bar died at start: the old exes are back.
+    Reverted,
+    /// The window's: no Now Bar running to install it.
+    NotRunning,
+    /// The window's: the Now Bar never said how it went.
+    Silent,
+}
+
 /// `%LOCALAPPDATA%\NowBar\update.json`: what the last check found, for the settings window.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdateState {
@@ -109,6 +134,11 @@ pub struct UpdateState {
     pub page: String,
     /// When it was asked (unix seconds).
     pub checked: i64,
+    /// The last install asked for: when it ended (unix ms; 0 none yet) and how.
+    #[serde(default)]
+    pub ended_ms: i64,
+    #[serde(default)]
+    pub outcome: Option<Outcome>,
 }
 
 #[cfg(test)]
@@ -162,10 +192,21 @@ mod tests {
 
     #[test]
     fn the_about_line_says_where_it_stands() {
-        let state = |latest: &str| UpdateState { latest: latest.into(), page: String::new(), checked: 1 };
+        let state = |latest: &str| UpdateState { latest: latest.into(), checked: 1, ..UpdateState::default() };
         assert_eq!(update_line(None, "0.2.0"), ("0.2.0 · denetlenmedi".to_string(), false));
         assert_eq!(update_line(Some(&state("0.2.0")), "0.2.0"), ("0.2.0 · güncel".to_string(), false));
         assert_eq!(update_line(Some(&state("0.3.0")), "0.2.0"), ("0.3.0 hazır · şimdiki 0.2.0".to_string(), true));
+    }
+
+    #[test]
+    fn update_json_keeps_how_the_last_install_went() {
+        // Before outcomes were kept: none yet.
+        let old: UpdateState = serde_json::from_str(r#"{"latest":"0.4.1","page":"https://github.com/k/nowbar/releases/tag/v0.4.1","checked":1}"#).unwrap();
+        assert_eq!((old.latest.as_str(), old.ended_ms, old.outcome), ("0.4.1", 0, None));
+        let state = UpdateState { latest: "0.5.0".into(), ended_ms: 1_700_000_000_123, outcome: Some(Outcome::Checksum), ..UpdateState::default() };
+        let json = serde_json::to_string(&state).unwrap();
+        assert!(json.contains(r#""outcome":"checksum""#), "{json}");
+        assert_eq!(serde_json::from_str::<UpdateState>(&json).unwrap(), state);
     }
 
     #[test]
