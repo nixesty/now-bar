@@ -234,6 +234,17 @@ pub fn page_arg(args: &[String]) -> Option<u8> {
     args.get(i + 1)?.parse::<u8>().ok().filter(|p| *p <= LAST_PAGE)
 }
 
+/// `--at x,y,w,h` on the settings window's command line: the window rect (physical px, as
+/// `GetWindowRect` gives it) a window restarted by an update reopens at.
+pub fn at_arg(args: &[String]) -> Option<(i32, i32, u32, u32)> {
+    let i = args.iter().position(|a| a == "--at")?;
+    let parts: Vec<i32> = args.get(i + 1)?.split(',').map(|p| p.trim().parse().ok()).collect::<Option<_>>()?;
+    match parts[..] {
+        [x, y, w, h] if w > 0 && h > 0 => Some((x, y, w as u32, h as u32)),
+        _ => None,
+    }
+}
+
 /// The letter on a media app's badge: its name's first letter or digit, upper-cased.
 pub fn badge_letter(name: &str) -> String {
     name.chars().find(|c| c.is_alphanumeric()).map_or_else(|| "?".to_string(), |c| c.to_uppercase().collect())
@@ -478,6 +489,18 @@ mod tests {
         assert_eq!(page_arg(&args(&["x", "--page", &(LAST_PAGE + 1).to_string()])), None, "no such page");
         assert_eq!(page_arg(&args(&["x", "--page", "ekin"])), None);
         assert_eq!(page_arg(&args(&["x", "--page"])), None);
+    }
+
+    #[test]
+    fn at_arg_parses_a_window_rect() {
+        let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(at_arg(&args(&["x", "--page", "7", "--at", "-1913,96,1408,1012"])), Some((-1913, 96, 1408, 1012)), "a monitor left of the main one");
+        assert_eq!(at_arg(&args(&["x"])), None);
+        assert_eq!(at_arg(&args(&["x", "--at", "10,20,0,500"])), None, "no size");
+        assert_eq!(at_arg(&args(&["x", "--at", "10,20,30"])), None);
+        assert_eq!(at_arg(&args(&["x", "--at", "10,20,30,40,50"])), None);
+        assert_eq!(at_arg(&args(&["x", "--at", "a,b,c,d"])), None);
+        assert_eq!(at_arg(&args(&["x", "--at"])), None);
     }
 
     #[test]

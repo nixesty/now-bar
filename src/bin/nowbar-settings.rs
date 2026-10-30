@@ -3,6 +3,7 @@
 //! Now Bar watches that file and applies every change live. One window at a time.
 
 use std::cell::{Cell, RefCell};
+use std::os::windows::io::AsRawHandle;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -18,24 +19,24 @@ use nowbar::settings::{
 };
 use nowbar::activities::buds::Paired;
 use nowbar::i18n::{self, Language, LanguagePick};
-use nowbar::settings_ui::{app_badge, badge_letter, buds_choices, exception_name, page_arg, search, stand_in_colour, team_code, tidy_presets};
-use nowbar::update::{about_row, follow, Asking, Outcome, UpdateState};
+use nowbar::settings_ui::{app_badge, at_arg, badge_letter, buds_choices, exception_name, page_arg, search, stand_in_colour, team_code, tidy_presets};
+use nowbar::update::{about_row, follow, restart_due, Asking, Outcome, UpdateState};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use slint::winit_030::winit::window::ResizeDirection;
 use slint::winit_030::WinitWindowAccessor;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use windows::core::{w, HSTRING, PCWSTR};
-use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS, HWND, POINT, RECT};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HANDLE, HWND, POINT, RECT};
 use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST};
 use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
 use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD};
-use windows::Win32::System::Threading::CreateMutexW;
+use windows::Win32::System::Threading::{CreateMutexW, WaitForInputIdle};
 use windows::Win32::UI::Input::KeyboardAndMouse::GetDoubleClickTime;
 use windows::Win32::UI::HiDpi::{GetDpiForMonitor, GetSystemMetricsForDpi, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::Shell::ShellExecuteW;
 use windows::Win32::UI::WindowsAndMessaging::{
-    FindWindowW, GetCursorPos, GetForegroundWindow, SetForegroundWindow, ShowWindow, SM_CXFRAME, SM_CXPADDEDBORDER, SM_CYFRAME, SW_RESTORE,
-    SW_SHOWNORMAL,
+    AllowSetForegroundWindow, FindWindowW, GetCursorPos, GetForegroundWindow, GetWindowRect, IsIconic, SetForegroundWindow, ShowWindow, ASFW_ANY,
+    SM_CXFRAME, SM_CXPADDEDBORDER, SM_CYFRAME, SW_RESTORE, SW_SHOWNORMAL,
 };
 
 use nowbar::platform::frame::{adopt, frame_from_creation, style_frame};
@@ -830,11 +831,14 @@ fn main() -> Result<(), slint::PlatformError> {
     // Dev: NOWBAR_SETTINGS_SHOTS=<dir> draws every page with the real renderer, off-screen, into
     // <dir>, and quits without saving (and without touching a settings window that is open).
     let shots_dir = std::env::var("NOWBAR_SETTINGS_SHOTS").ok();
+    let opened = unix_ms();
     // One window: a second launch brings the first to the front. (Dev: NOWBAR_SETTINGS_SOLO=1
-    // opens another one anyway, for tools/frame-test.py.)
+    // opens another one anyway, for tools/frame-test.py.) Kept to let go of when an update
+    // restarts the window.
+    let mut instance = None;
     if shots_dir.is_none() && std::env::var_os("NOWBAR_SETTINGS_SOLO").is_none() {
         unsafe {
-        let _mutex = CreateMutexW(None, true, w!("Local\\NowBar.Settings"));
+        let mutex = CreateMutexW(None, true, w!("Local\\NowBar.Settings"));
         if GetLastError() == ERROR_ALREADY_EXISTS {
             // It opens on the page asked for (a right-click on the pill).
             if let Some(page) = page_arg(&std::env::args().collect::<Vec<_>>()) {
@@ -847,7 +851,7 @@ fn main() -> Result<(), slint::PlatformError> {
             }
             return Ok(());
         }
-        std::mem::forget(_mutex);
+        instance = mutex.ok();
         }
     }
 
@@ -884,10 +888,13 @@ fn main() -> Result<(), slint::PlatformError> {
         let ui_weak = ui.as_weak();
         update_poll.start(slint::TimerMode::Repeated, Duration::from_millis(500), move || {
             let Some(ui) = ui_weak.upgrade() else { return };
-            let state = nowbar::platform::updater::state();
-            let asking = follow(ASKING.with(Cell::get), state.as_ref(), unix_ms());
+            let (state, now) = (nowbar::platform::updater::state(), unix_ms());
+            let asking = follow(ASKING.with(Cell::get), state.as_ref(), opened, now);
             ASKING.with(|a| a.set(asking));
             show_update(&ui.global::<Store>(), &state, asking);
+            if restart_due(state.as_ref(), opened, now) {
+                restart_for_update(&ui);
+            }
         });
     }
     // Another launch asks for a page through a file (see above): switch to it.
@@ -1347,6 +1354,10 @@ fn main() -> Result<(), slint::PlatformError> {
     let had_focus = shots_dir.as_ref().map(|_| unsafe { GetForegroundWindow() });
     if shots_dir.is_some() {
         ui.window().set_position(slint::PhysicalPosition::new(-6000, 120));
+    } else if let Some((x, y, width, height)) = at_arg(&std::env::args().collect::<Vec<_>>()) {
+        // Restarted by an update: where the old window was (its window rect, as placement's).
+        ui.window().set_size(slint::PhysicalSize::new(width, height));
+        ui.window().set_position(slint::PhysicalPosition::new(x, y));
     } else if let Some((position, size)) = placement_at_mouse() {
         // Before show(): winit creates the window there at that size, so it never shows elsewhere first.
         ui.window().set_size(size);
@@ -1360,8 +1371,13 @@ fn main() -> Result<(), slint::PlatformError> {
         let ui_weak = ui.as_weak();
         let timer = Rc::downgrade(&frame_timer);
         let to_front = shots_dir.is_none();
+        // Restarted by an update from a maximised window: maximised once it has its frame.
+        let maximize = std::env::args().any(|a| a == "--maximized");
         frame_timer.start(slint::TimerMode::Repeated, Duration::from_millis(5), move || {
             if ui_weak.upgrade().is_some_and(|ui| adopt_frame(&ui, dark)) {
+                if let (true, Some(ui)) = (maximize, ui_weak.upgrade()) {
+                    toggle_maximized(&ui);
+                }
                 // Opened from the Now Bar (which allows it), the window comes in front of the app
                 // the user is in, so its opening animation is seen.
                 if let (true, Some(hwnd)) = (to_front, ui_weak.upgrade().and_then(|ui| hwnd_of(&ui))) {
@@ -1393,7 +1409,68 @@ fn main() -> Result<(), slint::PlatformError> {
     if next != saved {
         let _ = settings::save(&to_save(&saved, &next, settings::try_load()));
     }
+    if let Some(reopen) = REOPEN.with(Cell::take) {
+        reopen_window(instance, reopen);
+    }
     Ok(())
+}
+
+/// Where the window an update restarts reopens: its page, and its window rect (none when it's
+/// minimised: then where a window opens) or maximised.
+#[derive(Clone, Copy)]
+struct Reopen {
+    page: i32,
+    at: Option<RECT>,
+    maximized: bool,
+}
+
+/// Restarts the window into the updated exes: its process runs the old one, renamed aside by the
+/// swap, which would go on showing the update as ready and save with the old settings. The new
+/// window opens in its place once the event loop is over and what's left is saved.
+fn restart_for_update(ui: &SettingsWindow) {
+    if REOPEN.with(|r| r.get().is_some()) {
+        return;
+    }
+    let hwnd = hwnd_of(ui);
+    let maximized = ui.window().is_maximized();
+    let normal = hwnd.filter(|h| !maximized && !unsafe { IsIconic(*h) }.as_bool());
+    let at = normal.and_then(|h| {
+        let mut rect = RECT::default();
+        unsafe { GetWindowRect(h, &mut rect) }.ok().map(|()| rect)
+    });
+    REOPEN.with(|r| r.set(Some(Reopen { page: ui.global::<Store>().get_page(), at, maximized })));
+    let _ = slint::quit_event_loop();
+}
+
+/// Opens the updated window in this one's place and waits until it's up, so one window takes
+/// over from the other without a gap.
+fn reopen_window(instance: Option<HANDLE>, reopen: Reopen) {
+    // The new window takes the single-instance mutex: with this one's still there it would only
+    // bring this one to the front and leave.
+    if let Some(mutex) = instance {
+        unsafe {
+            let _ = CloseHandle(mutex);
+        }
+    }
+    let Ok(exe) = std::env::current_exe() else { return };
+    let mut cmd = std::process::Command::new(exe.with_file_name("nowbar-settings.exe"));
+    cmd.args(["--page", &reopen.page.to_string()]);
+    if reopen.maximized {
+        cmd.arg("--maximized");
+    }
+    if let Some(r) = reopen.at {
+        cmd.args(["--at", &format!("{},{},{},{}", r.left, r.top, r.right - r.left, r.bottom - r.top)]);
+    }
+    // In front (its row was clicked), this window hands the front on to the new one.
+    unsafe {
+        let _ = AllowSetForegroundWindow(ASFW_ANY);
+    }
+    match cmd.spawn() {
+        Ok(child) => unsafe {
+            WaitForInputIdle(HANDLE(child.as_raw_handle()), 3000);
+        },
+        Err(e) => nowbar::platform::log::log(&format!("settings window: reopening after the update: {e}")),
+    }
 }
 
 /// What a save writes: the fields the window changed since `saved` (its last read or write)
@@ -1446,6 +1523,8 @@ thread_local! {
     static BRIDGE: RefCell<Option<Rc<RefCell<Bridge>>>> = const { RefCell::new(None) };
     /// What the Hakkında row is doing.
     static ASKING: Cell<Asking> = const { Cell::new(Asking::Idle) };
+    /// An update's restart, asked for: main opens the new window once the loop is over.
+    static REOPEN: Cell<Option<Reopen>> = const { Cell::new(None) };
 }
 
 fn unix_ms() -> i64 {

@@ -130,15 +130,28 @@ pub fn about_row(state: Option<&UpdateState>, current: &str, asking: Asking) -> 
 /// the window stops waiting.
 pub const SILENT_AFTER_MS: i64 = 5 * 60 * 1000;
 
-/// The row's next state by update.json at `now` (unix ms): an install it asked for ends when
-/// the Now Bar writes how it went (only what ended after the ask is that install's).
-pub fn follow(asking: Asking, state: Option<&UpdateState>, now: i64) -> Asking {
-    let Asking::Installing(asked) = asking else { return asking };
-    match state.filter(|s| s.ended_ms > asked).and_then(|s| s.outcome) {
-        Some(outcome) => Asking::Ended(outcome),
-        None if now - asked > SILENT_AFTER_MS => Asking::Ended(Outcome::Silent),
-        None => asking,
+/// How long "kuruldu" shows before an open settings window restarts into the new exes: about as
+/// long as the old Now Bar takes to quit and watch the new one start (one that dies is put back
+/// meanwhile, and the window says so instead).
+pub const RESTART_AFTER_MS: i64 = 3000;
+
+/// The row's next state by update.json at `now` (unix ms), in a window opened at `opened`: an
+/// install it asked for ends when the Now Bar writes how it went (only what ended after the ask
+/// is that install's), and one installed since the window opened (from the tray too) shows.
+pub fn follow(asking: Asking, state: Option<&UpdateState>, opened: i64, now: i64) -> Asking {
+    let since = if let Asking::Installing(asked) = asking { asked } else { opened };
+    match (asking, state.filter(|s| s.ended_ms > since).and_then(|s| s.outcome)) {
+        (_, Some(Outcome::Installed)) => Asking::Ended(Outcome::Installed),
+        (Asking::Installing(_) | Asking::Ended(Outcome::Installed), Some(outcome)) => Asking::Ended(outcome),
+        (Asking::Installing(asked), None) if now - asked > SILENT_AFTER_MS => Asking::Ended(Outcome::Silent),
+        _ => asking,
     }
+}
+
+/// Whether the settings window opened at `opened` (unix ms) restarts now: it runs the old exe,
+/// renamed aside by an update installed since, which has shown for `RESTART_AFTER_MS`.
+pub fn restart_due(state: Option<&UpdateState>, opened: i64, now: i64) -> bool {
+    state.is_some_and(|s| s.outcome == Some(Outcome::Installed) && s.ended_ms > opened && now - s.ended_ms >= RESTART_AFTER_MS)
 }
 
 /// `sha256sum`'s lines ("<hex>  <name>" or "<hex> *<name>"): (name, lowercase hex).
@@ -298,21 +311,41 @@ mod tests {
 
     #[test]
     fn the_window_follows_an_install_by_update_json() {
-        let asked = 2_000;
+        let (opened, asked) = (1_000, 2_000);
         let installing = Asking::Installing(asked);
         // Still under way: what's there is an older install's.
-        assert_eq!(follow(installing, Some(&ended("0.4.2", 1_500, Outcome::Download)), asked + 50), installing);
-        assert_eq!(follow(installing, None, asked + 50), installing);
+        assert_eq!(follow(installing, Some(&ended("0.4.2", 1_500, Outcome::Download)), opened, asked + 50), installing);
+        assert_eq!(follow(installing, None, opened, asked + 50), installing);
         // Ended since it was asked.
-        assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Checksum)), asked + 60), Asking::Ended(Outcome::Checksum));
-        assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Installed)), asked + 60), Asking::Ended(Outcome::Installed));
+        assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Checksum)), opened, asked + 60), Asking::Ended(Outcome::Checksum));
+        assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Installed)), opened, asked + 60), Asking::Ended(Outcome::Installed));
         // The Now Bar never says.
-        assert_eq!(follow(installing, None, asked + SILENT_AFTER_MS + 1), Asking::Ended(Outcome::Silent));
+        assert_eq!(follow(installing, None, opened, asked + SILENT_AFTER_MS + 1), Asking::Ended(Outcome::Silent));
         // A failure stays until the next click, even when the window had nothing to do with it.
         let failed = Asking::Ended(Outcome::Download);
-        assert_eq!(follow(failed, Some(&ended("0.4.2", asked + 9, Outcome::Download)), asked + 600_000), failed);
-        assert_eq!(follow(Asking::Checking, Some(&ended("0.4.2", asked + 9, Outcome::Swap)), asked + 60), Asking::Checking);
-        assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", asked + 9, Outcome::Swap)), asked + 60), Asking::Idle);
+        assert_eq!(follow(failed, Some(&ended("0.4.2", asked + 9, Outcome::Download)), opened, asked + 600_000), failed);
+        assert_eq!(follow(Asking::Checking, Some(&ended("0.4.2", asked + 9, Outcome::Swap)), opened, asked + 60), Asking::Checking);
+        assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", asked + 9, Outcome::Swap)), opened, asked + 60), Asking::Idle);
+        // Installed from the tray while the window is open, or before it opened.
+        let installed = Asking::Ended(Outcome::Installed);
+        assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", opened + 9, Outcome::Installed)), opened, opened + 60), installed);
+        assert_eq!(follow(failed, Some(&ended("0.4.2", opened + 9, Outcome::Installed)), opened, opened + 60), installed);
+        assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", opened - 9, Outcome::Installed)), opened, opened + 60), Asking::Idle);
+        // The new Now Bar died at start and the old one is back.
+        assert_eq!(follow(installed, Some(&ended("0.4.2", asked + 2_500, Outcome::Reverted)), opened, asked + 2_600), Asking::Ended(Outcome::Reverted));
+    }
+
+    #[test]
+    fn the_window_restarts_once_an_install_since_it_opened_has_shown() {
+        let opened = 1_000;
+        let at = |ended_ms, outcome| Some(ended("0.4.2", ended_ms, outcome));
+        assert!(!restart_due(None, opened, 99_000));
+        assert!(!restart_due(at(5_000, Outcome::Installed).as_ref(), opened, 5_000 + RESTART_AFTER_MS - 1), "kuruldu shows first");
+        assert!(restart_due(at(5_000, Outcome::Installed).as_ref(), opened, 5_000 + RESTART_AFTER_MS));
+        assert!(!restart_due(at(5_000, Outcome::Reverted).as_ref(), opened, 99_000), "the old exes are back");
+        assert!(!restart_due(at(5_000, Outcome::Swap).as_ref(), opened, 99_000));
+        // The window a restart opened: that install is older than it.
+        assert!(!restart_due(at(900, Outcome::Installed).as_ref(), opened, 99_000));
     }
 
     #[test]
