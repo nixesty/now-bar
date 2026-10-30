@@ -337,7 +337,7 @@ Bu lisansın dışında kalanlar:
 
 - Galaxy Buds'ın gürültü kontrolü simgeleri (`src/activities/buds.rs`, `NoiseControl::icon`)
   Samsung'un SystemUI'ından çizildi ve Samsung'a aittir; README görsellerinde de görünürler.
-- Galaxy Buds2 görselleri (`assets/buds/`)
+- Galaxy Buds görselleri (`assets/buds/`; Buds Pro, Buds2, Buds2 Pro, FE, Core, Buds3 ve Buds4 aileleri)
   [GalaxyBudsClient](https://github.com/timschneeb/GalaxyBudsClient)'tan alındı; Samsung'un
   ürün görselleridir ve Samsung'a aittir.
 - Claude'un işareti (`src/render/pill.rs`, `CLAUDE_ICON`) Anthropic'e aittir; o da görsellerde
@@ -348,4 +348,4 @@ Bu lisansın dışında kalanlar:
 ---
 
 <sub>Samsung ile bir ilgisi yoktur; One UI'dan esinlenmiş bağımsız bir projedir. Galaxy Buds'ın
-gürültü kontrolü simgeleri ve Buds2 görselleri Samsung'a aittir.</sub>
+gürültü kontrolü simgeleri ve kulaklık görselleri Samsung'a aittir.</sub>

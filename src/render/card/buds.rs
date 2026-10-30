@@ -149,45 +149,70 @@ pub(in crate::render) fn buds_height_dip(c: &BudsCard) -> f32 {
     }
 }
 
-/// Buds2's colours by model id (GalaxyBudsClient's DeviceIds), the average of each render: the
-/// case is drawn in it, and the buds of a colour without a render; graphite for the rest.
+macro_rules! renders {
+    ($($id:literal => $asset:literal, $colour:expr;)*) => {
+        /// GalaxyBudsClient's renders (Samsung's product pictures, `assets/buds`) of the models the
+        /// Now Bar connects to, left and right, by model id (with its colour), and each render's
+        /// average colour: the case is drawn in it.
+        fn render_of(model: u16) -> Option<([&'static [u8]; 2], (u8, u8, u8))> {
+            match model {
+                $($id => Some((
+                    [
+                        include_bytes!(concat!("../../../assets/buds/", $asset, "-left.png")).as_slice(),
+                        include_bytes!(concat!("../../../assets/buds/", $asset, "-right.png")).as_slice(),
+                    ],
+                    $colour,
+                )),)*
+                _ => None,
+            }
+        }
+    };
+}
+
+renders! {
+    298 => "buds-pro-black", (0x3C, 0x3C, 0x3C);
+    299 => "buds-pro-silver", (0xB4, 0xB5, 0xB5);
+    300 => "buds-pro-violet", (0x8B, 0x8D, 0xAD);
+    301 => "buds-pro-white", (0xD6, 0xD6, 0xD6);
+    313 => "buds2-white", (0xE6, 0xE6, 0xE7);
+    314 => "buds2-black", (0x40, 0x40, 0x43);
+    316 => "buds2-green", (0xB1, 0xB3, 0x9B);
+    317 => "buds2-violet", (0xBE, 0xB5, 0xC8);
+    318 => "buds2-thombrown", (0xE9, 0xE9, 0xE8);
+    319 => "buds2-maisonkitsune", (0xE1, 0xE2, 0xD5);
+    320 => "buds2-absoluteblack", (0x1E, 0x1F, 0x21);
+    321 => "buds2-grey", (0x1F, 0x20, 0x22);
+    322 => "buds-core-onyx", (0x26, 0x26, 0x26);
+    323 => "buds-core-white", (0xDB, 0xDB, 0xDB);
+    326 => "buds2-pro-grey", (0x3F, 0x3F, 0x40);
+    327 => "buds2-pro-white", (0xD7, 0xD7, 0xD7);
+    328 => "buds2-pro-violet", (0xA0, 0x96, 0xAD);
+    330 => "buds-fe-graphite", (0x44, 0x43, 0x46);
+    331 => "buds-fe-white", (0xDF, 0xDF, 0xDE);
+    333 => "buds3-silver", (0x73, 0x75, 0x78);
+    334 => "buds3-white", (0xD1, 0xD2, 0xD4);
+    340 => "buds3-pro-silver", (0x6B, 0x6D, 0x70);
+    341 => "buds3-pro-white", (0xD5, 0xD6, 0xD8);
+    347 => "buds3-fe-silver", (0x35, 0x38, 0x3F);
+    348 => "buds3-fe-white", (0xA6, 0xA7, 0xA8);
+    355 => "buds4-black", (0x60, 0x63, 0x68);
+    356 => "buds4-white", (0xCD, 0xCD, 0xCF);
+    359 => "buds4-pro-black", (0x53, 0x56, 0x5C);
+    360 => "buds4-pro-white", (0xD0, 0xD1, 0xD2);
+    361 => "buds4-pro-apricot", (0xE5, 0xD5, 0xD0);
+}
+
+/// The model's colour; graphite without a render (Buds2's unreleased yellow, an unknown model).
 fn bud_colour(model: Option<u16>) -> (u8, u8, u8) {
     match model {
-        Some(313) => (0xE6, 0xE6, 0xE7),
-        Some(314) => (0x40, 0x40, 0x43),
         Some(315) => (0xE6, 0xD6, 0x8C),
-        Some(316) => (0xB1, 0xB3, 0x9B),
-        Some(317) => (0xBE, 0xB5, 0xC8),
-        Some(318) => (0xE9, 0xE9, 0xE8),
-        Some(319) => (0xE1, 0xE2, 0xD5),
-        Some(320) => (0x1E, 0x1F, 0x21),
-        Some(321) => (0x2A, 0x2B, 0x2E),
-        _ => (0x4A, 0x4C, 0x52),
+        m => m.and_then(render_of).map_or((0x4A, 0x4C, 0x52), |(_, colour)| colour),
     }
 }
 
-/// GalaxyBudsClient's renders of the Buds2 (Samsung's product pictures, `assets/buds`), left and
-/// right, by colour; the unreleased yellow has none.
-fn bud_render(model: Option<u16>) -> Option<[&'static [u8]; 2]> {
-    macro_rules! pair {
-        ($colour:literal) => {
-            [
-                include_bytes!(concat!("../../../assets/buds/buds2-", $colour, "-left.png")).as_slice(),
-                include_bytes!(concat!("../../../assets/buds/buds2-", $colour, "-right.png")).as_slice(),
-            ]
-        };
-    }
-    Some(match model? {
-        313 => pair!("white"),
-        314 => pair!("black"),
-        316 => pair!("green"),
-        317 => pair!("violet"),
-        318 => pair!("thombrown"),
-        319 => pair!("maisonkitsune"),
-        320 => pair!("absoluteblack"),
-        321 => pair!("grey"),
-        _ => return None,
-    })
+/// Buds3 and later have stems, and a wide case with a clear lid.
+fn has_stems(model: Option<u16>) -> bool {
+    matches!(model, Some(333..=361))
 }
 
 thread_local! {
@@ -197,7 +222,7 @@ thread_local! {
 
 /// A bud's render `px`×`px`, decoded once.
 fn bud_picture(model: Option<u16>, side: usize, px: u32) -> Option<Crest> {
-    let bytes = bud_render(model)?[side];
+    let bytes = render_of(model?)?.0[side];
     RENDERS.with(|r| r.borrow_mut().entry((model?, side, px)).or_insert_with(|| crate::render::crest::from_bytes(bytes, px)).clone())
 }
 
@@ -219,6 +244,15 @@ fn case_svg(charging: bool) -> String {
     let light = if charging { r##"fill="#6EE07A""## } else { r##"fill="#FFFFFF" fill-opacity="0.6""## };
     format!(
         r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.34"/><stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.7" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.32"/></linearGradient><linearGradient id="h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity="0.2"/><stop offset="0.28" stop-color="#000000" stop-opacity="0"/><stop offset="0.72" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></linearGradient><radialGradient id="g" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient></defs><rect x="8" y="10" width="48" height="46" rx="17" fill="currentColor"/><rect x="8" y="10" width="48" height="46" rx="17" fill="url(#v)"/><rect x="8" y="10" width="48" height="46" rx="17" fill="url(#h)"/><ellipse cx="32" cy="14.5" rx="17" ry="3.2" fill="url(#g)"/><path d="M8.4 26 H55.6" stroke="#000000" stroke-opacity="0.32" stroke-width="1.1"/><path d="M8.6 27.3 H55.4" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="0.8"/><circle cx="32" cy="45.5" r="1.6" {light}/><rect x="8.5" y="10.5" width="47" height="45" rx="16.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="1"/></svg>"##
+    )
+}
+
+/// The stem models' case from the front (Buds3: 59 × 49 mm): a wide box, its clear lid tinted
+/// over the two buds' heads, the seam, lit from above and shaded below, the light on its front.
+fn stem_case_svg(charging: bool) -> String {
+    let light = if charging { r##"fill="#6EE07A""## } else { r##"fill="#FFFFFF" fill-opacity="0.6""## };
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.3"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.72" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.32"/></linearGradient><linearGradient id="h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity="0.2"/><stop offset="0.25" stop-color="#000000" stop-opacity="0"/><stop offset="0.75" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></linearGradient><linearGradient id="l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.32"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.08"/></linearGradient></defs><rect x="5" y="15" width="54" height="40" rx="13" fill="currentColor"/><rect x="5" y="15" width="54" height="40" rx="13" fill="url(#v)"/><rect x="5" y="15" width="54" height="40" rx="13" fill="url(#h)"/><path d="M5 31 V28 A13 13 0 0 1 18 15 H46 A13 13 0 0 1 59 28 V31 Z" fill="#16171A" fill-opacity="0.72"/><ellipse cx="22" cy="25" rx="7" ry="4.6" fill="currentColor" fill-opacity="0.75"/><ellipse cx="42" cy="25" rx="7" ry="4.6" fill="currentColor" fill-opacity="0.75"/><path d="M5 31 V28 A13 13 0 0 1 18 15 H46 A13 13 0 0 1 59 28 V31 Z" fill="url(#l)"/><path d="M5.2 31 H58.8" stroke="#000000" stroke-opacity="0.35" stroke-width="1.1"/><circle cx="32" cy="45" r="1.6" {light}/><rect x="5.5" y="15.5" width="53" height="39" rx="12.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="1"/></svg>"##
     )
 }
 
@@ -334,7 +368,7 @@ impl Painter<'_, '_> {
                     None => self.ink.svg(&bud_svg(i == 1), picture, rgba(cr, cg, cb, 1.0))?,
                 },
                 // A case with no bud in it doesn't say its battery: it's drawn dim.
-                None => self.ink.svg(&case_svg(charge), picture, rgba(cr, cg, cb, if pct.is_some() { 1.0 } else { 0.45 }))?,
+                None => self.ink.svg(&if has_stems(b.model) { stem_case_svg(charge) } else { case_svg(charge) }, picture, rgba(cr, cg, cb, if pct.is_some() { 1.0 } else { 0.45 }))?,
             }
             let top = BLOCK_TOP + BUD_SIDE + 2.0;
             let pct_st = TextStyle::new(Face::Display, Weight::SemiBold, d(18.0), white(1.0)).tabular();
@@ -764,6 +798,18 @@ mod tests {
         assert_eq!(buds_height_dip(&pc) - buds_height_dip(&c), PC_BLOCK, "the PC's actions under touch and hold");
         let find = BudsCard { page: BudsPage::Find, ..c.clone() };
         assert!(buds_height_dip(&BudsCard { finding: true, ..find.clone() }) > buds_height_dip(&find), "mute buttons while ringing");
+    }
+
+    #[test]
+    fn every_model_the_now_bar_reads_has_its_render() {
+        // Buds Pro, Buds2 (not the unreleased yellow), Core, Buds2 Pro, FE, Buds3, 3 Pro, 3 FE, 4, 4 Pro.
+        let ids = [298..=301, 313..=314, 316..=323, 326..=328, 330..=331, 333..=334, 340..=341, 347..=348, 355..=356, 359..=361];
+        for id in ids.into_iter().flatten() {
+            assert!(render_of(id).is_some(), "{id}");
+        }
+        assert!(render_of(315).is_none() && render_of(279).is_none(), "Buds2's yellow, a Buds Live");
+        assert_eq!(bud_colour(Some(999)), (0x4A, 0x4C, 0x52));
+        assert!(has_stems(Some(333)) && has_stems(Some(361)) && !has_stems(Some(331)));
     }
 
     #[test]

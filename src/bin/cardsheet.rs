@@ -231,6 +231,10 @@ fn main() -> Result<()> {
         BudsCard { page: BudsPage::System, ..buds.clone() },
         BudsCard { b: BudsSnapshot { left: 68, right: 74, case: Some(60), noise: Some(NoiseControl::Anc), ..Default::default() }, ..Default::default() },
         BudsCard { b: BudsSnapshot { model: Some(314), place: [Place::Worn, Place::Worn], charging: Some(Charging { case: true, ..Default::default() }), ..buds2 }, ..buds.clone() },
+        // Other generations: their renders, and the stem models' case.
+        BudsCard { b: BudsSnapshot { model: Some(299), settings: None, ..buds2 }, ..buds.clone() },
+        BudsCard { b: BudsSnapshot { model: Some(340), settings: None, ..buds2 }, ..buds.clone() },
+        BudsCard { b: BudsSnapshot { model: Some(361), settings: None, ..buds2 }, ..buds.clone() },
     ];
 
     // The output page with the devices of this PC, as the app would build it.
@@ -341,6 +345,9 @@ fn main() -> Result<()> {
         CardContent::Buds(buds_cards[7].clone()),
         CardContent::Buds(buds_cards[8].clone()),
         CardContent::Buds(buds_cards[9].clone()),
+        CardContent::Buds(buds_cards[10].clone()),
+        CardContent::Buds(buds_cards[11].clone()),
+        CardContent::Buds(buds_cards[12].clone()),
         CardContent::Weather(Box::new(weather)),
         CardContent::Weather(Box::new(windy)),
         CardContent::Wellbeing(Box::new(WellbeingCard {
