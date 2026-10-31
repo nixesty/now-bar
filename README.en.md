@@ -39,8 +39,14 @@ The pictures on this page show it in Turkish.
 - **Weather:** the clock and the weather when nothing else is on; alerts for rain, snow, storms,
   strong wind, extreme heat, frost and poor air quality. Without a chosen city, the location comes
   from Windows.
-- **Galaxy Buds:** the charge of both earbuds and the case, and noise control. With more than one
-  pair of Buds paired, the settings pick which one is shown.
+- **Galaxy Buds:** the card is like Galaxy Wearable's: both earbuds and the case, their charge,
+  where they are, their temperature and the listening time left; noise control. On Buds2 there are
+  also the equalizer, the ambient sound level and how it's tuned, find my earbuds, touch controls
+  and touch and hold (holding can mute the PC's microphone, skip the song…), double tap the edge,
+  hearing your own voice in calls, seamless connection and the fit test; these are kept in the
+  earbuds themselves and apply on the phone too. When the earbuds aren't connected to this PC,
+  opening the case makes Now Bar offer to connect, and one click brings them over. With more than
+  one pair of Buds paired, the settings pick which one is shown.
 - **Claude Code:** what Claude is doing right now and its task list; when it asks for permission,
   the card shows **Allow / Deny** buttons ([below](#live-activities)).
 - **Ask Claude:** Win+Alt+C or a Ctrl-click on the pill opens a text box in the card; the answer
@@ -228,12 +234,14 @@ License).
 ## Updates
 
 A minute after it starts, and then once a day, Now Bar asks GitHub for the latest release
-(`api.github.com`; nothing is sent but the request). When there's a newer one, **Update: x.y.z**
-shows in the tray menu and a line in Settings → About. A click downloads the two exes, checks them
-against `SHA256SUMS.txt`, puts them in place of the old ones and restarts Now Bar; the settings and
-start with Windows stay as they are. If any step fails, the old exes stay. If Now Bar is installed
-in a folder it can't write to (such as Program Files), the release page opens instead. Settings →
-About → Check for updates turns the check off.
+(`api.github.com`; nothing is sent but the request). The **Check** row in Settings → About asks
+without waiting. When there's a newer one, **Update: x.y.z** shows in the tray menu and the About
+row turns into **Update**. A click downloads the two exes, checks them against `SHA256SUMS.txt`,
+puts them in place of the old ones and restarts Now Bar; an open settings window reopens in place
+with the new version too. The settings and start with Windows stay as they are. The About row says
+what is happening meanwhile and, if it fails, why. If any step fails, the old exes stay. If Now
+Bar is installed in a folder it can't write to (such as Program Files), the release page opens
+instead. Settings → About → Check for updates turns the daily check off.
 
 ## Privacy and network
 
@@ -256,6 +264,10 @@ Where Now Bar connects (none of them needs an API key):
 
 What stays on this PC: the week's music is counted here; **Copy text** uses Windows' own text
 recognition; **Share** only opens Windows' share window, and the files go where you choose there.
+While the paired Buds aren't connected to this PC, Now Bar listens to nearby Bluetooth LE adverts
+to see the case open (it only listens and sends nothing; the case's counter is kept in
+`%LOCALAPPDATA%\NowBar\buds-lid.txt`). Settings → Galaxy Buds → **Offer to connect when the case
+opens** turns this off.
 
 With **app notifications** on, Now Bar listens only on `127.0.0.1:20034` and `[::1]`, which only
 this PC can reach (if the port is taken it uses another one Windows gives and writes it to
@@ -330,6 +342,9 @@ Not covered by this license:
 
 - The Galaxy Buds noise control icons (`src/activities/buds.rs`, `NoiseControl::icon`) were drawn
   from Samsung's SystemUI and belong to Samsung; they also show in the README's pictures.
+- The Galaxy Buds pictures (`assets/buds/`; the Buds Pro, Buds2, Buds2 Pro, FE, Core, Buds3 and
+  Buds4 families) come from [GalaxyBudsClient](https://github.com/timschneeb/GalaxyBudsClient);
+  they are Samsung's product pictures and belong to Samsung.
 - Claude's mark (`src/render/pill.rs`, `CLAUDE_ICON`) belongs to Anthropic; it shows in the
   pictures too.
 - The settings window's font, Inter, comes with its own license (SIL Open Font License,
@@ -338,4 +353,4 @@ Not covered by this license:
 ---
 
 <sub>Not affiliated with Samsung; an independent project inspired by One UI. The Galaxy Buds noise
-control icons belong to Samsung.</sub>
+control icons and earbud pictures belong to Samsung.</sub>

@@ -261,7 +261,10 @@ Now Bar'ın bağlandığı yerler (hiçbiri API anahtarı istemez):
 
 Bu bilgisayarda kalanlar: haftanın müziği burada sayılır; **Metni kopyala** Windows'un kendi metin
 tanımasını kullanır; **Paylaş** yalnızca Windows'un paylaşım penceresini açar, dosyalar orada
-seçtiğin yere gider.
+seçtiğin yere gider. Eşleştirilmiş Buds bu bilgisayara bağlı değilken Now Bar, kutunun açıldığını
+görmek için yakındaki Bluetooth LE yayınlarını dinler (yalnızca dinler, hiçbir şey göndermez;
+kutunun sayacı `%LOCALAPPDATA%\NowBar\buds-lid.txt` dosyasında). Ayarlar → Galaxy Buds → **Kutu
+açılınca bağlanmayı öner** bunu kapatır.
 
 **Uygulama bildirimleri** açıksa Now Bar yalnızca bu bilgisayardan erişilebilen `127.0.0.1:20034`
 ve `[::1]` adreslerini dinler (port doluysa Windows'un verdiği başka bir portu kullanır ve bunu
