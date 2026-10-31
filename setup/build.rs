@@ -11,7 +11,8 @@ use std::process::Command;
 mod payload;
 
 fn main() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    // At run time, as in the app's build.rs: a compiled build script is shared between checkouts.
+    let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let out = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
     // The app's English, bundled under this crate's name (Slint looks for <crate>.po).
     let po = root.join("..").join("i18n").join("en").join("LC_MESSAGES").join("nowbar-ui.po");

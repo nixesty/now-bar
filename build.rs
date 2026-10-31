@@ -5,14 +5,17 @@
 //
 // Both are copied into OUT_DIR and linked from there: checkouts that share a target dir (the
 // main one and its worktrees) share this script's output too, and a path into a checkout that
-// is gone breaks every link after it.
+// is gone breaks every link after it. They share the compiled script as well (its hash doesn't
+// hold the checkout's path), so the checkout is read from the environment when the script runs:
+// `env!` would keep the one it was compiled in, and a worktree would get the main checkout's
+// English, manifest and icon, and watch the main checkout's files for changes.
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 include!("src/po.rs");
 
 fn main() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let out = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
     println!("cargo:rerun-if-changed=nowbar.manifest");
     let manifest = out.join("nowbar.manifest");
@@ -20,7 +23,7 @@ fn main() {
     println!("cargo:rustc-link-arg-bins=/MANIFEST:EMBED");
     println!("cargo:rustc-link-arg-bins=/MANIFESTINPUT:{}", manifest.display());
     embed_icon(&root.join("assets").join("nowbar.ico"), &out);
-    english_table(root, &out);
+    english_table(&root, &out);
 }
 
 /// The English strings as a table sorted by their Turkish (OUT_DIR/en.rs, included by i18n).
