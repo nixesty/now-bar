@@ -820,13 +820,13 @@ mod tests {
         assert_eq!(parse_acf(r#""AppState" { "name" "x" }"#), None, "no app id");
     }
 
-    /// Lines from this PC's journal (trimmed): Fortnite's update, an add-on, Rocket League's
-    /// install from the old launcher, never finished.
+    /// Lines as the journal writes them (made-up installation ids): Fortnite's update, an add-on,
+    /// Rocket League's install from the old launcher, never finished.
     const JOURNAL: &str = r#"{"version":1,"writtenAt":"2026-10-23T10:13:53Z","entries":4}
-{"installationId":"245925E5454BCA55BBD27298B53822F7","complete":false,"dir":"C:\\Program Files\\Epic Games\\rocketleague","namespace":"9773aa1aa54f4f7b80e44bef04986cea","itemId":"530145df28a24424923f5828cc9031a1","artifactId":"Sugar","version":"BC2_Update42+419576","pendingVersion":"BC2_Update42+419576","launchExecutable":"Binaries/Win64/RocketLeague.exe","writtenAt":"2026-10-18T19:58:12Z"}
-{"installationId":"FA190293453B86DEE39781B32546255C","complete":true,"dir":"C:\\Program Files\\Epic Games\\Fortnite","namespace":"fn","itemId":"4fe75bbc5a674f4f9b356b5c90567da5","artifactId":"Fortnite","version":"++Fortnite+Release-42.30-CL-58813929-Windows","pendingVersion":"","launchExecutable":"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe","writtenAt":"2026-10-20T08:00:00Z"}
-{"installationId":"FA190293453B86DEE39781B32546255C","complete":false,"dir":"C:\\Program Files\\Epic Games\\Fortnite","namespace":"fn","itemId":"4fe75bbc5a674f4f9b356b5c90567da5","artifactId":"Fortnite","version":"++Fortnite+Release-42.30-CL-58813929-Windows","pendingVersion":"++Fortnite+Release-42.40-CL-59086525-Windows","launchExecutable":"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe","writtenAt":"2026-10-22T19:41:38Z"}
-{"installationId":"FE905D977224125BD6B1BAD69052B241","complete":true,"dir":"C:\\Program Files\\Epic Games\\Fortnite","namespace":"fn","itemId":"b619cf61a4144d67bd753dc990637e7c","artifactId":"94bc5ec13f8f438c97fdbef3e9019e27","version":"++Fortnite+Release-42.40-CL-59343437-Windows","pendingVersion":"","launchExecutable":"","writtenAt":"2026-10-22T19:50:06Z"}
+{"installationId":"0A1B2C3D4E5F00000000000000000001","complete":false,"dir":"C:\\Program Files\\Epic Games\\rocketleague","namespace":"9773aa1aa54f4f7b80e44bef04986cea","itemId":"530145df28a24424923f5828cc9031a1","artifactId":"Sugar","version":"BC2_Update42+419576","pendingVersion":"BC2_Update42+419576","launchExecutable":"Binaries/Win64/RocketLeague.exe","writtenAt":"2026-10-18T19:58:12Z"}
+{"installationId":"0A1B2C3D4E5F00000000000000000002","complete":true,"dir":"C:\\Program Files\\Epic Games\\Fortnite","namespace":"fn","itemId":"4fe75bbc5a674f4f9b356b5c90567da5","artifactId":"Fortnite","version":"++Fortnite+Release-42.30-CL-58813929-Windows","pendingVersion":"","launchExecutable":"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe","writtenAt":"2026-10-20T08:00:00Z"}
+{"installationId":"0A1B2C3D4E5F00000000000000000002","complete":false,"dir":"C:\\Program Files\\Epic Games\\Fortnite","namespace":"fn","itemId":"4fe75bbc5a674f4f9b356b5c90567da5","artifactId":"Fortnite","version":"++Fortnite+Release-42.30-CL-58813929-Windows","pendingVersion":"++Fortnite+Release-42.40-CL-59086525-Windows","launchExecutable":"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe","writtenAt":"2026-10-22T19:41:38Z"}
+{"installationId":"0A1B2C3D4E5F00000000000000000003","complete":true,"dir":"C:\\Program Files\\Epic Games\\Fortnite","namespace":"fn","itemId":"b619cf61a4144d67bd753dc990637e7c","artifactId":"94bc5ec13f8f438c97fdbef3e9019e27","version":"++Fortnite+Release-42.40-CL-59343437-Windows","pendingVersion":"","launchExecutable":"","writtenAt":"2026-10-22T19:50:06Z"}
 not json"#;
 
     /// 22 Oct 2026 19:45 UTC: four minutes into Fortnite's update.
@@ -836,7 +836,7 @@ not json"#;
     fn the_journal_keeps_each_installations_last_line() {
         let all = parse_installations(JOURNAL);
         assert_eq!(all.len(), 3, "{all:?}");
-        let fortnite = all.iter().find(|i| i.id == "FA190293453B86DEE39781B32546255C").unwrap();
+        let fortnite = all.iter().find(|i| i.id == "0A1B2C3D4E5F00000000000000000002").unwrap();
         assert!(!fortnite.complete);
         assert_eq!(fortnite.pending, "++Fortnite+Release-42.40-CL-59086525-Windows");
         assert_eq!(fortnite.exe, "FortniteGame/Binaries/Win64/FortniteBootstrapper.exe");
@@ -850,10 +850,10 @@ not json"#;
     fn an_update_is_a_pending_version_written_lately() {
         let all = parse_installations(JOURNAL);
         let by = |id: &str| all.iter().find(|i| i.id == id).unwrap();
-        assert!(epic_updating(by("FA190293453B86DEE39781B32546255C"), UPDATE_NOW));
-        assert!(!epic_updating(by("FA190293453B86DEE39781B32546255C"), UPDATE_NOW + 7 * 3600), "a launcher that died mid update");
-        assert!(!epic_updating(by("245925E5454BCA55BBD27298B53822F7"), UPDATE_NOW), "never finished, nothing pending: not an update");
-        assert!(!epic_updating(by("FE905D977224125BD6B1BAD69052B241"), UPDATE_NOW), "complete");
+        assert!(epic_updating(by("0A1B2C3D4E5F00000000000000000002"), UPDATE_NOW));
+        assert!(!epic_updating(by("0A1B2C3D4E5F00000000000000000002"), UPDATE_NOW + 7 * 3600), "a launcher that died mid update");
+        assert!(!epic_updating(by("0A1B2C3D4E5F00000000000000000001"), UPDATE_NOW), "never finished, nothing pending: not an update");
+        assert!(!epic_updating(by("0A1B2C3D4E5F00000000000000000003"), UPDATE_NOW), "complete");
     }
 
     #[test]
@@ -875,8 +875,8 @@ not json"#;
         assert!(!titles.contains_key("broken"));
     }
 
-    /// Epic's Install API on this PC (23 Oct 2026): Arcade Paradise's install, paused at 18,9 %.
-    const OPERATIONS: &str = r#"{"running":[{"id":"52BC7C92F05AA858","status":"Running","installationsRevision":"000001A169816E580000000000000001","request":{"body":{"actions":[{"type":"InstallOrUpdate","sandboxId":"89b9c510e8d74b9da34c447915b1ffb1","artifactId":"888fabb7d07b430691ae22796f2cb530","dir":"C:\\Users\\Ekin\\Epic Games\\ArcadeParadise","tags":[""]}]}},"progress":{"bpsOngoingStats":{"state":"Paused","updateProgress":0.18856717341753307,"downloadSize":2679101356,"downloadedBytes":505190570}}}],"queued":[],"suspended":[],"completed":[]}"#;
+    /// An answer of Epic's Install API (made-up ids): Arcade Paradise's install, paused at 18,9 %.
+    const OPERATIONS: &str = r#"{"running":[{"id":"0A1B2C3D4E5F0001","status":"Running","installationsRevision":"00000000000000000000000000000001","request":{"body":{"actions":[{"type":"InstallOrUpdate","sandboxId":"89b9c510e8d74b9da34c447915b1ffb1","artifactId":"888fabb7d07b430691ae22796f2cb530","dir":"C:\\Users\\Ekin\\Epic Games\\ArcadeParadise","tags":[""]}]}},"progress":{"bpsOngoingStats":{"state":"Paused","updateProgress":0.18856717341753307,"downloadSize":2679101356,"downloadedBytes":505190570}}}],"queued":[],"suspended":[],"completed":[]}"#;
 
     #[test]
     fn the_install_api_says_how_far_each_download_is() {

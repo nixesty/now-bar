@@ -315,7 +315,7 @@ Testler ve clippy (`.cargo\config.toml`'daki kısaltmalar) quick profilinde çal
 
 Now Bar, [GNU Genel Kamu Lisansı sürüm 3](LICENSE) (GPL-3.0) ile lisanslıdır. Kodu
 kullanabilir, değiştirebilir ve dağıtabilirsin; değiştirip dağıttığın sürümün kaynak kodunu da
-aynı lisansla açman gerekir. Telif hakkı © 2026 Kaan.
+aynı lisansla açman gerekir. Telif hakkı © 2026 nixesty.
 
 Bu lisansın dışında kalanlar:
 

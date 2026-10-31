@@ -72,12 +72,12 @@ mod tests {
 
     #[test]
     fn sharex_uses_its_default_folder_unless_a_custom_one_is_on() {
-        let docs = Path::new(r"C:\Users\K\Documents");
-        let pics = Path::new(r"C:\Users\K\Pictures");
-        let default = PathBuf::from(r"C:\Users\K\Documents\ShareX\Screenshots");
+        let docs = Path::new(r"C:\Users\Ekin\Documents");
+        let pics = Path::new(r"C:\Users\Ekin\Pictures");
+        let default = PathBuf::from(r"C:\Users\Ekin\Documents\ShareX\Screenshots");
         assert_eq!(sharex_dir("\u{feff}{\"UseCustomScreenshotsPath\": false, \"CustomScreenshotsPath\": \"D:\\\\Shots\"}", docs, pics), default, "off: the default (and a BOM is fine)");
         assert_eq!(sharex_dir(r#"{"UseCustomScreenshotsPath": true, "CustomScreenshotsPath": "D:\\Shots"}"#, docs, pics), PathBuf::from(r"D:\Shots"));
-        assert_eq!(sharex_dir(r#"{"UseCustomScreenshotsPath": true, "CustomScreenshotsPath": "%MyPictures%\\ShareX"}"#, docs, pics), PathBuf::from(r"C:\Users\K\Pictures\ShareX"));
+        assert_eq!(sharex_dir(r#"{"UseCustomScreenshotsPath": true, "CustomScreenshotsPath": "%MyPictures%\\ShareX"}"#, docs, pics), PathBuf::from(r"C:\Users\Ekin\Pictures\ShareX"));
         assert_eq!(sharex_dir(r#"{"UseCustomScreenshotsPath": true, "CustomScreenshotsPath": ""}"#, docs, pics), default, "on but empty");
         assert_eq!(sharex_dir("not json", docs, pics), default);
     }
@@ -106,14 +106,14 @@ mod tests {
     #[test]
     fn watched_folders_are_neither_doubled_nor_nested() {
         let dirs = vec![
-            PathBuf::from(r"C:\Users\K\Pictures\Screenshots"),
-            PathBuf::from(r"C:\Users\K\Documents\ShareX\Screenshots"),
-            PathBuf::from(r"c:\users\k\pictures\screenshots"),
-            PathBuf::from(r"C:\Users\K\Documents\ShareX\Screenshots\2026-10"),
+            PathBuf::from(r"C:\Users\Ekin\Pictures\Screenshots"),
+            PathBuf::from(r"C:\Users\Ekin\Documents\ShareX\Screenshots"),
+            PathBuf::from(r"c:\users\ekin\pictures\screenshots"),
+            PathBuf::from(r"C:\Users\Ekin\Documents\ShareX\Screenshots\2026-10"),
         ];
-        assert_eq!(distinct_dirs(dirs), vec![PathBuf::from(r"C:\Users\K\Pictures\Screenshots"), PathBuf::from(r"C:\Users\K\Documents\ShareX\Screenshots")]);
-        let nested = vec![PathBuf::from(r"C:\Users\K\Pictures\Screenshots"), PathBuf::from(r"C:\Users\K\Pictures")];
-        assert_eq!(distinct_dirs(nested), vec![PathBuf::from(r"C:\Users\K\Pictures")], "the parent covers the child (recursive watch)");
+        assert_eq!(distinct_dirs(dirs), vec![PathBuf::from(r"C:\Users\Ekin\Pictures\Screenshots"), PathBuf::from(r"C:\Users\Ekin\Documents\ShareX\Screenshots")]);
+        let nested = vec![PathBuf::from(r"C:\Users\Ekin\Pictures\Screenshots"), PathBuf::from(r"C:\Users\Ekin\Pictures")];
+        assert_eq!(distinct_dirs(nested), vec![PathBuf::from(r"C:\Users\Ekin\Pictures")], "the parent covers the child (recursive watch)");
     }
 
     #[test]

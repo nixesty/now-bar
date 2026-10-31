@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn steps_say_what_and_on_what() {
-        assert_eq!(step("Edit", json!({"file_path": r"C:\Users\K\now-bar\src\app.rs"})), "Düzenliyor: app.rs");
+        assert_eq!(step("Edit", json!({"file_path": r"C:\Users\Ekin\proje\src\app.rs"})), "Düzenliyor: app.rs");
         assert_eq!(step("Write", json!({"file_path": "C:/x/notes.md"})), "Yazıyor: notes.md");
         assert_eq!(step("Read", json!({"file_path": r"C:\x\pill.rs"})), "Okuyor: pill.rs");
         assert_eq!(step("Bash", json!({"command": "cargo test --lib", "description": "Run the tests"})), "Çalıştırıyor: Run the tests");
@@ -568,7 +568,7 @@ mod tests {
     fn asks_show_their_whole_target() {
         assert_eq!(ask_detail("Bash", &json!({"command": "cd build\nmake\nmake install"})), "cd build (+2 satır)");
         assert_eq!(ask_detail("Monitor", &json!({"command": "tail -f log.txt"})), "tail -f log.txt");
-        assert_eq!(ask_detail("Grep", &json!({"pattern": "TODO", "path": r"C:\Users\K"})), r"TODO · C:\Users\K");
+        assert_eq!(ask_detail("Grep", &json!({"pattern": "TODO", "path": r"C:\Users\Ekin"})), r"TODO · C:\Users\Ekin");
         assert_eq!(ask_detail("WebSearch", &json!({"query": "rust ole"})), "rust ole");
         assert_eq!(ask_detail("Skill", &json!({"skill": "brainstorming"})), "brainstorming");
         assert_eq!(ask_detail("AskUserQuestion", &json!({"questions": [{"question": "Hangi renk?"}]})), "Hangi renk?");
@@ -604,8 +604,8 @@ mod tests {
         assert!(!card_can_answer("Grep", &json!({"pattern": "x".repeat(200)})), "a cut pattern");
         assert!(!card_can_answer("Edit", &json!({"file_path": format!(r"C:\{}\a.rs", "d".repeat(150))})), "a cut path");
         assert_eq!(ask_detail("Edit", &json!({"file_path": r"C:\x\src\app.rs"})), r"C:\x\src\app.rs", "the whole path: settings.json could be any");
-        assert_eq!(tidy_path(r"C:\Users\K\.claude\settings.json", r"C:\Users\K"), r"~\.claude\settings.json");
-        assert_eq!(tidy_path(r"c:\users\k\x", r"C:\Users\K"), r"~\x");
+        assert_eq!(tidy_path(r"C:\Users\Ekin\.claude\settings.json", r"C:\Users\Ekin"), r"~\.claude\settings.json");
+        assert_eq!(tidy_path(r"c:\users\ekin\x", r"C:\Users\Ekin"), r"~\x");
         assert_eq!(tidy_path(r"C:\Users\Ekin\x", r"C:\Users\E"), r"C:\Users\Ekin\x", "not a prefix of a longer name");
     }
 
