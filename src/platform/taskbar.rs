@@ -72,8 +72,8 @@ pub fn auto_hides() -> bool {
 const ABE_BOTTOM: u32 = 3;
 const ABS_AUTOHIDE: u32 = 1;
 
-/// Makes `child` a child of the taskbar and places it at `rect` (screen coordinates).
-pub fn embed(child: HWND, bar: HWND, rect: RectPx) -> Result<()> {
+/// Makes `child` a child of the taskbar and places it at `rect` (see [`place`]).
+pub fn embed(child: HWND, bar: HWND, origin: RectPx, rect: RectPx) -> Result<()> {
     unsafe {
         // Windows keeps WS_CLIPSIBLINGS here; composition content only shows with it. Because a
         // clip-siblings window is cut out wherever a sibling lies above it, the composition window
@@ -99,12 +99,13 @@ pub fn embed(child: HWND, bar: HWND, rect: RectPx) -> Result<()> {
             return Err(windows::core::Error::new(windows::Win32::Foundation::E_FAIL, "SetParent into the taskbar failed"));
         }
     }
-    place(child, bar, rect)
+    place(child, origin, rect)
 }
 
-/// Moves an embedded child to `rect` (screen coordinates) and keeps it above its siblings.
-pub fn place(child: HWND, bar: HWND, rect: RectPx) -> Result<()> {
-    let origin = window_rect(bar)?;
+/// Moves an embedded child to `rect` and keeps it above its siblings. `rect` is in screen
+/// coordinates of the taskbar at `origin`, the rect it was worked out from, not of where the
+/// taskbar is now: an auto-hiding one slides, and its children slide along with it.
+pub fn place(child: HWND, origin: RectPx, rect: RectPx) -> Result<()> {
     unsafe {
         SetWindowPos(
             child,

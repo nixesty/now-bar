@@ -586,7 +586,7 @@ impl Ui {
         let placeholder = PillContent::Timer { text: String::new(), label: "", paused: false };
         let pill_r = App::pill_home(&info, &pill_scale, placeholder.width_dip());
         let lane = RectPx { x: info.rect.x, w: info.rect.w, ..pill_r };
-        let pill_window = PillWindow::create(gfx, bar, lane, layout_for(&placeholder, &pill_scale).frame_w)?;
+        let pill_window = PillWindow::create(gfx, bar, info.rect, lane, layout_for(&placeholder, &pill_scale).frame_w)?;
         pill_window.set_visible(false);
         if let Err(e) = dragdrop::register(pill_window.input, DropZone::Pill) {
             log(&format!("shelf: the pill takes no drops ({e})"));
