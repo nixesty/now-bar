@@ -5,8 +5,11 @@ edition = "2021"
 license = "GPL-3.0-only"
 publish = false
 
+# The settings window is a path dependency, not a member: the aliases lint every member while
+# they build it, and its one line of Rust is include_modules! over thousands of generated ones.
 [workspace]
-members = ["ui", "setup"]
+members = ["setup"]
+exclude = ["ui"]
 
 [dependencies]
 nowbar-ui = { path = "ui" }
@@ -107,6 +110,69 @@ features = [
   "Win32_UI_WindowsAndMessaging",
 ]
 
+# Only the lib and the settings window have tests: a harness for each of the others was one more
+# exe to link on every `cargo t`.
+[[bin]]
+name = "nowbar"
+path = "src/main.rs"
+test = false
+
+[[bin]]
+name = "audioprobe"
+test = false
+
+[[bin]]
+name = "cardsheet"
+test = false
+
+[[bin]]
+name = "copyprobe"
+test = false
+
+[[bin]]
+name = "footballprobe"
+test = false
+
+[[bin]]
+name = "fxsheet"
+test = false
+
+[[bin]]
+name = "glidesheet"
+test = false
+
+[[bin]]
+name = "glyphsheet"
+test = false
+
+[[bin]]
+name = "islandsheet"
+test = false
+
+[[bin]]
+name = "matchsheet"
+test = false
+
+[[bin]]
+name = "mediaprobe"
+test = false
+
+[[bin]]
+name = "pillsheet"
+test = false
+
+[[bin]]
+name = "readmesheet"
+test = false
+
+[[bin]]
+name = "settingsheet"
+test = false
+
+[[bin]]
+name = "taskbarprobe"
+test = false
+
 # Full debug info (gigabytes of PDBs and incremental caches) isn't needed: our own code keeps
 # line tables, so a panic still says where; the dependencies keep none.
 [profile.dev]
@@ -125,17 +191,24 @@ lto = true
 inherits = "release"
 lto = false
 incremental = true
+# No PDBs (a few hundred MB): the panic hook logs the message and where, never a backtrace.
+strip = true
 
 # The settings window's generated code (its bindings and layouts; Slint's runtime and renderer
 # stay optimised) is most of a .slint change's build: measured 2026-10-24, rustc took 270 s on it
 # at opt-level 3, 210 s at 1, 93 s at 0, and an edit after an incremental build 41 s at 0 (182 s
-# at 1: the generated code shifts as a whole). The setup's window is small: no cache.
+# at 1: the generated code shifts as a whole). Its cache was 400 MB on disk (twice that after an
+# edit, rustc keeping the old session) of the 2 GB the builds may take: none, a .slint edit pays
+# the full 93 s. The setup's window is small: no cache either.
 [profile.quick.package.nowbar-ui]
-incremental = true
+incremental = false
 opt-level = 0
 
+# In quick the setup only runs its tests and shots (releases are dist): at 3 it took 20 s again on
+# every change to the app it depends on.
 [profile.quick.package.nowbar-setup]
 incremental = false
+opt-level = 0
 
 # The released exes (tools/make-setup.ps1): thin LTO (fat LTO ran this machine out of memory),
 # symbols stripped; the default codegen units (one per crate made the first build 26 minutes for

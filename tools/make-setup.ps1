@@ -1,14 +1,15 @@
 # Builds what a GitHub release carries, into dist\: nowbar-setup.exe (both exes inside),
 # nowbar.exe and nowbar-settings.exe (what the updater downloads) and SHA256SUMS.txt.
 #
-#   powershell -ExecutionPolicy Bypass -File tools\make-setup.ps1 [-Jobs 2] [-Clean]
+#   powershell -ExecutionPolicy Bypass -File tools\make-setup.ps1 [-Jobs 2] [-Keep]
 #
 # The C runtime is linked statically: the exes open on a Windows without the Visual C++
 # redistributable. The dist profile is release with thin LTO and stripped symbols. Its build
-# (a few GB, used only for a release) is kept: the next release rebuilds only what changed
-# instead of every dependency. -Clean deletes it at the end. No exe may name the user who built it:
-# the source paths in panic messages are remapped, and a path left over stops the release.
-param([int]$Jobs = 2, [switch]$Clean)
+# (4.5 GB, used only for a release; the clone's builds get 2) is deleted at the end: the next
+# release builds every dependency again. -Keep keeps it, minus the copies these builds didn't use
+# (tools\sweep.py). No exe may name the user who built it: the source paths in panic messages are
+# remapped, and a path left over stops the release.
+param([int]$Jobs = 2, [switch]$Keep)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 Push-Location $repo
@@ -25,14 +26,15 @@ try {
     $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
     Remove-Item Env:RUSTFLAGS -ErrorAction SilentlyContinue
     $env:CARGO_ENCODED_RUSTFLAGS = @('-C', 'target-feature=+crt-static', "--remap-path-prefix=$cargoHome=cargo", "--remap-path-prefix=$repo=.") -join [char]0x1f
-    cargo build -j $Jobs --profile dist --bin nowbar --bin nowbar-settings
+    # JSON on stdout names every unit these builds use, fresh or not: the sweep keeps those.
+    $messages = cargo build -j $Jobs --profile dist --bin nowbar --bin nowbar-settings --message-format=json-render-diagnostics
     if ($LASTEXITCODE) { throw 'the exes did not build' }
     New-Item -ItemType Directory -Force $payload | Out-Null
     foreach ($exe in 'nowbar.exe', 'nowbar-settings.exe') { Copy-Item (Join-Path $built $exe) $payload -Force }
 
     $env:NOWBAR_SETUP_PAYLOAD = $payload
     $env:NOWBAR_VERSION = $version
-    cargo build -j $Jobs --profile dist -p nowbar-setup
+    $messages += cargo build -j $Jobs --profile dist -p nowbar-setup --message-format=json-render-diagnostics
     if ($LASTEXITCODE) { throw 'the setup did not build' }
     Copy-Item (Join-Path $built 'nowbar-setup.exe') $dist -Force
     foreach ($exe in 'nowbar.exe', 'nowbar-settings.exe') { Copy-Item (Join-Path $payload $exe) $dist -Force }
@@ -54,7 +56,12 @@ try {
     }
     "v$version -> $dist"
     Remove-Item $payload -Recurse -Force
-    if ($Clean) {
+    if ($Keep) {
+        $list = Join-Path $built 'messages.json'
+        [System.IO.File]::WriteAllLines($list, [string[]]$messages)
+        python (Join-Path $PSScriptRoot 'sweep.py') --profile dist --messages $list
+    }
+    else {
         Remove-Item $built -Recurse -Force -ErrorAction SilentlyContinue
         'the dist build was deleted'
     }

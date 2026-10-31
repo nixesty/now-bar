@@ -2,10 +2,16 @@
 # Rust's own LLVM linker: several times faster than MSVC's link.exe.
 linker = "rust-lld.exe"
 
-# One profile for building, testing and linting: every profile keeps its own copy of every
-# dependency (Slint and windows are several GB each way), so tests and clippy use quick's.
-# A plain `cargo test` would bring back a second full set in debug\.
+# One set of build outputs for building, testing and linting: every profile, and clippy's check
+# mode, keeps its own copy of every dependency (windows alone is 300 MB a copy). So all of them
+# build in quick, and clippy lints the members while they compile (the workspace wrapper) instead
+# of checking them again: `lint` builds every bin and test, sharing what `b` and `t` built
+# (`--tests`, not `--all-targets`: that one builds a test harness for every bin, test = false or not).
+# The wrapper is part of the members' hash: build them through these aliases (the dev tools with
+# `cargo sheet <name> -- <args>`), or the app compiles a second time. Not in [build]: make-setup's
+# releases build without it. A plain `cargo test` would bring back a full set in debug\.
 [alias]
-b = "build --profile quick --bin nowbar --bin nowbar-settings"
-t = "test --workspace --profile quick"
-lint = "clippy --workspace --all-targets --profile quick"
+b = "build --profile quick --config build.rustc-workspace-wrapper='clippy-driver' --bin nowbar --bin nowbar-settings"
+t = "test --workspace --profile quick --config build.rustc-workspace-wrapper='clippy-driver'"
+lint = "build --workspace --lib --bins --tests --profile quick --config build.rustc-workspace-wrapper='clippy-driver'"
+sheet = "run --profile quick --config build.rustc-workspace-wrapper='clippy-driver' --bin"
