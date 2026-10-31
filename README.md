@@ -14,7 +14,7 @@ skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açıl
 [Kurulum](#kurulum) &nbsp;·&nbsp;
 [Derleme](#derleme)
 
-<sub>One UI's Now Bar in the Windows 11 and 10 taskbar. The app speaks Turkish and English.</sub>
+**Türkçe** &nbsp;·&nbsp; [English](README.en.md)
 
 </div>
 
@@ -124,7 +124,7 @@ kaldırma için `"%LOCALAPPDATA%\Programs\NowBar\nowbar-setup.exe" --uninstall -
 | Zamanlayıcı seçicisi | Win+Alt+N (Ayarlar → Genel'den değiştirilebilir) |
 | Claude'a sor | Win+Alt+C ya da pile Ctrl ile tıkla (Ayarlar → Genel'den değiştirilebilir) |
 | Raftaki dosyaları seç | Kartta dosyaya tıkla; yeniden tıklayınca seçim kalkar |
-| Tepsi menüsü | Now Brief, Dijital Denge, Haftanın müziği, Claude'a sor, Zamanlayıcı başlat, Kronometre başlat, Windows ile başlat, Ayarlar…, Çıkış |
+| Tepsi menüsü | Now Brief, Dijital Denge, Haftanın müziği, Claude'a sor, Zamanlayıcı başlat, Kronometre başlat, Windows ile başlat, Ayarlar…, Çıkış; yeni sürüm varsa en üstte **Güncelle: x.y.z**, maç sürerken **Maç sayfasını aç** ve **Maçı gizle** |
 
 ## Canlı etkinlikler
 
@@ -299,9 +299,17 @@ Testler ve clippy (`.cargo\config.toml`'daki kısaltmalar) quick profilinde çal
   bulunması: arayüz yalnızca bir `.slint` dosyası değişince yeniden derlenir.
 - `NOWBAR_SETTINGS_SHOTS=<klasör> nowbar-settings.exe`: ayarlar penceresini ekran dışında açar,
   her sayfanın gerçek çiziciyle ekran görüntüsünü alır ve ayarları kaydetmeden kapanır.
-- `pillsheet`, `cardsheet`, `matchsheet`, `settingsheet`: pencere açmadan örnek görüntüler
-  üretir. `readmesheet` ile `tools\readme-images.py` bu sayfadaki görselleri yeniden çizer
-  (`assets\readme\`).
+- `pillsheet`, `cardsheet`, `matchsheet`, `settingsheet`, `glyphsheet`: pencere açmadan örnek
+  görüntüler (PNG) üretir. Hareketli olanları `fxsheet` (havanın efektleri), `glidesheet` (pilin
+  görev çubuğu düğmelerine yer açması) ve `islandsheet` (oyun içi ada) ekran dışındaki bir
+  pencerede kare kare çeker. `readmesheet` ile `tools\readme-images.py` bu sayfadaki görselleri
+  yeniden çizer (`assets\readme\`).
+- `taskbarprobe`, `copyprobe`, `audioprobe`, `mediaprobe`, `footballprobe`: görev çubuğunun
+  öğelerini, Explorer'ın kopyalama pencerelerini, ses çıkışlarını, medya oturumlarını ve maç
+  verisini yalnızca okuyarak yazdırır.
+- **Çeviri:** arayüz metinleri kodda Türkçe yazılır (`tr("…")`, Slint'te `@tr("…")`); İngilizceleri
+  `i18n\en\LC_MESSAGES\nowbar-ui.po` dosyasındadır. `python tools\i18n-extract.py` eksik metinleri
+  bu dosyaya boş olarak ekler; her birinin İngilizcesi yazılana kadar `cargo t` başarısız olur.
 - `tools\*.ps1`: titreme, boştaki kullanım, Explorer'ın yeniden başlatılması ve diğer ölçümler.
 - `nowbar.exe --demo`: bir dakikalık örnek bir zamanlayıcıyla başlar; `--match-replay <klasör>`
   kaydedilmiş skor tablolarıyla bir maçı yeniden oynatır.
