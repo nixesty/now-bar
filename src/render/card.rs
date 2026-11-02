@@ -1664,9 +1664,9 @@ impl Painter<'_, '_> {
         let d = |v: f32| v * self.s.0;
         let l = shelf_layout(c.tiles.len(), self.s);
         let title = TextStyle::new(Face::Text, Weight::SemiBold, d(16.0), white(1.0)).top();
-        self.ink.text("Raf", rect(d(20.0), d(18.0), d(120.0), d(22.0)), &title)?;
+        self.ink.text(tr("Raf"), rect(d(20.0), d(18.0), d(120.0), d(22.0)), &title)?;
         let count = TextStyle::new(Face::Text, Weight::Regular, d(16.0), white(0.4)).top();
-        let count_x = d(20.0) + self.ink.measure("Raf", &title)? + d(6.0);
+        let count_x = d(20.0) + self.ink.measure(tr("Raf"), &title)? + d(6.0);
         self.ink.text(&c.tiles.len().to_string(), rect(count_x, d(18.0), d(40.0), d(22.0)), &count)?;
         let chip = l.clear;
         self.ink.rrect(chip, (chip.bottom - chip.top) / 2.0, white(0.09))?;
