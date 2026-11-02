@@ -1,5 +1,9 @@
 # Builds what a GitHub release carries, into dist\: pebbly-setup.exe (both exes inside),
 # pebbly.exe and pebbly-settings.exe (what the updater downloads) and SHA256SUMS.txt.
+# Every release also carries nowbar.exe (the setup) and nowbar-settings.exe (the settings window)
+# for Now Bar 0.2.0 to 0.5.0, the app's name before: their updater asks the old repository (GitHub
+# redirects it) for exactly these two names, swaps them in and starts nowbar.exe, and the setup,
+# started under that name, moves the copy to Pebbly (setup/src/main.rs, `bridge`).
 #
 #   powershell -ExecutionPolicy Bypass -File tools\make-setup.ps1 [-Jobs 2] [-Keep]
 #
@@ -38,9 +42,11 @@ try {
     if ($LASTEXITCODE) { throw 'the setup did not build' }
     Copy-Item (Join-Path $built 'pebbly-setup.exe') $dist -Force
     foreach ($exe in 'pebbly.exe', 'pebbly-settings.exe') { Copy-Item (Join-Path $payload $exe) $dist -Force }
+    Copy-Item (Join-Path $dist 'pebbly-setup.exe') (Join-Path $dist 'nowbar.exe') -Force
+    Copy-Item (Join-Path $dist 'pebbly-settings.exe') (Join-Path $dist 'nowbar-settings.exe') -Force
 
-    # The updater's format: "<sha256>  <name>" per line.
-    $sums = foreach ($exe in 'pebbly-setup.exe', 'pebbly.exe', 'pebbly-settings.exe') {
+    # The updater's format: "<sha256>  <name>" per line; Now Bar's checks its two names in it too.
+    $sums = foreach ($exe in 'pebbly-setup.exe', 'pebbly.exe', 'pebbly-settings.exe', 'nowbar.exe', 'nowbar-settings.exe') {
         '{0}  {1}' -f (Get-FileHash (Join-Path $dist $exe) -Algorithm SHA256).Hash.ToLower(), $exe
     }
     Set-Content (Join-Path $dist 'SHA256SUMS.txt') $sums -Encoding ascii
@@ -55,6 +61,7 @@ try {
         '{0,-22} {1,6:N1} MB' -f $exe, ($bytes.Length / 1MB)
     }
     "v$version -> $dist"
+    "gh release create v$version dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt"
     Remove-Item $payload -Recurse -Force
     if ($Keep) {
         $list = Join-Path $built 'messages.json'

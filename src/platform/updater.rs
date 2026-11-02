@@ -374,6 +374,20 @@ mod tests {
         verify(Path::new(&dir)).unwrap();
     }
 
+    /// GitHub answers a renamed or moved repository's API with a 301 to `/repositories/<id>/…`,
+    /// and WinHTTP follows it: Now Bar's updater (the same `get_bytes`) still finds the releases
+    /// at nixesty/now-bar once it is nixesty/pebbly, and their download URLs name the new one.
+    /// Asks a repository moved long ago: `cargo t --lib live_github_follows -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn live_github_follows_a_moved_repository() {
+        let (status, body) = get_bytes(&latest_url("rust-analyzer/rust-analyzer"), &[("Accept", "application/vnd.github+json")]).unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        println!("HTTP {status}: {} {}", v["tag_name"], v["html_url"]);
+        assert_eq!(status, 200);
+        assert!(v["html_url"].as_str().is_some_and(|u| u.contains("/rust-lang/rust-analyzer/")));
+    }
+
     /// Asks GitHub for real: `cargo test --lib live_github -- --ignored --nocapture`.
     #[test]
     #[ignore]
