@@ -232,7 +232,7 @@ fn main() -> Result<()> {
     println!("pill {} px tall; buttons: home {at_home}, pushed {pushed}, circle {circle_only}, none {none}", ps.px(PILL_H_DIP));
 
     let lane = RectPx { x: bar_r.x, w: bar_r.w, ..home(&timer) };
-    let window = PillWindow::create(&g, bar, lane, layout_for(&timer, &ps).frame_w)?;
+    let window = PillWindow::create(&g, bar, bar_r, lane, layout_for(&timer, &ps).frame_w)?;
     let mut pill = PillVisual::new(&g, &window.stage)?;
     let mut show = |front: &PillContent, n: i32, fade: bool, phase: &str| -> Result<()> {
         let spans = stand.items(n);
