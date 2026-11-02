@@ -5,7 +5,10 @@ it at half size, so it stays sharp on high-DPI screens.
     target\\quick\\readmesheet.exe <sheets>
     set PEBBLY_SETTINGS_SHOTS=<shots> && target\\quick\\pebbly-settings.exe
     set PEBBLY_SETUP_SHOTS=<setup> && target\\quick\\pebbly-setup.exe
-    python tools\\readme-images.py <sheets> <shots>\\page-0.png <setup>\\1-kur.png
+    python tools\\readme-images.py <sheets> <shots>\\page-0.png <setup>\\1-kur.png [--en]
+
+`--en` takes English renders (readmesheet --en, PEBBLY_LANG=en for the two windows) and writes to
+assets/readme/en/, which README.en.md shows. The mark (assets/readme/mark.png) is shared.
 
 Pillow only (no numpy): the wallpapers are worked out small, then scaled up and blurred.
 """
@@ -81,7 +84,23 @@ WARM = ((15, 12, 22), [((0.85, 0.15), 0.55, (110, 46, 84)), ((0.10, 0.95), 0.6, 
 RADIUS = 36
 
 
-def hero(sheets):
+def mark():
+    """Pebbly's mark for the README's head: the About page's pill with the accent dot, on the
+    setup's dark icon tile (the app icon is a white pill on nothing: lost on a light page)."""
+    size, k = 192, 4
+    im = Image.new('RGBA', (size * k, size * k), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle((0, 0, size * k - 1, size * k - 1), 44 * k, fill=(32, 30, 28, 255), outline=(255, 255, 255, 34), width=2 * k)
+    pw, ph = 128 * k, 60 * k
+    x0, y0 = (size * k - pw) // 2, (size * k - ph) // 2
+    d.rounded_rectangle((x0, y0, x0 + pw, y0 + ph), ph // 2, fill=(246, 238, 227, 255))
+    dot = 38 * k
+    dx, dy = x0 + (ph - dot) // 2, y0 + (ph - dot) // 2
+    d.ellipse((dx, dy, dx + dot, dy + dot), fill=(244, 163, 1, 255))
+    return im.resize((size, size), Image.LANCZOS)
+
+
+def hero(sheets, date='24.10.2026'):
     """The card grown out of the media pill in the taskbar, other live pills beside it."""
     w, h, bar = 1760, 1000, 96
     canvas = wallpaper(w, h, *DUSK)
@@ -95,7 +114,7 @@ def hero(sheets):
     text = ImageFont.truetype(os.path.join(FONTS, 'SegUIVar.ttf'), 24)
     d = ImageDraw.Draw(canvas)
     right = w - 44
-    for line, y in (('20:42', h - bar + 22), ('24.10.2026', h - bar + 52)):
+    for line, y in (('20:42', h - bar + 22), (date, h - bar + 52)):
         d.text((right, y), line, font=text, fill=(255, 255, 255, 235), anchor='ra')
     x = right - 150
     for glyph in ('\uE767', '\uE701', '\uE70E'):
@@ -172,12 +191,16 @@ def framed(shot, wall, margin_x, margin_y, radius):
 
 
 def main():
-    if len(sys.argv) != 4:
+    args = [a for a in sys.argv[1:] if a != '--en']
+    english = len(args) < len(sys.argv) - 1
+    if len(args) != 3:
         sys.exit(__doc__)
-    sheets, settings_shot, setup_shot = sys.argv[1:]
-    os.makedirs(OUT, exist_ok=True)
+    sheets, settings_shot, setup_shot = args
+    out = os.path.join(OUT, 'en') if english else OUT
+    os.makedirs(out, exist_ok=True)
+    mark().save(os.path.normpath(os.path.join(OUT, 'mark.png')), optimize=True)
     pictures = {
-        'hero': hero(sheets),
+        'hero': hero(sheets, '10/24/2026' if english else '24.10.2026'),
         'music': music(sheets),
         'day': columns(sheets, ['brief', 'timer'], ['weather', 'wellbeing'], DEEP),
         'live': columns(sheets, ['match', 'buds'], ['claude', 'shelf'], DUSK),
@@ -187,7 +210,7 @@ def main():
         'setup': framed(setup_shot, WARM, 64, 56, 10),
     }
     for name, im in pictures.items():
-        path = os.path.normpath(os.path.join(OUT, f'{name}.png'))
+        path = os.path.normpath(os.path.join(out, f'{name}.png'))
         im.save(path, optimize=True)
         print(path, im.size, os.path.getsize(path) // 1024, 'KB')
 

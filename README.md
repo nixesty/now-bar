@@ -1,135 +1,127 @@
 <div align="center">
 
-<img src="assets/readme/hero.png" width="880" alt="Görev çubuğunda çalan şarkının pili, üstünde açılmış müzik kartı; yanında Claude Code, maç, zamanlayıcı, Galaxy Buds, hava ve şarj pilleri">
+<img src="assets/readme/mark.png" width="88" alt="">
 
 # Pebbly
 
-**Windows 11 ve 10 görev çubuğunda canlı etkinlikler; Samsung One UI'daki Now Bar'dan esinlenildi.**
+**Görev çubuğunda canlı etkinlikler.**<br>
+Samsung One UI'daki Now Bar'dan esinlenen, Windows 11 ve 10 için küçük bir pil.
 
-Görev çubuğunda küçük bir pil durur ve o an olan biteni gösterir: çalan şarkı, zamanlayıcı, maçın<br>
-skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açılır.
+[![Son sürüm](https://img.shields.io/github/v/release/nixesty/pebbly?style=flat-square&label=s%C3%BCr%C3%BCm&labelColor=201E1C&color=F4A301)](https://github.com/nixesty/pebbly/releases/latest)
+[![Windows 11 ve 10](https://img.shields.io/badge/Windows-11%20%C2%B7%2010-4A4540?style=flat-square&labelColor=201E1C)](#bilinen-sınırlar)
+[![Lisans: GPL-3.0](https://img.shields.io/badge/lisans-GPL--3.0-4A4540?style=flat-square&labelColor=201E1C)](LICENSE)
 
 **[İndir](https://github.com/nixesty/pebbly/releases/latest)** &nbsp;·&nbsp;
 [pebbly.bar](https://pebbly.bar) &nbsp;·&nbsp;
-[Neler gösterir](#neler-gösterir) &nbsp;·&nbsp;
-[Kurulum](#kurulum) &nbsp;·&nbsp;
-[Derleme](#derleme)
+[English](README.en.md)
 
-**Türkçe** &nbsp;·&nbsp; [English](README.en.md)
+<br>
+
+<img src="assets/readme/hero.png" width="880" alt="Görev çubuğunda çalan şarkının pili, üstünde açılmış müzik kartı; yanında Claude Code, maç, zamanlayıcı, Galaxy Buds, hava ve şarj pilleri">
 
 </div>
 
 <br>
 
+Görev çubuğunda küçük bir pil durur ve o an olan biteni gösterir: çalan şarkı, zamanlayıcı, maçın
+skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açılır; fare uzaklaşınca kart
+pile geri döner. Arayüz Türkçe ve İngilizcedir.
+
 ## Neler gösterir
 
 <img src="assets/readme/pills.png" width="880" alt="Pillerden örnekler: müzik, Claude Code izin isteği, maç, zamanlayıcı, hava, yağmur uyarısı, şarj, Galaxy Buds, kamera ve mikrofon, Steam indirmesi, raf, ekran süresi sınırı, saat ve ses">
 
-- **Müzik:** Windows'ta medya oturumu açan her uygulama (Spotify, YouTube Music, tarayıcılar).
-  Pil, albüm kapağının rengini alır; kartta kapak, dalgalı ilerleme çubuğu, şarkı sözleri ve ses
-  çıkışı seçimi bulunur. Eşzamanlı söz varsa pilde şarkının adı yerine o anki satır kayar.
-- **Haftanın müziği:** son yedi günde en çok dinlediğin şarkılar ve sanatçılar; Dijital Denge
-  kartından ya da tepsi menüsünden açılır.
-- **Zamanlayıcı ve kronometre:** seçiciden (Win+Alt+N) ya da tepsi menüsünden başlatılır; süre
-  dolunca alarm çalar ve kart açılır.
-- **Canlı maç:** takip ettiğin futbol ve basketbol takımlarının skoru, dakikası ve gol anları.
-- **Hava durumu:** boştayken saat ve hava durumu; yağmur, kar, fırtına, kuvvetli rüzgâr, aşırı
-  sıcak, don ve kötü hava kalitesinde uyarı. Şehir seçilmemişse konum Windows'tan alınır.
-- **Galaxy Buds:** kart Galaxy Wearable gibi: iki kulaklık ve kutu, şarjları, nerede oldukları,
-  sıcaklıkları ve kalan dinleme süresi; gürültü kontrolü. Buds2'de ekolayzer, ortam sesi düzeyi
-  ve ayarı, kulaklığımı bul, dokunmatik kontroller ve dokunup tutma (istersen basılı tutunca
-  bilgisayar mikrofonu kapatır, şarkıyı geçer…), kenara çift dokunma, görüşmede kendi sesini
-  duyma, kesintisiz bağlantı ve uyum testi de var; bunlar kulaklığın kendisinde saklanır,
-  telefonda da geçerlidir. Kulaklık bu bilgisayara bağlı değilken kutuyu açınca Pebbly
-  bağlanmayı önerir, tek tıkla bilgisayara alır. Birden fazla Buds eşleştirilmişse hangisinin
-  gösterileceği ayarlardan seçilir.
-- **Claude Code:** Claude'un o an ne yaptığı ve görev listesi; izin istediğinde kartta
-  **İzin ver / Reddet** düğmeleri çıkar ([aşağıda](#canlı-etkinlikler)).
-- **Claude'a sor:** Win+Alt+C ya da pile Ctrl ile tıklamak kartta bir yazı kutusu açar; cevap
-  Claude Code'dan akar. Bilgisayarda Claude Code kurulu ve oturumu açık olmalıdır (bir kez
-  terminalde `claude`, sonra `/login`).
-- **Oyunlar:** Steam ve Epic Games indirmeleri, güncellemeleri, duraklatmaları ve oyun süresi.
-- **Dijital Denge:** günün ekran süresi, uygulamaların payı ve koyduğun sınırlar.
-- **Raf:** pile bıraktığın dosyalar orada bekler, sonra istediğin yere sürükleyebilirsin; yeni
-  ekran görüntüleri rafa kendiliğinden eklenir. Kartın altındaki düğmeler seçtiğin dosyalara
-  (seçim yoksa hepsine) uygulanır: **Paylaş** (Windows'un paylaşım penceresi; Quick Share
-  kuruluysa telefona da), **Metni kopyala** (ekran görüntüsündeki yazıyı panoya alır),
-  **Küçült** (resmi JPEG olarak, uzun kenarı en fazla 1920 piksel, aslının yanına kaydeder) ve
-  **Zip yap**.
-- **Dosya kopyalama:** Explorer kopyalarken, taşırken ya da silerken pilde yüzde ve kalan süre;
-  Explorer'ın penceresi küçültülse de.
-- **Sen yokken:** bilgisayar en az bir dakika kilitli kaldıysa ve o arada bir şey olduysa, kilidi
-  açınca pilde "Sen yokken" belirir; tıklayınca o arada olanların listesi açılır: Claude'un
-  bitirdiği işler, goller, yağmur ve hava uyarıları, biten indirmeler, zamanlayıcılar, uygulama
-  bildirimleri.
-- **Sistem:** ses seviyesi, şarj ve düşük pil uyarısı, mikrofonu ya da kamerayı kullanan
-  uygulama, Bluetooth kulaklıkların şarjı.
-- Aynı anda birden fazla etkinlik varsa öndekinin sağında ince şeritler görünür; pilin üzerinde
-  fare tekerleğini çevirerek aralarında geçiş yapılır. Oyun, video ya da sunum tam ekrandayken pil
-  gizlenir; bekleyemeyecek şeyler (Claude'un izin isteği, hava uyarısı) ekranın üstünde küçük bir
-  adada belirir.
+| Etkinlik | Ne gösterir |
+|---|---|
+| **Müzik** | Medya oturumu açan her uygulama (Spotify, YouTube Music, tarayıcılar). Pil kapağın rengini alır; eşzamanlı söz varsa şarkının adı yerine o anki satır kayar. |
+| **Zamanlayıcı ve kronometre** | Seçiciden (Win+Alt+N) ya da tepsi menüsünden başlar; süre dolunca alarm çalar ve kart açılır. |
+| **Canlı maç** | Takip ettiğin futbol ve basketbol takımlarının skoru, dakikası ve golleri. |
+| **Hava durumu** | Boştayken saat ve hava; yağmur, kar, fırtına, kuvvetli rüzgâr, aşırı sıcak, don ve kötü hava kalitesinde uyarı. |
+| **Galaxy Buds** | İki kulaklığın ve kutunun şarjı, gürültü kontrolü; kutuyu açınca bilgisayara bağlanmayı önerir. |
+| **Claude Code** | Claude'un o an ne yaptığı, görev listesi ve izin istekleri; **Claude'a sor** ile kartta soru sorulur. |
+| **Oyunlar** | Steam ve Epic Games indirmeleri, güncellemeleri, duraklatmaları ve oyun süresi. |
+| **Dijital Denge** | Günün ekran süresi, uygulamaların payı, koyduğun sınırlar ve haftanın müziği. |
+| **Raf** | Pile bıraktığın dosyalar ve yeni ekran görüntüleri; sonra istediğin yere sürüklersin. |
+| **Dosya kopyalama** | Explorer kopyalarken, taşırken ya da silerken yüzde ve kalan süre. |
+| **Sen yokken** | Bilgisayar kilitliyken olanlar: Claude'un bitirdiği işler, goller, uyarılar, biten indirmeler. |
+| **Sistem** | Ses seviyesi, şarj ve düşük pil, mikrofonu ya da kamerayı kullanan uygulama, Bluetooth kulaklıklar. |
+
+Aynı anda birden fazla etkinlik varsa öndekinin sağında ince şeritler görünür; pilin üzerinde fare
+tekerleğini çevirerek aralarında geçilir. Oyun, video ya da sunum tam ekrandayken pil gizlenir;
+bekleyemeyecek şeyler (Claude'un izin isteği, hava uyarısı) ekranın üstünde küçük bir adada belirir.
 
 ## Kartlar
 
+### Müzik
+
 <img src="assets/readme/music.png" width="880" alt="Müzik kartı: kapak, ilerleme çubuğu ve düğmeler; yanında aynı şarkının sözleri; altında müzik pili">
 
-Kart pilden büyüyerek açılır, fare uzaklaşınca küçülerek kapanır. Müzik kartında kapağın
-köşesindeki **Sözler** şarkı sözlerini açar; sözler `lrclib.net`'ten, orada yoksa NetEase Cloud
-Music'ten ya da Kugou'dan gelir ve şarkıyla birlikte akar. Yavaşlatılmış (slowed) ya da
-hızlandırılmış bir sürümün sözleri hiçbirinde yoksa orijinalinkiler onun uzunluğuna esnetilir.
+Kartta kapak, dalgalı ilerleme çubuğu ve ses çıkışı seçimi bulunur. Kapağın köşesindeki **Sözler**
+şarkı sözlerini açar: sözler `lrclib.net`'ten, orada yoksa NetEase Cloud Music'ten ya da Kugou'dan
+gelir ve şarkıyla birlikte akar. Yavaşlatılmış (slowed) ya da hızlandırılmış bir sürümün sözleri
+hiçbirinde yoksa orijinalinkiler onun uzunluğuna esnetilir.
+
+### Gün
 
 <img src="assets/readme/day.png" width="880" alt="Günün özeti kartı, zamanlayıcı kartı, saatlik hava durumu kartı ve Dijital Denge kartı">
 
 Boştayken saate tıklayınca günün özeti açılır: hava, maçlar, son çalan şarkı ve ekran süresi.
+**Haftanın müziği** son yedi günde en çok dinlediğin şarkıları ve sanatçıları gösterir; Dijital
+Denge kartından ya da tepsi menüsünden açılır.
+
+### Canlı
 
 <img src="assets/readme/live.png" width="880" alt="Canlı maç kartı, Claude Code izin kartı, Galaxy Buds kartı ve raf kartı">
+
+- **Galaxy Buds** kartı Galaxy Wearable gibidir: kulaklıklar ve kutu, şarjları, nerede oldukları,
+  sıcaklıkları, kalan dinleme süresi ve gürültü kontrolü. Buds2'de ekolayzer, ortam sesi, kulaklığımı
+  bul, dokunmatik kontroller, dokunup tutma (istersen bilgisayarın mikrofonunu kapatır, şarkıyı
+  geçer), kenara çift dokunma, görüşmede kendi sesini duyma, kesintisiz bağlantı ve uyum testi de
+  vardır; bunlar kulaklıkta saklanır, telefonda da geçerlidir. Birden fazla Buds eşleştirilmişse
+  hangisinin gösterileceği ayarlardan seçilir.
+- **Claude Code** izin istediğinde kartta **İzin ver / Reddet** çıkar
+  ([aşağıda](#uygulamalar-ve-betikler)).
+- **Raf**'ın düğmeleri seçtiğin dosyalara (seçim yoksa hepsine) uygulanır: **Paylaş** (Windows'un
+  paylaşım penceresi; Quick Share kuruluysa telefona da), **Metni kopyala** (ekran görüntüsündeki
+  yazıyı panoya alır), **Küçült** (JPEG, uzun kenarı en fazla 1920 piksel, aslının yanına) ve
+  **Zip yap**.
 
 ## Ayarlar
 
 <img src="assets/readme/settings.png" width="880" alt="Ayarlar penceresi: solda sayfalar, ortada pil ve kart boyutunun önizlemeleri, sağda görünüm ayarları">
 
 Ayarlar penceresi tepsi menüsündeki **Ayarlar…** ile açılır; her değişiklik pile anında yansır.
-Üstteki arama çubuğu ayarları bulur; Canlı maç sayfasında takım arar, Tam ekran sayfasında istisna
-ekler. Ctrl+F aramaya, Ctrl+K eylemler menüsüne götürür. Arayüz Türkçe ve İngilizcedir
-(Genel → Dil; varsayılan olarak Windows'un dili).
+Üstteki arama ayarları bulur; Canlı maç sayfasında takım arar, Tam ekran sayfasında istisna ekler.
+Ctrl+F aramaya, Ctrl+K eylemler menüsüne götürür. Dil Genel → Dil'den seçilir (varsayılan olarak
+Windows'un dili).
 
 ## Kurulum
 
-<img src="assets/readme/setup.png" width="480" align="right" alt="Kurulum penceresi">
+<img src="assets/readme/setup.png" width="440" align="right" alt="Kurulum penceresi">
 
-[Son sürümden](https://github.com/nixesty/pebbly/releases/latest) `pebbly-setup.exe`'yi indirip
-çalıştır. Yönetici izni istemez ve `%LOCALAPPDATA%\Programs\Pebbly` klasörüne kurulur
-("Değiştir" ile başka bir klasör seçilebilir). Kurulum ekranındaki seçenekler:
+1. [Son sürümden](https://github.com/nixesty/pebbly/releases/latest) `pebbly-setup.exe`'yi indir.
+2. Çalıştır. Yönetici izni istemez; `%LOCALAPPDATA%\Programs\Pebbly` klasörüne kurulur
+   (**Değiştir** ile başka bir klasör seçilir).
+3. Seçenekler: **Windows'la başlat**, **Claude Code'a bağlan** (Claude Code varsa görünür),
+   **Uygulama bildirimlerini aç** (varsayılan olarak kapalı), **Masaüstü kısayolu**, **Bitince
+   ayarları aç**.
 
-- **Windows'la başlat**
-- **Claude Code'a bağlan** (bilgisayarda Claude Code varsa görünür)
-- **Uygulama bildirimlerini aç** (varsayılan olarak kapalı): başka uygulamaların pilde bildirim
-  göstermesine izin verir ([aşağıda](#canlı-etkinlikler)). İzin verdiğin uygulamalar ve
-  gösterdikleri senin sorumluluğundadır.
-- **Masaüstü kısayolu**
-- **Bitince ayarları aç**
-
-Başlat menüsüne her zaman bir kısayol eklenir. Pebbly, Windows'un "Ayarlar → Uygulamalar"
-listesinde görünür ve oradan kaldırılabilir. Kaldırınca kısayollar, Windows'la başlatma ve Claude
-Code hook'ları da silinir; ayarları silmek isteğe bağlıdır.
+Başlat menüsüne her zaman bir kısayol eklenir. Kurulumu yeniden çalıştırmak Pebbly'yi günceller ya
+da onarır. Pebbly, Windows'un Ayarlar → Uygulamalar listesinden kaldırılır; kısayollar, Windows'la
+başlatma ve Claude Code hook'ları da gider, ayarları silmek isteğe bağlıdır.
 
 <br clear="right">
 
-Pebbly kuruluyken kurulumu yeniden çalıştırırsan Pebbly güncellenir ya da onarılır: çalışan
-Pebbly kapatılır, dosyaları yenilenir ve yeniden başlatılır.
+Sessiz kurulum: `pebbly-setup.exe --quiet` (uygulama bildirimleri ayarına dokunmaz). Sessiz
+kaldırma: `"%LOCALAPPDATA%\Programs\Pebbly\pebbly-setup.exe" --uninstall --quiet`.
 
-Sessiz kurulum için `pebbly-setup.exe --quiet` (uygulama bildirimleri ayarına dokunmaz), sessiz
-kaldırma için `"%LOCALAPPDATA%\Programs\Pebbly\pebbly-setup.exe" --uninstall --quiet` kullanılır.
-
-### Now Bar'dan geçiş
-
-Pebbly'nin eski adı Now Bar'dı. Now Bar 0.5.0 ya da daha eskisi kuruluysa güncellemesi onu
-Pebbly'ye taşır; Hakkında'daki **Güncelle** satırından da, `pebbly-setup.exe` ile de olur.
-Ayarlar, günlük ve önbellekler (`%APPDATA%\NowBar` ve `%LOCALAPPDATA%\NowBar` klasörleri
-`Pebbly` olur), Windows'la başlatma, Claude Code bağlantısı ve kısayollar olduğu gibi kalır.
-`%LOCALAPPDATA%\Programs\NowBar` yanındaki `Pebbly` klasörüne taşınır; Uygulamalar listesinde
-Now Bar'ın yerini Pebbly alır. Kendi betiklerinde `nowbar.exe push` kullanıyorsan
-`pebbly.exe push` olarak değiştir.
+> [!NOTE]
+> **Now Bar'dan geliyorsan:** Pebbly'nin eski adı Now Bar'dı. Now Bar 0.5.0 ya da daha eskisi,
+> Hakkında'daki **Güncelle** satırıyla da `pebbly-setup.exe` ile de Pebbly'ye taşınır. Ayarlar,
+> günlük ve önbellekler (`%APPDATA%\NowBar` ve `%LOCALAPPDATA%\NowBar` klasörleri `Pebbly` olur),
+> Windows'la başlatma, Claude Code bağlantısı ve kısayollar olduğu gibi kalır;
+> `%LOCALAPPDATA%\Programs\NowBar` yanındaki `Pebbly` klasörüne taşınır. Kendi betiklerinde
+> `nowbar.exe push` varsa `pebbly.exe push` yap.
 
 ## Kullanım
 
@@ -137,42 +129,45 @@ Now Bar'ın yerini Pebbly alır. Kendi betiklerinde `nowbar.exe push` kullanıyo
 |---|---|
 | Kartı aç / kapat | Pile tıkla; fare uzaklaşınca kart kendiliğinden kapanır |
 | Oynat / duraklat | Pile farenin orta tuşuyla tıkla |
-| Etkinlikler arasında geçiş | Pilin ya da kartın üzerinde fare tekerleği |
-| Zamanlayıcı seçicisi | Win+Alt+N (Ayarlar → Genel'den değiştirilebilir) |
-| Claude'a sor | Win+Alt+C ya da pile Ctrl ile tıkla (Ayarlar → Genel'den değiştirilebilir) |
+| Etkinlikler arasında geç | Pilin ya da kartın üzerinde fare tekerleği |
+| Zamanlayıcı seçicisi | Win+Alt+N (Ayarlar → Genel'den değişir) |
+| Claude'a sor | Win+Alt+C ya da pile Ctrl ile tıkla (Ayarlar → Genel'den değişir) |
 | Raftaki dosyaları seç | Kartta dosyaya tıkla; yeniden tıklayınca seçim kalkar |
-| Tepsi menüsü | Now Brief, Dijital Denge, Haftanın müziği, Claude'a sor, Zamanlayıcı başlat, Kronometre başlat, Windows ile başlat, Ayarlar…, Çıkış; yeni sürüm varsa en üstte **Güncelle: x.y.z**, maç sürerken **Maç sayfasını aç** ve **Maçı gizle** |
+| Tepsi menüsü | Now Brief, Dijital Denge, Haftanın müziği, Claude'a sor, Zamanlayıcı ve Kronometre başlat, Windows ile başlat, Ayarlar…, Çıkış; yeni sürüm varsa en üstte **Güncelle: x.y.z**, maç sürerken **Maç sayfasını aç** ve **Maçı gizle** |
 
-## Canlı etkinlikler
+**Claude'a sor** için bilgisayarda Claude Code kurulu ve oturumu açık olmalıdır (bir kez terminalde
+`claude`, sonra `/login`).
 
-Başka bir program ya da betik pilde bir etkinlik gösterebilir. Pebbly çalışmıyorsa komut hiçbir
-şey yapmadan çıkar (çıkış kodu her zaman 0'dır, çıktı vermez):
+## Uygulamalar ve betikler
+
+**Betikten:** başka bir program ya da betik pilde bir etkinlik gösterebilir. Pebbly çalışmıyorsa
+komut hiçbir şey yapmadan çıkar (çıkış kodu her zaman 0, çıktı yok):
 
 ```
 pebbly.exe push --id yedek --title "Yedekleme" --text "Belgeler" --progress 40
 pebbly.exe push --id yedek --title "Yedekleme" --state done
 ```
 
-`--state`: `run` (varsayılan), `wait` (kullanıcıyı bekliyor; kısa bir süre öne gelir), `done`
-(5 saniye "Bitti" gösterir), `clear` (hemen kaldırır). Bir saat boyunca güncellenmeyen etkinlik
-kendiliğinden kalkar. Bu özellik Ayarlar → Sistem → Canlı etkinlikler'den kapatılabilir.
+`--state`: `run` (varsayılan), `wait` (kullanıcıyı bekliyor; bir an öne gelir), `done` (5 saniye
+"Bitti" gösterir), `clear` (hemen kaldırır). Bir saat güncellenmeyen etkinlik kendiliğinden kalkar.
+Ayarlar → Sistem → Canlı etkinlikler bunu kapatır.
 
 **Uygulamalar için API:** başka uygulamalar tek bir HTTP isteğiyle pilde bildirim ya da canlı
-etkinlik gösterebilir; kendi ikonlarını, renklerini ve en fazla iki düğme kullanabilirler. API'ye
-yalnızca bu bilgisayardan (`127.0.0.1:20034`) erişilebilir ve sen açana kadar kapalıdır (kurulumda
-**Uygulama bildirimlerini aç** ya da Ayarlar → Sistem → Uygulama bildirimleri). Bir uygulama ilk
-kez istek gönderdiğinde pil "Bildirim göstermek istiyor" diye sorar; verdiğin cevap hatırlanır ve
-ayarlardan değiştirilebilir. İzin verdiğin uygulamalar ve gösterdikleri senin sorumluluğundadır;
-Pebbly yalnızca gösterir. Geliştiriciler için: [DOCS.md](DOCS.md).
+etkinlik gösterebilir; kendi ikonları, renkleri ve en fazla iki düğmeyle. API'ye yalnızca bu
+bilgisayardan (`127.0.0.1:20034`) erişilir ve sen açana kadar kapalıdır (kurulumda **Uygulama
+bildirimlerini aç** ya da Ayarlar → Sistem → Uygulama bildirimleri). Bir uygulama ilk kez istek
+gönderince pil "Bildirim göstermek istiyor" diye sorar; cevabın hatırlanır. İzin verdiğin
+uygulamalar ve gösterdikleri senin sorumluluğundadır; Pebbly yalnızca gösterir. Geliştiriciler
+için: [DOCS.md](DOCS.md).
 
 ```
 curl -H "Content-Type: application/json" -d "{\"app\":\"Yedekleyici\",\"title\":\"Yedek bitti\"}" http://127.0.0.1:20034/v1/notify
 ```
 
-**Claude Code:** kurulumdaki **Claude Code'a bağlan** seçeneği hook'ları kurar. Elle kurmak ya da
-kaldırmak için aşağıdaki komutlar kullanılır. Komut exe'nin kendi yolunu yazar, ilk seferde
-`settings.json.before-pebbly`, sonraki her yazışta `settings.json.pebbly-last` adıyla yedek alır ve
-başka hook'lara dokunmaz:
+**Claude Code:** kurulumdaki **Claude Code'a bağlan** hook'ları kurar; elle kurmak ya da kaldırmak
+için aşağıdakiler kullanılır. Komut exe'nin kendi yolunu yazar, ilk seferde
+`settings.json.before-pebbly`, sonraki her yazışta `settings.json.pebbly-last` adıyla yedek alır
+ve başka hook'lara dokunmaz:
 
 ```
 pebbly.exe claude-hooks install
@@ -181,183 +176,158 @@ pebbly.exe claude-hooks remove
 
 Pil, Claude'un ne yaptığını ve ne kadar süredir çalıştığını gösterir ("pebbly · Düzenliyor:
 app.rs"); kartta görev listesinin ilerlemesi, son adımlar ve iş bitince cevabın ilk satırı
-("Bitti · 12 dk · 9 dosya") bulunur. Claude izin istediğinde kartta **İzin ver / Reddet**
-düğmeleri çıkar; bu yalnızca kartta tamamı görünen tek satırlık komutlar, dosyalar, adresler ve
-aramalar için geçerlidir. Dosya izinlerinde kartta dosyanın tam yolu görünür, değişikliğin
-kendisi Claude'un penceresinde kalır; çok satırlı komutlar, sorular ve plan onayı da orada
-cevaplanır. Claude'un kendi penceresi de aynı anda açıktır; hangisinden önce cevap verilirse o
-geçerli olur. Kart cevabı 60 saniye bekler (Ayarlar → Sistem → Canlı etkinlikler). Pebbly başka
-bir klasöre taşınırsa hook'lar bir sonraki açılışta yeni yola güncellenir. Masaüstü uygulamasının
-Code sekmesinde, CLI'da ve VS Code'da çalışır.
+("Bitti · 12 dk · 9 dosya") bulunur. Kartın **İzin ver / Reddet** düğmeleri yalnızca kartta tamamı
+görünen tek satırlık komutlar, dosyalar, adresler ve aramalar içindir; dosya izinlerinde kartta
+dosyanın tam yolu görünür, değişikliğin kendisi Claude'un penceresinde kalır. Çok satırlı komutlar,
+sorular ve plan onayı Claude'un penceresinde cevaplanır. İki taraf da açıktır; hangisi önce cevap
+verirse o geçerlidir. Kart 60 saniye bekler (Ayarlar → Sistem → Canlı etkinlikler). Masaüstü
+uygulamasının Code sekmesinde, CLI'da ve VS Code'da çalışır; Pebbly başka bir klasöre taşınırsa
+hook'lar bir sonraki açılışta yeni yolu izler.
 
-## Derleme
+## Güncelleme
 
-Gerekenler: Rust (MSVC araç zinciri) ve simgenin exe'lere gömülmesi için Windows SDK (`rc.exe`).
+Pebbly açıldıktan bir dakika sonra ve ardından günde bir kez GitHub'a son sürümü sorar
+(`api.github.com`; sorgu dışında hiçbir şey gönderilmez). Ayarlar → Hakkında'daki **Denetle**
+beklemeden sorar. Yeni sürüm varsa tepsi menüsünde **Güncelle: x.y.z** belirir, Hakkında'daki satır
+da **Güncelle** olur. Tıklayınca iki exe indirilir, `SHA256SUMS.txt` ile doğrulanır, eskilerinin
+yerine konur ve Pebbly yeniden başlar; açık ayarlar penceresi de yeni sürümüyle yerinde açılır.
+Hakkında satırı o sırada ne olduğunu, olmazsa nedenini yazar; bir adım başarısız olursa eski exe'ler
+yerinde kalır. Pebbly'nin yazamadığı bir klasöre (Program Files gibi) kurulduysa sürüm sayfası
+açılır. Günlük denetim Ayarlar → Hakkında → Güncellemeleri denetle ile kapanır.
+
+## Dosyalar
+
+| Ne | Nerede |
+|---|---|
+| Ayarlar | `%APPDATA%\Pebbly\settings.json` |
+| Günlük | `%LOCALAPPDATA%\Pebbly\log.txt`: pilin ne zaman ve neden gizlendiği de buradadır (`pill: hidden (nothing active)` gibi) |
+| Takım armaları | `%LOCALAPPDATA%\Pebbly\crests\` |
+| Haftanın müziği | `%LOCALAPPDATA%\Pebbly\music.json` (yalnızca son yedi gün) |
+| Raftan çıkanlar | Küçültülmüş resimler ve zip'ler asıllarının yanına; oraya yazılamazsa `%LOCALAPPDATA%\Pebbly\Raf\` |
+
+## Gizlilik ve ağ
+
+Pebbly'nin bağlandığı yerler; hiçbiri API anahtarı istemez:
+
+| Ne | Nereye | Ne gider |
+|---|---|---|
+| Şarkı sözleri | `lrclib.net`, sonra NetEase Cloud Music (`music.163.com`) ve Kugou (`lyrics.kugou.com`) | Çalan şarkının sanatçısı, adı ve süresi (Ayarlar → Medya → Şarkı sözleri ile kapanır) |
+| Hava durumu | Open-Meteo (`api.open-meteo.com`, `geocoding-api.open-meteo.com`) | Seçilen şehrin koordinatları |
+| Yerin adı | OpenStreetMap (`nominatim.openstreetmap.org`) | **Konumumu kullan** seçiliyse yaklaşık 1 km'ye yuvarlanmış koordinatlar (konum Windows'tan, Windows izin ister) |
+| Maçlar | ESPN (`site.api.espn.com`), EuroLeague/EuroCup (`feeds.incrowdsports.com`, `live.euroleague.net`) | Takip edilen takımlar için skor istekleri; armalar da bu kaynaklardan |
+| Güncelleme | GitHub (`api.github.com`) | Yalnızca son sürüm sorgusu |
+| Claude'a sor | Bilgisayardaki Claude Code (`claude -p`, araçsız) | Yazdığın soru; Claude Code onu kendi oturumunla Anthropic'e gönderir |
+
+Bu bilgisayarda kalanlar: haftanın müziği burada sayılır; **Metni kopyala** Windows'un kendi metin
+tanımasını kullanır; **Paylaş** yalnızca Windows'un paylaşım penceresini açar. Eşleştirilmiş Buds
+bu bilgisayara bağlı değilken Pebbly, kutunun açıldığını görmek için yakındaki Bluetooth LE
+yayınlarını dinler (yalnızca dinler, hiçbir şey göndermez); Ayarlar → Galaxy Buds → **Kutu açılınca
+bağlanmayı öner** bunu kapatır.
+
+**Uygulama bildirimleri** açıksa Pebbly yalnızca bu bilgisayardan erişilen `127.0.0.1:20034` ve
+`[::1]` adreslerini dinler (port doluysa Windows'un verdiği başka bir portu `%LOCALAPPDATA%\Pebbly\api.json`
+dosyasına yazar); kapalıyken hiçbir port açılmaz. Web sayfalarından, ağdan ve bu bilgisayardaki
+diğer Windows kullanıcılarından gelen istekler reddedilir. ShareX'in ekran görüntüsü klasörü ve
+Windows'un `Resimler\Screenshots` klasörü izlenir (Ayarlar → Sistem → Ekran görüntüleri). Claude
+Code'un adımları ve izin istekleri görev çubuğunda görünür; ekran paylaşırken bunu unutma.
+
+## Bilinen sınırlar
+
+- **Windows 11 ya da Windows 10 (1809 ve sonrası).** Windows 10'da kartın arkası bulanıklaşmaz ve
+  simgeler Segoe MDL2 Assets'ten gelir; Windows 10'un görev çubuğundaki yerleşim henüz yalnızca
+  simülasyonla denendi.
+- **Galaxy Buds:** Buds2'de denendi; Buds2 Pro, Buds FE, Buds Core, Buds3, Buds3 FE ve Buds4 aynı
+  protokolü kullanır, Buds Pro da tanınır. İlk Galaxy Buds, Buds+ ve Buds Live desteklenmez.
+  GalaxyBudsClient ya da Samsung'un Galaxy Buds uygulaması bağlantıyı kullanırken Pebbly kulaklığı
+  okuyamaz.
+- Duraklatılan medya 10 dakika sonra pilden kalkar (Ayarlar → Medya → Duraklayınca kal).
+- Ayarlar penceresi canlı verileri değil, her etkinliğin pilinden örnek bir görünüm gösterir.
+- Yalnızca ana ekranın görev çubuğunda çalışır. Explorer yeniden başlarsa pil kendiliğinden geri
+  döner; açık bir kart kapanır.
+- Boştaki kullanım (medya duraklatılmışken, 2026-10-21): 10 saniyede 5–10 ms işlemci süresi,
+  39–66 MB çalışma kümesi (25 MB özel bellek).
+
+## Geliştirme
+
+<details>
+<summary><b>Derleme, test, araçlar ve sürüm</b></summary>
+
+<br>
+
+Gerekenler: Rust (MSVC araç zinciri) ve simgenin exe'lere gömülmesi için Windows SDK (`rc.exe`);
 SDK olmadan da derlenir, ama exe'ler Windows'un varsayılan simgesiyle kalır.
 
 ```
 cargo b
-```
-
-`cargo b`, `.cargo\config.toml`'da tanımlı bir kısaltmadır: `cargo build --profile quick --bin
-pebbly --bin pebbly-settings`. Sürüm derlemesi kadar hızlı çalışan bir exe üretir ama programın
-tamamını birlikte optimize etmez (LTO yoktur); bu yüzden önbellek doluyken derleme birkaç saniye
-sürer. Ayarlar penceresinin arayüzü (`ui\`, Slint) bu profilde optimizasyonsuz derlenir: bir
-`.slint` değişikliği 4–5 dakika yerine 40 saniyede derlenir.
-
-Çıktılar `target\quick\` klasörüne yazılır; projeyi kısa bir yola klonla (MSVC'nin yol sınırı
-260 karakterdir). İki exe (`pebbly.exe` ve `pebbly-settings.exe`) **aynı klasörde** olmalıdır:
-Pebbly ayarlar penceresini kendi yanında arar. İkisini `bin\` klasörüne kopyalayıp oradan çalıştır.
-"Windows ile başlat" açıksa başlangıç kaydı kendiliğinden en son çalıştırılan kopyaya güncellenir.
-
-**Yayın:** `tools\make-setup.ps1`, bir GitHub sürümünde yer alan dosyaları `dist\` klasörüne
-üretir: `pebbly-setup.exe` (iki exe içinde), `pebbly.exe`, `pebbly-settings.exe` (güncelleyicinin
-indirdikleri) ve `SHA256SUMS.txt`. C çalışma zamanı statik olarak bağlanır; bu sayede exe'ler
-Visual C++ Redistributable kurulu olmayan Windows'larda da açılır. Sürüm derlemesi
-(`target\dist\`, birkaç GB) saklanır: ilk derleme 13–14 dakika sürer, sonrakiler yalnızca değişen
-kısımları derler (kod değişikliğinden sonra 5 dakika kadar). `-Clean` bu derlemeyi sonunda siler,
-`-Jobs` aynı anda kaç derleme işi çalışacağını belirler.
-
-```
-powershell -ExecutionPolicy Bypass -File tools\make-setup.ps1 -Jobs 6
-```
-
-### Yazı tipleri
-
-Pil ve kart, exe'nin yanındaki `fonts\` klasörüne bakar: `OneUISans*.ttf` varsa One UI Sans'ı
-(telefonundan alabilirsin), yoksa `Inter*.ttf`'yi, o da yoksa Windows'un Segoe UI Variable'ını
-kullanır. Ayarlar penceresi Inter'i kendi içinde barındırır (`ui\fonts`, SIL Open Font License).
-
-## Dosyalar
-
-- Ayarlar: `%APPDATA%\Pebbly\settings.json`
-- Günlük: `%LOCALAPPDATA%\Pebbly\log.txt`. Pilin ne zaman ve neden gizlendiği de buraya yazılır
-  (`pill: hidden (nothing active)`, `media: Brave left (paused 10 min)` gibi).
-- Takım armaları: `%LOCALAPPDATA%\Pebbly\crests\`
-- Haftanın müziği: `%LOCALAPPDATA%\Pebbly\music.json` (yalnızca son yedi gün)
-- Raftan çıkan dosyalar (küçültülmüş resimler, zip'ler) asıllarının yanına yazılır; oraya
-  yazılamazsa `%LOCALAPPDATA%\Pebbly\Raf\` klasörüne.
-
-## Güncelleme
-
-Pebbly açıldıktan bir dakika sonra ve ardından günde bir kez GitHub'dan son sürümü sorar
-(`api.github.com`; sorgu dışında hiçbir şey gönderilmez). Ayarlar → Hakkında'daki **Denetle**
-satırı beklemeden sorar. Yeni sürüm varsa tepsi menüsünde **Güncelle: x.y.z** belirir, Hakkında'daki
-satır da **Güncelle** olur. Tıklayınca iki exe indirilir, `SHA256SUMS.txt` ile doğrulanır,
-eskilerinin yerine konur ve Pebbly yeniden başlar; açık ayarlar penceresi de yeni sürümüyle
-yerinde yeniden açılır. Ayarlar ve otomatik başlatma olduğu gibi kalır. Hakkında satırı o sırada
-ne olduğunu, olmazsa nedenini yazar. Adımlardan biri bile başarısız olursa
-eski exe'ler yerinde kalır. Pebbly'nin yazma izni olmayan bir klasöre (Program Files gibi)
-kurulduysa sürüm sayfası açılır. Günlük denetim Ayarlar → Hakkında → Güncellemeleri denetle ile
-kapatılabilir.
-
-## Gizlilik ve ağ
-
-Pebbly'nin bağlandığı yerler (hiçbiri API anahtarı istemez):
-
-- **Şarkı sözleri:** çalan şarkının sanatçısı, adı ve süresi `lrclib.net`'e, orada
-  bulunamazsa NetEase Cloud Music'e (`music.163.com`) ve Kugou'ya (`lyrics.kugou.com`)
-  gönderilir (Ayarlar → Medya → Şarkı sözleri ile kapatılabilir).
-- **Hava durumu:** seçilen şehrin koordinatları Open-Meteo'ya gönderilir (`api.open-meteo.com`,
-  `geocoding-api.open-meteo.com`). **Konumumu kullan** seçiliyse konum Windows'un konum
-  hizmetinden alınır (Windows izin ister); yerin adını bulmak için yaklaşık 1 km'ye yuvarlanmış
-  koordinatlar OpenStreetMap'e (`nominatim.openstreetmap.org`) gönderilir.
-- **Maçlar:** takip edilen takımlar için ESPN (`site.api.espn.com`) ve EuroLeague/EuroCup
-  (`feeds.incrowdsports.com`, `live.euroleague.net`); armalar da bu kaynakların görsel
-  adreslerinden indirilir.
-- **Güncelleme:** GitHub (`api.github.com`), yukarıda anlatıldığı gibi.
-- **Claude'a sor:** yazdığın soru bilgisayardaki Claude Code'a verilir (`claude -p`, araçsız:
-  dosyalarına ve komut satırına dokunamaz); Claude Code onu kendi oturumunla Anthropic'e gönderir.
-  Pebbly'nin kendisi bir yere bağlanmaz.
-
-Bu bilgisayarda kalanlar: haftanın müziği burada sayılır; **Metni kopyala** Windows'un kendi metin
-tanımasını kullanır; **Paylaş** yalnızca Windows'un paylaşım penceresini açar, dosyalar orada
-seçtiğin yere gider. Eşleştirilmiş Buds bu bilgisayara bağlı değilken Pebbly, kutunun açıldığını
-görmek için yakındaki Bluetooth LE yayınlarını dinler (yalnızca dinler, hiçbir şey göndermez;
-kutunun sayacı `%LOCALAPPDATA%\Pebbly\buds-lid.txt` dosyasında). Ayarlar → Galaxy Buds → **Kutu
-açılınca bağlanmayı öner** bunu kapatır.
-
-**Uygulama bildirimleri** açıksa Pebbly yalnızca bu bilgisayardan erişilebilen `127.0.0.1:20034`
-ve `[::1]` adreslerini dinler (port doluysa Windows'un verdiği başka bir portu kullanır ve bunu
-`%LOCALAPPDATA%\Pebbly\api.json` dosyasına yazar). Kapalıyken hiçbir port açılmaz. Web
-sayfalarından, ağdan ve bu bilgisayardaki diğer Windows kullanıcılarından gelen istekler
-reddedilir; ayrıntılar [DOCS.md](DOCS.md)'de.
-
-İzlenen klasörler: ShareX'in ekran görüntüsü klasörü ve Windows'un `Resimler\Screenshots`
-klasörü (yeni bir görüntü pilde kısa bir süre görünür ve rafa eklenir; Ayarlar → Sistem → Ekran
-görüntüleri). Claude Code'un adımları ve izin istekleri görev çubuğunda görünür; ekran paylaşırken
-bunu göz önünde bulundur.
-
-## Bilinen sınırlar
-
-- **Windows 11 ya da Windows 10 (1809 ve sonrası).** Windows 10'da kartın arkası bulanıklaşmaz
-  (düz zemin kullanılır) ve simgeler Segoe MDL2 Assets'ten gelir. Windows 10 desteği 0.2.1'de
-  geldi; görev çubuğundaki yerleşimi henüz yalnızca simülasyonla denendi.
-- **Galaxy Buds:** Buds2'de denendi; Buds2 Pro, Buds FE, Buds Core, Buds3, Buds3 FE ve Buds4 aynı
-  protokolü kullanır, Buds Pro da tanınır. İlk Galaxy Buds, Buds+ ve Buds Live desteklenmez.
-  GalaxyBudsClient ya da Samsung'un Galaxy Buds uygulaması bağlantıyı kullanırken Pebbly
-  kulaklığı okuyamaz.
-- **Duraklatılan medya 10 dakika sonra pilden kalkar** (Ayarlar → Medya → Duraklayınca kal).
-  Başka bir etkinlik yoksa pil de o an gizlenir; müzik yeniden çalınca geri gelir.
-- Ayarlar penceresi canlı verileri göstermez: maçın anlık skoru, Buds'ın o anki şarjı ya da
-  çalışan zamanlayıcı yerine o etkinliğin pilinin örnek bir görünümü yer alır.
-- Yalnızca ana ekranın görev çubuğunda çalışır.
-- Boştaki kaynak kullanımı (medya duraklatılmışken, 2026-10-21 ölçümü): 10 saniyede 5–10 ms
-  işlemci süresi, 39–66 MB çalışma kümesi (25 MB özel bellek). Hedef 10 saniyede 5 ms ve 50 MB'tı.
-- Explorer yeniden başlarsa pil görev çubuğuna kendiliğinden geri döner; açık bir kart varsa
-  kapanır.
-
-## Geliştirme
-
-```
 cargo t
 cargo lint
 ```
 
-Testler ve clippy (`.cargo\config.toml`'daki kısaltmalar) quick profilinde çalışır; düz
-`cargo test` ise bağımlılıkların ikinci bir tam kopyasını `debug\` altına derler (onlarca GB).
+Bunlar `.cargo\config.toml`'daki kısaltmalardır ve hepsi quick profilinde çalışır: sürüm derlemesi
+kadar hızlı bir exe, ama programın tamamı birlikte optimize edilmez (LTO yok), bu yüzden önbellek
+doluyken derleme saniyeler sürer. `cargo lint` clippy'yi derlemenin içinde çalıştırır. Düz
+`cargo build` ya da `cargo test` bağımlılıkların ikinci bir tam kopyasını derler (onlarca GB).
 
-- Derlemeyi hızlandıranlar: Rust'ın kendi bağlayıcısı (`rust-lld`), bağımlılıklarda hata ayıklama
-  bilgisinin kapalı olması ve ayarlar penceresinin Slint arayüzünün ayrı bir crate'te (`ui\`)
-  bulunması: arayüz yalnızca bir `.slint` dosyası değişince yeniden derlenir.
-- `PEBBLY_SETTINGS_SHOTS=<klasör> pebbly-settings.exe`: ayarlar penceresini ekran dışında açar,
-  her sayfanın gerçek çiziciyle ekran görüntüsünü alır ve ayarları kaydetmeden kapanır.
-- `pillsheet`, `cardsheet`, `matchsheet`, `settingsheet`, `glyphsheet`: pencere açmadan örnek
-  görüntüler (PNG) üretir. Hareketli olanları `fxsheet` (havanın efektleri), `glidesheet` (pilin
-  görev çubuğu düğmelerine yer açması) ve `islandsheet` (oyun içi ada) ekran dışındaki bir
-  pencerede kare kare çeker. `readmesheet` ile `tools\readme-images.py` bu sayfadaki görselleri
-  yeniden çizer (`assets\readme\`).
-- `taskbarprobe`, `copyprobe`, `audioprobe`, `mediaprobe`, `footballprobe`: görev çubuğunun
-  öğelerini, Explorer'ın kopyalama pencerelerini, ses çıkışlarını, medya oturumlarını ve maç
-  verisini yalnızca okuyarak yazdırır.
-- **Çeviri:** arayüz metinleri kodda Türkçe yazılır (`tr("…")`, Slint'te `@tr("…")`); İngilizceleri
-  `i18n\en\LC_MESSAGES\pebbly-ui.po` dosyasındadır. `python tools\i18n-extract.py` eksik metinleri
-  bu dosyaya boş olarak ekler; her birinin İngilizcesi yazılana kadar `cargo t` başarısız olur.
-- `tools\*.ps1`: titreme, boştaki kullanım, Explorer'ın yeniden başlatılması ve diğer ölçümler.
-- `pebbly.exe --demo`: bir dakikalık örnek bir zamanlayıcıyla başlar; `--match-replay <klasör>`
-  kaydedilmiş skor tablolarıyla bir maçı yeniden oynatır.
-- `assets\make_icon.py`: simgeyi (tepsideki beyaz hap) yeniden çizer.
-- **Sürüm yayınlamak:** `Cargo.toml`'daki `version`'ı artır, `tools\make-setup.ps1`'i çalıştır,
-  sonra `dist\` içindekileri yayınla:
-  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt`.
-  `nowbar.exe` (kurulumun kendisi) ve `nowbar-settings.exe` Now Bar 0.2–0.5'in güncelleyicisi
-  içindir: o yalnızca bu adları indirir, `nowbar.exe`'yi başlatır ve kurulum o kopyayı Pebbly'ye
-  taşır. Her sürümde bulunmaları gerekir.
-  `pebbly.exe --update-from <klasör>` güncellemeyi GitHub olmadan, bir klasördeki exe'lerle dener.
+Çıktılar `target\quick\` klasörüne yazılır; projeyi kısa bir yola klonla (MSVC'nin yol sınırı 260
+karakter). `pebbly.exe` ve `pebbly-settings.exe` **aynı klasörde** olmalıdır: Pebbly ayarlar
+penceresini kendi yanında arar. İkisini `bin\` klasörüne kopyalayıp oradan çalıştır; Windows'la
+başlatma açıksa başlangıç kaydı en son çalışan kopyayı izler.
+
+**Yazı tipleri:** pil ve kart, exe'nin yanındaki `fonts\` klasörüne bakar: `OneUISans*.ttf` varsa
+One UI Sans'ı (telefonundan alabilirsin), yoksa `Inter*.ttf`'yi, o da yoksa Windows'un Segoe UI
+Variable'ını kullanır. Ayarlar penceresi Inter'i kendi içinde taşır (`ui\fonts`).
+
+**Çeviri:** arayüz metinleri kodda Türkçe yazılır (`tr("…")`, Slint'te `@tr("…")`); İngilizceleri
+`i18n\en\LC_MESSAGES\pebbly-ui.po` dosyasındadır. `python tools\i18n-extract.py` eksik metinleri
+bu dosyaya boş olarak ekler; her birinin İngilizcesi yazılana kadar `cargo t` başarısız olur.
+
+**Araçlar:**
+
+- `cargo sheet <ad> -- <argümanlar>`: pencere açmadan örnek görüntüler (PNG) üretir: `pillsheet`,
+  `cardsheet`, `matchsheet`, `settingsheet`, `glyphsheet` (`--en` ile İngilizce). `fxsheet` (havanın
+  efektleri), `glidesheet` (pilin görev çubuğu düğmelerine yer açması) ve `islandsheet` (oyun içi
+  ada) hareketli olanları ekran dışındaki bir pencerede kare kare çeker.
+- `readmesheet` ve `tools\readme-images.py` bu sayfanın görsellerini yeniden çizer
+  (`assets\readme\`, İngilizceleri `assets\readme\en\`).
+- `PEBBLY_SETTINGS_SHOTS=<klasör> pebbly-settings.exe`: ayarlar penceresinin her sayfasını ekran
+  dışında, gerçek çiziciyle çeker ve kaydetmeden kapanır.
+- `taskbarprobe`, `copyprobe`, `audioprobe`, `mediaprobe`, `footballprobe`: görev çubuğunu,
+  Explorer'ın kopyalama pencerelerini, ses çıkışlarını, medya oturumlarını ve maç verisini yalnızca
+  okuyarak yazdırır.
+- `pebbly.exe --demo` bir dakikalık örnek zamanlayıcıyla başlar; `--match-replay <klasör>`
+  kaydedilmiş skor tablolarıyla bir maçı yeniden oynatır; `--update-from <klasör>` güncellemeyi
+  GitHub olmadan dener.
+- `tools\*.ps1`: titreme, boştaki kullanım, Explorer'ın yeniden başlaması ve diğer ölçümler.
+  `assets\make_icon.py` simgeyi yeniden çizer.
+
+**Sürüm yayınlamak:** `Cargo.toml`'daki `version`'ı artır ve `tools\make-setup.ps1`'i çalıştır.
+Sürümün dosyalarını sıfırdan, statik C çalışma zamanıyla (Visual C++ Redistributable gerekmez)
+`dist\` klasörüne derler ve sonunda derleme klasörünü siler (`-Keep` saklar, `-Jobs` aynı anda
+kaç iş çalışacağını belirler; varsayılan 2 ile yarım saat kadar sürer). Sonra:
+
+```
+gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt
+```
+
+`nowbar.exe` (kurulumun kendisi) ve `nowbar-settings.exe`, Now Bar 0.2–0.5'in güncelleyicisi
+içindir: o yalnızca bu adları indirir ve `nowbar.exe`'yi başlatır; kurulum da o kopyayı Pebbly'ye
+taşır. Her sürümde bulunmaları gerekir.
+
+</details>
 
 ## Lisans
 
-Pebbly, [GNU Genel Kamu Lisansı sürüm 3](LICENSE) (GPL-3.0) ile lisanslıdır. Kodu
-kullanabilir, değiştirebilir ve dağıtabilirsin; değiştirip dağıttığın sürümün kaynak kodunu da
-aynı lisansla açman gerekir. Telif hakkı © 2026 nixesty.
+Pebbly, [GNU Genel Kamu Lisansı sürüm 3](LICENSE) (GPL-3.0) ile lisanslıdır: kodu kullanabilir,
+değiştirebilir ve dağıtabilirsin; değiştirip dağıttığın sürümün kaynak kodunu da aynı lisansla
+açman gerekir. Telif hakkı © 2026 nixesty.
 
 Bu lisansın dışında kalanlar:
 
 - Galaxy Buds'ın gürültü kontrolü simgeleri (`src/activities/buds.rs`, `NoiseControl::icon`)
   Samsung'un SystemUI'ından çizildi ve Samsung'a aittir; README görsellerinde de görünürler.
-- Galaxy Buds görselleri (`assets/buds/`; Buds Pro, Buds2, Buds2 Pro, FE, Core, Buds3 ve Buds4 aileleri)
-  [GalaxyBudsClient](https://github.com/timschneeb/GalaxyBudsClient)'tan alındı; Samsung'un
-  ürün görselleridir ve Samsung'a aittir.
+- Galaxy Buds görselleri (`assets/buds/`; Buds Pro, Buds2, Buds2 Pro, FE, Core, Buds3 ve Buds4
+  aileleri) [GalaxyBudsClient](https://github.com/timschneeb/GalaxyBudsClient)'tan alındı;
+  Samsung'un ürün görselleridir ve Samsung'a aittir.
 - Claude'un işareti (`src/render/pill.rs`, `CLAUDE_ICON`) Anthropic'e aittir; o da görsellerde
   görünür.
 - Ayarlar penceresinin yazı tipi Inter, kendi lisansıyla gelir (SIL Open Font License,
@@ -365,5 +335,5 @@ Bu lisansın dışında kalanlar:
 
 ---
 
-<sub>Samsung ile bir ilgisi yoktur; One UI'daki Now Bar'dan esinlenmiş bağımsız bir projedir. Galaxy Buds'ın
-gürültü kontrolü simgeleri ve kulaklık görselleri Samsung'a aittir.</sub>
+<sub>Samsung ile bir ilgisi yoktur; One UI'daki Now Bar'dan esinlenmiş bağımsız bir projedir.
+Galaxy Buds'ın gürültü kontrolü simgeleri ve kulaklık görselleri Samsung'a aittir.</sub>

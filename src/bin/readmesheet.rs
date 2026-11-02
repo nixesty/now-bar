@@ -6,13 +6,14 @@
 use pebbly::activities::buds::{BudsSnapshot, NoiseControl, Worn};
 use pebbly::activities::claude::StepKind;
 use pebbly::activities::football::{centre_text, parse_event, Fixture, MatchSnapshot, MatchStatus, Team};
-use pebbly::activities::games::Store;
+use pebbly::activities::games::{speed_text, Store};
 use pebbly::activities::live::LiveState;
 use pebbly::activities::media::{Caps, MediaSnapshot, Timeline};
 use pebbly::activities::shelf::{file_kind, FileKind};
-use pebbly::activities::weather::{describe, symbol, WeatherFx};
+use pebbly::activities::weather::{describe, rain_when, symbol, WeatherFx};
 use pebbly::activities::weather_alert::AlertKind;
-use pebbly::i18n::tr;
+use pebbly::activities::wellbeing::limit_text;
+use pebbly::i18n::{percent, tr, trf};
 use pebbly::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, BudsCard, BriefCard, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LyricsView, MatchCard, MediaCard, ShelfCard, ShelfTile, TimerCard, WeatherCard, WellbeingApp, WellbeingCard};
 use pebbly::render::color::{accent_from_rgba, team_palette};
 use pebbly::render::crest::Crest;
@@ -199,6 +200,12 @@ impl Sheet {
     }
 }
 
+/// A made-up sample's words in the pictures' language: what the app would show there (dates,
+/// an app's name) but takes from Windows, not from its own strings.
+fn pick(tr: &str, en: &str) -> String {
+    if pebbly::i18n::lang() == pebbly::i18n::Language::English { en } else { tr }.to_string()
+}
+
 fn main() -> Result<()> {
     if std::env::args().any(|a| a == "--en") {
         pebbly::i18n::set_language(pebbly::i18n::Language::English);
@@ -246,7 +253,7 @@ fn main() -> Result<()> {
         city: "İstanbul".into(),
         symbol: "🌙".into(),
         temp: "18°".into(),
-        summary: "Açık · En düşük 11° · En yüksek 21°".into(),
+        summary: trf("{} · En düşük {} · En yüksek {}", &[&describe(0), &"11°", &"21°"]),
         hours: vec![hour("20:00", "🌙", "18°"), hour("21:00", "🌙", "17°"), hour("22:00", "⛅", "15°"), hour("23:00", "☁\u{FE0F}", "15°"), hour("00:00", "🌧\u{FE0F}", "14°"), hour("01:00", "🌧\u{FE0F}", "14°")],
         fx: WeatherFx::ClearNight,
         alert: None,
@@ -260,7 +267,7 @@ fn main() -> Result<()> {
         state: LiveState::Wait,
         status: tr("İzin istiyor").into(),
         tasks: None,
-        steps: vec![(StepKind::Edit, "Düzenliyor: pill.rs".to_string())],
+        steps: vec![(StepKind::Edit, format!("{}: pill.rs", tr("Düzenliyor")))],
         summary: None,
         ask: Some(ClaudeAsk { key: 7, tool: "Bash".into(), detail: "cargo build --profile quick --bin pebbly".into(), answerable: true }),
         can_focus: true,
@@ -269,13 +276,13 @@ fn main() -> Result<()> {
     sheet.card(
         "card-wellbeing",
         &CardContent::Wellbeing(Box::new(WellbeingCard {
-            total: "3 sa 40 dk".into(),
-            caption: "Bugün · dünden 25 dk az".into(),
+            total: trf("{} sa {} dk", &[&3, &40]),
+            caption: trf("Bugün · {}", &[&trf("dünden {} az", &[&trf("{} dk", &[&25])])]),
             week: [0.62, 0.8, 0.45, 1.0, 0.7, 0.55, 0.68],
-            days: ["Pe", "Cu", "Ct", "Pz", "Pt", "Sa", "Ça"],
-            apps: [("VS Code", "1 sa 50 dk", 1.0), ("Tarayıcı", "52 dk", 0.47), ("Discord", "31 dk", 0.28), ("Spotify", "20 dk", 0.18), ("Dosya Gezgini", "7 dk", 0.06)]
+            days: if pebbly::i18n::lang() == pebbly::i18n::Language::English { ["Th", "Fr", "Sa", "Su", "Mo", "Tu", "We"] } else { ["Pe", "Cu", "Ct", "Pz", "Pt", "Sa", "Ça"] },
+            apps: [("VS Code".to_string(), trf("{} sa {} dk", &[&1, &50]), 1.0), (pick("Tarayıcı", "Browser"), trf("{} dk", &[&52]), 0.47), ("Discord".into(), trf("{} dk", &[&31]), 0.28), ("Spotify".into(), trf("{} dk", &[&20]), 0.18), (pick("Dosya Gezgini", "File Explorer"), trf("{} dk", &[&7]), 0.06)]
                 .into_iter()
-                .map(|(name, time, share)| WellbeingApp { name: name.into(), icon: None, time: time.into(), share })
+                .map(|(name, time, share)| WellbeingApp { name, icon: None, time, share })
                 .collect(),
             music: None,
         })),
@@ -304,19 +311,19 @@ fn main() -> Result<()> {
     let team = |code: &str, primary: [u8; 3], secondary: [u8; 3]| CardTeam { name: code.into(), code: code.into(), palette: team_palette(primary, secondary), crest: None };
     let (fb, gs) = (team("FB", [0x0B, 0x1E, 0x5B], [0xFF, 0xED, 0x00]), team("GS", [0xA9, 0x00, 0x32], [0xFD, 0xB9, 0x12]));
     let brief = BriefCard {
-        greeting: "Günaydın".into(),
-        date: "Cumartesi, 24 Ekim".into(),
+        greeting: tr("Günaydın").into(),
+        date: pick("Cumartesi, 24 Ekim", "Saturday, October 24"),
         weather: Some(BriefWeather {
             symbol: "⛅".into(),
             temp: "17°".into(),
-            summary: "Parçalı bulutlu · 11° / 21°".into(),
+            summary: format!("{} · 11° / 21°", describe(2)),
             hours: vec![hour("09:00", "⛅", "17°"), hour("10:00", "⛅", "18°"), hour("11:00", "☀\u{FE0F}", "19°"), hour("12:00", "☀\u{FE0F}", "20°"), hour("13:00", "☁\u{FE0F}", "20°"), hour("14:00", "🌧\u{FE0F}", "18°")],
-            rain: Some("14:00 civarı yağmur".into()),
+            rain: Some(pick("14:00 civarı yağmur", "Rain around 14:00")),
             fx: WeatherFx::Clouds,
         }),
         matches: vec![BriefMatchRow { home: fb.clone(), away: gs.clone(), status: "20:00 · Süper Lig".into(), live: false }],
         music: Some(BriefMusic { title: m.title.clone(), artist: m.artist.clone(), art: Some(art.px.clone()), art_size: (side, side), playing: false }),
-        screen: Some(("Ekran süresi · 3 sa 40 dk".into(), "Bugün · VS Code 1 sa 50 dk".into())),
+        screen: Some((trf("Ekran süresi · {}", &[&trf("{} sa {} dk", &[&3, &40])]), trf("Bugün · {}", &[&format!("VS Code {}", trf("{} sa {} dk", &[&1, &50]))]))),
         away: None,
     };
     sheet.card("card-brief", &CardContent::Brief(Box::new(brief)), &s)?;
@@ -342,16 +349,16 @@ fn main() -> Result<()> {
         ("pill-timer", PillContent::Timer { text: "04:32".into(), label: tr("Zamanlayıcı"), paused: false }),
         ("pill-match", PillContent::Match(Box::new(live_match))),
         ("pill-weather", PillContent::Weather { symbol: symbol(0, true).into(), temp: "24°".into(), desc: describe(0).into(), fx: WeatherFx::Sunny }),
-        ("pill-rain", PillContent::Rain { snow: false, when: "~20 dk içinde".into() }),
+        ("pill-rain", PillContent::Rain { snow: false, when: rain_when(20) }),
         ("pill-power", PillContent::Power { pct: 80, low: false }),
         ("pill-buds", PillContent::Buds(BudsSnapshot { left: 60, right: 70, case: Some(40), noise: None, worn: Worn { left: true, right: true }, ..Default::default() })),
-        ("pill-claude", PillContent::Live { key: 1, title: "pebbly".into(), status: "İzin istiyor".into(), claude: true, state: LiveState::Wait, action: "Bash".into() }),
+        ("pill-claude", PillContent::Live { key: 1, title: "pebbly".into(), status: tr("İzin istiyor").into(), claude: true, state: LiveState::Wait, action: "Bash".into() }),
         ("pill-privacy", PillContent::Privacy { app: "Zoom".into(), mic: true, cam: true, more: 0 }),
-        ("pill-game", PillContent::Game { key: 1, store: Store::Steam, title: "Counter-Strike 2".into(), line: "%48 · 18 MB/sn".into(), progress: Some(0.48), art: None, done: false, paused: false }),
+        ("pill-game", PillContent::Game { key: 1, store: Store::Steam, title: "Counter-Strike 2".into(), line: format!("{} · {}", percent(48), speed_text(18 << 20)), progress: Some(0.48), art: None, done: false, paused: false }),
         ("pill-shelf", PillContent::Shelf { label: "ekran-goruntusu.png".into(), count: 3, thumbs: vec![PillThumb { thumb: Some(swatch(thumb, [0xE8, 0x6A, 0x3A], [0x8E, 0x2B, 0x5C])), kind: FileKind::Image }, PillThumb { thumb: None, kind: FileKind::Archive }], drop_hint: false, min_width_dip: 0.0 }),
-        ("pill-usage", PillContent::Usage { app: "Discord".into(), text: "2 saati geçtin".into() }),
-        ("pill-clock", PillContent::Clock { time: "20:42".into(), date: "Cmt 24 Eki".into(), weather: Some((symbol(0, false).into(), "18°".into())), fx: Some(WeatherFx::ClearNight) }),
-        ("pill-alert", PillContent::WeatherAlert { kind: AlertKind::Wind, head: "Kuvvetli rüzgâr".into(), detail: "65 km/sa · 21:00".into() }),
+        ("pill-usage", PillContent::Usage { app: "Discord".into(), text: limit_text(120) }),
+        ("pill-clock", PillContent::Clock { time: "20:42".into(), date: pick("Cmt 24 Eki", "Sat Oct 24"), weather: Some((symbol(0, false).into(), "18°".into())), fx: Some(WeatherFx::ClearNight) }),
+        ("pill-alert", PillContent::WeatherAlert { kind: AlertKind::Wind, head: tr("Kuvvetli rüzgâr").into(), detail: trf("{} km/sa · {}", &[&65, &"21:00"]) }),
         ("pill-volume", PillContent::Volume { pct: 45, muted: false }),
     ];
     for (name, content) in &pills {
