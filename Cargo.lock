@@ -2771,45 +2771,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nowbar"
-version = "0.5.0"
-dependencies = [
- "crc32fast",
- "flate2",
- "nowbar-ui",
- "raw-window-handle",
- "serde",
- "serde_json",
- "slint",
- "windows",
- "windows-collections",
- "windows-core",
- "windows-future",
- "windows-numerics",
-]
-
-[[package]]
-name = "nowbar-setup"
-version = "0.1.0"
-dependencies = [
- "miniz_oxide 0.8.9",
- "nowbar",
- "raw-window-handle",
- "serde_json",
- "slint",
- "slint-build",
- "windows",
-]
-
-[[package]]
-name = "nowbar-ui"
-version = "0.1.0"
-dependencies = [
- "slint",
- "slint-build",
-]
-
-[[package]]
 name = "num-traits"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3290,6 +3251,45 @@ name = "pastey"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
+
+[[package]]
+name = "pebbly"
+version = "0.5.0"
+dependencies = [
+ "crc32fast",
+ "flate2",
+ "pebbly-ui",
+ "raw-window-handle",
+ "serde",
+ "serde_json",
+ "slint",
+ "windows",
+ "windows-collections",
+ "windows-core",
+ "windows-future",
+ "windows-numerics",
+]
+
+[[package]]
+name = "pebbly-setup"
+version = "0.1.0"
+dependencies = [
+ "miniz_oxide 0.8.9",
+ "pebbly",
+ "raw-window-handle",
+ "serde_json",
+ "slint",
+ "slint-build",
+ "windows",
+]
+
+[[package]]
+name = "pebbly-ui"
+version = "0.1.0"
+dependencies = [
+ "slint",
+ "slint-build",
+]
 
 [[package]]
 name = "percent-encoding"

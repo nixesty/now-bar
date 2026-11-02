@@ -131,7 +131,7 @@ mod tests {
     use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
 
     fn dir() -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("nowbar-shelf-test-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("pebbly-shelf-test-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&d);
         d
     }

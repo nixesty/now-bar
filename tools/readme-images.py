@@ -3,8 +3,8 @@ wallpaper-like panels and writes them to assets/readme/. Everything is at 2x; th
 it at half size, so it stays sharp on high-DPI screens.
 
     target\\quick\\readmesheet.exe <sheets>
-    set NOWBAR_SETTINGS_SHOTS=<shots> && target\\quick\\nowbar-settings.exe
-    set NOWBAR_SETUP_SHOTS=<setup> && target\\quick\\nowbar-setup.exe
+    set PEBBLY_SETTINGS_SHOTS=<shots> && target\\quick\\pebbly-settings.exe
+    set PEBBLY_SETUP_SHOTS=<setup> && target\\quick\\pebbly-setup.exe
     python tools\\readme-images.py <sheets> <shots>\\page-0.png <setup>\\1-kur.png
 
 Pillow only (no numpy): the wallpapers are worked out small, then scaled up and blurred.

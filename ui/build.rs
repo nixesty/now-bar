@@ -1,4 +1,4 @@
-// The settings window, with its English bundled: ../i18n/en/LC_MESSAGES/nowbar-ui.po (msgids are
+// The settings window, with its English bundled: ../i18n/en/LC_MESSAGES/pebbly-ui.po (msgids are
 // the Turkish strings themselves, no context; the Rust side's table comes from the same file).
 fn main() {
     let config = slint_build::CompilerConfiguration::new()

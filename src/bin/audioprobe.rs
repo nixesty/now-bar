@@ -1,6 +1,6 @@
 //! Dev tool: lists the active playback devices as the output picker sees them.
 
-use nowbar::platform::audio::{list_outputs, output_volume, picker_order};
+use pebbly::platform::audio::{list_outputs, output_volume, picker_order};
 
 fn main() {
     unsafe {

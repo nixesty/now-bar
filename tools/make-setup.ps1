@@ -1,5 +1,5 @@
-# Builds what a GitHub release carries, into dist\: nowbar-setup.exe (both exes inside),
-# nowbar.exe and nowbar-settings.exe (what the updater downloads) and SHA256SUMS.txt.
+# Builds what a GitHub release carries, into dist\: pebbly-setup.exe (both exes inside),
+# pebbly.exe and pebbly-settings.exe (what the updater downloads) and SHA256SUMS.txt.
 #
 #   powershell -ExecutionPolicy Bypass -File tools\make-setup.ps1 [-Jobs 2] [-Keep]
 #
@@ -15,7 +15,7 @@ $repo = Split-Path $PSScriptRoot -Parent
 Push-Location $repo
 try {
     $meta = cargo metadata --format-version 1 --no-deps | ConvertFrom-Json
-    $version = ($meta.packages | Where-Object name -eq 'nowbar').version
+    $version = ($meta.packages | Where-Object name -eq 'pebbly').version
     $built = Join-Path $meta.target_directory 'dist'
     $dist = Join-Path $repo 'dist'
     $payload = Join-Path $dist 'payload'
@@ -27,27 +27,27 @@ try {
     Remove-Item Env:RUSTFLAGS -ErrorAction SilentlyContinue
     $env:CARGO_ENCODED_RUSTFLAGS = @('-C', 'target-feature=+crt-static', "--remap-path-prefix=$cargoHome=cargo", "--remap-path-prefix=$repo=.") -join [char]0x1f
     # JSON on stdout names every unit these builds use, fresh or not: the sweep keeps those.
-    $messages = cargo build -j $Jobs --profile dist --bin nowbar --bin nowbar-settings --message-format=json-render-diagnostics
+    $messages = cargo build -j $Jobs --profile dist --bin pebbly --bin pebbly-settings --message-format=json-render-diagnostics
     if ($LASTEXITCODE) { throw 'the exes did not build' }
     New-Item -ItemType Directory -Force $payload | Out-Null
-    foreach ($exe in 'nowbar.exe', 'nowbar-settings.exe') { Copy-Item (Join-Path $built $exe) $payload -Force }
+    foreach ($exe in 'pebbly.exe', 'pebbly-settings.exe') { Copy-Item (Join-Path $built $exe) $payload -Force }
 
-    $env:NOWBAR_SETUP_PAYLOAD = $payload
-    $env:NOWBAR_VERSION = $version
-    $messages += cargo build -j $Jobs --profile dist -p nowbar-setup --message-format=json-render-diagnostics
+    $env:PEBBLY_SETUP_PAYLOAD = $payload
+    $env:PEBBLY_VERSION = $version
+    $messages += cargo build -j $Jobs --profile dist -p pebbly-setup --message-format=json-render-diagnostics
     if ($LASTEXITCODE) { throw 'the setup did not build' }
-    Copy-Item (Join-Path $built 'nowbar-setup.exe') $dist -Force
-    foreach ($exe in 'nowbar.exe', 'nowbar-settings.exe') { Copy-Item (Join-Path $payload $exe) $dist -Force }
+    Copy-Item (Join-Path $built 'pebbly-setup.exe') $dist -Force
+    foreach ($exe in 'pebbly.exe', 'pebbly-settings.exe') { Copy-Item (Join-Path $payload $exe) $dist -Force }
 
     # The updater's format: "<sha256>  <name>" per line.
-    $sums = foreach ($exe in 'nowbar-setup.exe', 'nowbar.exe', 'nowbar-settings.exe') {
+    $sums = foreach ($exe in 'pebbly-setup.exe', 'pebbly.exe', 'pebbly-settings.exe') {
         '{0}  {1}' -f (Get-FileHash (Join-Path $dist $exe) -Algorithm SHA256).Hash.ToLower(), $exe
     }
     Set-Content (Join-Path $dist 'SHA256SUMS.txt') $sums -Encoding ascii
 
     # No exe may need the Visual C++ runtime DLLs, or name the user's folder.
     $userPath = '(?i)' + [regex]::Escape($env:USERPROFILE) + '|[\\/]users[\\/]' + [regex]::Escape($env:USERNAME) + '[\\/]'
-    foreach ($exe in 'nowbar-setup.exe', 'nowbar.exe', 'nowbar-settings.exe') {
+    foreach ($exe in 'pebbly-setup.exe', 'pebbly.exe', 'pebbly-settings.exe') {
         $bytes = [System.IO.File]::ReadAllBytes((Join-Path $dist $exe))
         $text = [System.Text.Encoding]::ASCII.GetString($bytes)
         if ($text -match '(?i)vcruntime140|msvcp140') { throw "$exe still imports the Visual C++ runtime" }

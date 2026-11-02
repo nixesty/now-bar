@@ -46,7 +46,7 @@ pub struct ApiCall {
 
 pub type ApiMailbox = Arc<Mutex<Vec<ApiCall>>>;
 
-/// Where the Now Bar listens when it can: 0x4E42, "NB", the WM_COPYDATA tag's number.
+/// Where Pebbly listens when it can: 0x4E42, "NB", the WM_COPYDATA tag's number.
 pub const DEFAULT_PORT: u16 = 20034;
 pub const API_VERSION: u32 = 1;
 pub const MAX_HEAD: usize = 8 * 1024;
@@ -95,7 +95,7 @@ pub enum Reject {
     PermissionBusy,
     /// This exe's last prompt was denied or ignored a moment ago.
     PermissionCooldown,
-    /// The Now Bar is switched off in its settings.
+    /// Pebbly is switched off in its settings.
     Disabled,
 }
 
@@ -511,7 +511,7 @@ pub fn image_size(b: &[u8]) -> Option<(u32, u32)> {
     None
 }
 
-/// An app's name as people see it; names that would pass for Windows, the Now Bar or
+/// An app's name as people see it; names that would pass for Windows, Pebbly or
 /// Claude (letters and digits only, any case) aren't anyone's to take.
 pub fn app_name_ok(name: &str) -> bool {
     let count = name.chars().count();
@@ -519,7 +519,7 @@ pub fn app_name_ok(name: &str) -> bool {
         return false;
     }
     let plain: String = name.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect();
-    !["nowbar", "windows", "microsoft", "defender", "claude", "anthropic", "samsung"].iter().any(|w| plain.contains(w))
+    !["pebbly", "nowbar", "windows", "microsoft", "defender", "claude", "anthropic", "samsung"].iter().any(|w| plain.contains(w))
 }
 
 /// A character that could make the card's "name · exe" say something else: control and
@@ -712,12 +712,12 @@ pub fn pending_json() -> String {
 }
 
 pub fn info_json(version: &str) -> String {
-    json!({"name": "Now Bar", "api": API_VERSION, "version": version}).to_string()
+    json!({"name": "Pebbly", "api": API_VERSION, "version": version}).to_string()
 }
 
-/// `%LOCALAPPDATA%\NowBar\api.json`, while the Now Bar listens.
+/// `%LOCALAPPDATA%\Pebbly\api.json`, while Pebbly listens.
 pub fn discovery_json(port: u16, pid: u32, version: &str) -> String {
-    json!({"name": "Now Bar", "api": API_VERSION, "version": version, "url": format!("http://127.0.0.1:{port}"), "port": port, "pid": pid}).to_string()
+    json!({"name": "Pebbly", "api": API_VERSION, "version": version, "url": format!("http://127.0.0.1:{port}"), "port": port, "pid": pid}).to_string()
 }
 
 pub fn response(status: u16, body: &str, retry_after: Option<u32>) -> Vec<u8> {
@@ -953,7 +953,7 @@ mod tests {
         for ok in ["Ekin", "Yedekleyici", "Ekin's Tool 2", "Çalışma Saati", &"a".repeat(32)] {
             assert!(app_name_ok(ok), "{ok}");
         }
-        for bad in ["", "   ", &"a".repeat(33), "Windows Update", "now-bar", "Now Bar", "CLAUDE", "Microsoft Defender", "Sam sung", "Anthropic", "a\u{7}b"] {
+        for bad in ["", "   ", &"a".repeat(33), "Windows Update", "pebbly", "Pebbly", "Now Bar", "CLAUDE", "Microsoft Defender", "Sam sung", "Anthropic", "a\u{7}b"] {
             assert!(!app_name_ok(bad), "{bad}");
         }
         // What could make the card's "name · exe" lie: invisible marks, turned-around text, its own dot.
@@ -1074,7 +1074,7 @@ mod tests {
         let pending: serde_json::Value = serde_json::from_str(&pending_json()).unwrap();
         assert_eq!(pending, serde_json::json!({"ok": false, "pending": true}));
         let info: serde_json::Value = serde_json::from_str(&info_json("0.3.0")).unwrap();
-        assert_eq!(info, serde_json::json!({"name": "Now Bar", "api": 1, "version": "0.3.0"}));
+        assert_eq!(info, serde_json::json!({"name": "Pebbly", "api": 1, "version": "0.3.0"}));
         let found: serde_json::Value = serde_json::from_str(&discovery_json(20034, 4242, "0.3.0")).unwrap();
         assert_eq!(found["url"], "http://127.0.0.1:20034");
         assert_eq!((found["port"].as_u64(), found["pid"].as_u64(), found["api"].as_u64()), (Some(20034), Some(4242), Some(1)));

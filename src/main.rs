@@ -1,13 +1,13 @@
 #![windows_subsystem = "windows"]
 
-use nowbar::activities::claude::{card_can_answer, decision_json};
-use nowbar::activities::live::{claude_msg, parse_push};
-use nowbar::app::App;
-use nowbar::i18n::{tr, trf};
-use nowbar::platform::ipc::{self, Command};
-use nowbar::platform::autostart::{autostart_enabled, set_autostart};
-use nowbar::platform::log::{log, log_path};
-use nowbar::platform::windows::take_events;
+use pebbly::activities::claude::{card_can_answer, decision_json};
+use pebbly::activities::live::{claude_msg, parse_push};
+use pebbly::app::App;
+use pebbly::i18n::{tr, trf};
+use pebbly::platform::ipc::{self, Command};
+use pebbly::platform::autostart::{autostart_enabled, set_autostart};
+use pebbly::platform::log::{log, log_path};
+use pebbly::platform::windows::take_events;
 use windows::core::{w, Result};
 use windows::UI::Composition::Compositor;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS};
@@ -24,7 +24,7 @@ use windows::Win32::UI::WindowsAndMessaging::{DispatchMessageW, GetMessageW, Tra
 fn autostart_on_start() {
     let marker = log_path().with_file_name("installed");
     let first_run = !marker.exists();
-    let wanted = nowbar::settings::current().autostart;
+    let wanted = pebbly::settings::current().autostart;
     if !wanted && autostart_enabled() {
         let _ = set_autostart(false);
     }
@@ -45,7 +45,7 @@ fn run() -> Result<()> {
         let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
         RoInitialize(RO_INIT_SINGLETHREADED)?;
     }
-    if let Err(e) = nowbar::platform::dragdrop::init() {
+    if let Err(e) = pebbly::platform::dragdrop::init() {
         log(&format!("shelf: no OLE ({e})"));
     }
     let _queue = unsafe {
@@ -55,7 +55,7 @@ fn run() -> Result<()> {
             apartmentType: DQTAT_COM_NONE,
         })?
     };
-    nowbar::settings::install(nowbar::settings::load());
+    pebbly::settings::install(pebbly::settings::load());
     autostart_on_start();
     let compositor = Compositor::new()?;
     // Explorer restarting at logon or after an update, or a GPU driver mid-update: try for two
@@ -97,8 +97,8 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-/// `nowbar.exe push …`, `claude-hook` (Claude Code's hook JSON on stdin) and `update` hand one
-/// command to the running Now Bar and
+/// `pebbly.exe push …`, `claude-hook` (Claude Code's hook JSON on stdin) and `update` hand one
+/// command to the running Pebbly and
 /// end: for the scripts and hooks that run them they never take the mutex, never show anything
 /// and always exit 0. Whether this run was one.
 fn forward(args: &[String]) -> bool {
@@ -121,17 +121,17 @@ fn forward(args: &[String]) -> bool {
     true
 }
 
-/// `nowbar.exe claude-hooks install | remove`: Claude Code's hooks for this exe, said in a box
+/// `pebbly.exe claude-hooks install | remove`: Claude Code's hooks for this exe, said in a box
 /// (the exe has no console).
 fn claude_hooks_command(what: Option<&str>) {
-    use nowbar::claude_hooks::{install, remove, rewrite};
+    use pebbly::claude_hooks::{install, remove, rewrite};
     // Run from a shell, before any settings are installed: the language they pick.
-    nowbar::i18n::set_language(nowbar::i18n::chosen(nowbar::settings::load().language));
+    pebbly::i18n::set_language(pebbly::i18n::chosen(pebbly::settings::load().language));
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
     let (done, text) = match what {
         Some("install") => (rewrite(|v| install(v, &exe)), tr("Claude Code hook'ları kuruldu. Yeni oturumlarda pilde görünür.")),
         Some("remove") => (rewrite(|v| Some(remove(v))), tr("Claude Code hook'ları kaldırıldı.")),
-        _ => (Ok(true), tr("Kullanım: nowbar.exe claude-hooks install | remove")),
+        _ => (Ok(true), tr("Kullanım: pebbly.exe claude-hooks install | remove")),
     };
     let text = match done {
         Err(e) => trf("Claude Code ayarları yazılamadı: {}", &[&e]),
@@ -145,27 +145,27 @@ fn claude_hooks_command(what: Option<&str>) {
 fn message_box(text: &str) {
     use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
     unsafe {
-        MessageBoxW(None, &windows::core::HSTRING::from(text), w!("Now Bar"), MB_OK | MB_ICONINFORMATION);
+        MessageBoxW(None, &windows::core::HSTRING::from(text), w!("Pebbly"), MB_OK | MB_ICONINFORMATION);
     }
 }
 
 /// One Claude Code hook call. UserPromptSubmit notes the window the prompt was typed in; with
-/// `--ask` (the synchronous PermissionRequest hook) it waits for the card's answer as long as the
-/// Now Bar says, prints Claude Code's decision, or lets Claude's own dialog take over.
+/// `--ask` (the synchronous PermissionRequest hook) it waits for the card's answer as long as
+/// Pebbly says, prints Claude Code's decision, or lets Claude's own dialog take over.
 fn claude_hook(asks: bool) {
     use std::io::{Read, Write};
     // A hook's JSON is small; a runaway one is cut, not waited on.
     let mut text = String::new();
     let _ = std::io::stdin().take(1 << 20).read_to_string(&mut text);
     // The question card's own `claude -p` (its hooks are off; this if they run anyway): no live item.
-    if std::env::var_os("NOWBAR_QUESTION").is_some() {
+    if std::env::var_os("PEBBLY_QUESTION").is_some() {
         return;
     }
     let Ok(mut hook) = serde_json::from_str::<serde_json::Value>(&text) else { return };
     let event = hook["hook_event_name"].as_str().unwrap_or("").to_string();
     if event == "UserPromptSubmit" {
         let window = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow() };
-        hook["nowbar_window"] = serde_json::json!(window.0 as i64);
+        hook["pebbly_window"] = serde_json::json!(window.0 as i64);
     }
     // Only a permission the card shows in full gets an id (the card's buttons): a question, a
     // plan, a cut or many-line command stay with Claude's own dialog.
@@ -173,14 +173,14 @@ fn claude_hook(asks: bool) {
     let answerable = asks && event == "PermissionRequest" && card_can_answer(&tool, &input);
     let ask = answerable.then(|| (format!("{}-{}", std::process::id(), unsafe { windows::Win32::System::SystemInformation::GetTickCount64() }), nonce()));
     // The window comes first, so a quick click on the card always finds it.
-    let window = ask.as_ref().and_then(|(id, nonce)| nowbar::platform::ask::AskWindow::create(id, nonce));
+    let window = ask.as_ref().and_then(|(id, nonce)| pebbly::platform::ask::AskWindow::create(id, nonce));
     if let (Some((id, nonce)), Some(_)) = (&ask, &window) {
-        hook["nowbar_ask_id"] = serde_json::json!(id);
-        hook["nowbar_ask_nonce"] = serde_json::json!(nonce);
+        hook["pebbly_ask_id"] = serde_json::json!(id);
+        hook["pebbly_ask_nonce"] = serde_json::json!(nonce);
     }
     let Some(msg) = claude_msg(&hook) else { return };
     let command = ipc::fitted(Command::Live(Box::new(msg)));
-    let answer = ipc::send_answering(w!("NowBarMain"), windows::core::PCWSTR::null(), &command);
+    let answer = ipc::send_answering(w!("PebblyMain"), windows::core::PCWSTR::null(), &command);
     if let (Some((id, _)), Some(window), Some(secs)) = (ask, window, answer.filter(|a| *a >= 2)) {
         match window.wait(secs as u32) {
             Some(allow) => {
@@ -215,7 +215,7 @@ fn main() {
     let after_update = std::env::args().any(|a| a == "--after-update");
     let started = std::time::Instant::now();
     let _instance = loop {
-        let mutex = unsafe { CreateMutexW(None, true, w!(r"Local\NowBar.SingleInstance")) };
+        let mutex = unsafe { CreateMutexW(None, true, w!(r"Local\Pebbly.SingleInstance")) };
         if unsafe { GetLastError() } != ERROR_ALREADY_EXISTS {
             break mutex;
         }
@@ -227,7 +227,7 @@ fn main() {
         if !after_update {
             // Launched again while running: the settings are what one is looking for.
             if let Ok(exe) = std::env::current_exe() {
-                let _ = std::process::Command::new(exe.with_file_name("nowbar-settings.exe")).spawn();
+                let _ = std::process::Command::new(exe.with_file_name("pebbly-settings.exe")).spawn();
             }
             return;
         }
@@ -236,29 +236,29 @@ fn main() {
         }
         std::thread::sleep(std::time::Duration::from_millis(200));
     };
-    nowbar::platform::updater::cleanup_old();
+    pebbly::platform::updater::cleanup_old();
     // After an update (or any new exe dropped in): the installed apps list shows this version.
     if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(std::path::Path::to_path_buf)) {
-        nowbar::platform::uninstall_entry::refresh_version(&dir, nowbar::platform::updater::VERSION);
+        pebbly::platform::uninstall_entry::refresh_version(&dir, pebbly::platform::updater::VERSION);
     }
     std::panic::set_hook(Box::new(|info| log(&format!("panic: {info}"))));
-    let build = nowbar::platform::os::build();
-    log(&format!("windows build {build:?} ({:?})", nowbar::platform::os::generation()));
-    if build.is_some_and(|b| !nowbar::platform::os::supported(b)) {
-        nowbar::i18n::set_language(nowbar::i18n::chosen(nowbar::settings::load().language));
-        return message_box(tr("Now Bar, Windows 10 sürüm 1809 veya sonrasını gerektirir."));
+    let build = pebbly::platform::os::build();
+    log(&format!("windows build {build:?} ({:?})", pebbly::platform::os::generation()));
+    if build.is_some_and(|b| !pebbly::platform::os::supported(b)) {
+        pebbly::i18n::set_language(pebbly::i18n::chosen(pebbly::settings::load().language));
+        return message_box(tr("Pebbly, Windows 10 sürüm 1809 veya sonrasını gerektirir."));
     }
     // The app was moved: Claude's hooks still point at the old exe, which is gone.
     if let Ok(exe) = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()) {
-        let moved = nowbar::claude_hooks::rewrite(|v| nowbar::claude_hooks::follow(v, &exe, |c| std::path::Path::new(c).exists()));
+        let moved = pebbly::claude_hooks::rewrite(|v| pebbly::claude_hooks::follow(v, &exe, |c| std::path::Path::new(c).exists()));
         if let Ok(true) = moved {
             log(&format!("claude hooks moved to {exe}"));
         }
     }
     if let Err(e) = run() {
         log(&format!("fatal: {e:?}"));
-        message_box(&trf("Now Bar açılamadı: {}\nAyrıntılar: {}", &[&e, &log_path().display()]));
+        message_box(&trf("Pebbly açılamadı: {}\nAyrıntılar: {}", &[&e, &log_path().display()]));
     }
-    // An update quit the loop: start the new Now Bar (it waits for this one's mutex).
-    nowbar::platform::updater::restart_after_update();
+    // An update quit the loop: start the new Pebbly (it waits for this one's mutex).
+    pebbly::platform::updater::restart_after_update();
 }

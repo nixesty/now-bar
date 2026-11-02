@@ -191,7 +191,7 @@ pub fn mdl2_scale(c: char) -> f32 {
 mod tests {
     use super::*;
 
-    /// Everything the app draws checked in both fonts with `glyphsheet` (`NOWBAR_FONTS=win10`).
+    /// Everything the app draws checked in both fonts with `glyphsheet` (`PEBBLY_FONTS=win10`).
     /// MDL2's batteries (made for a phone's status bar) are 1.31 em wide, charging 1.44 em;
     /// Fluent's 1 em, which the pills are laid out for.
     #[test]

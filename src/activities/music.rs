@@ -167,7 +167,7 @@ impl MusicLog {
     }
 }
 
-/// `%LOCALAPPDATA%\NowBar\music.json`, beside the screen time's.
+/// `%LOCALAPPDATA%\Pebbly\music.json`, beside the screen time's.
 pub fn path() -> std::path::PathBuf {
     super::wellbeing_worker::usage_path().with_file_name("music.json")
 }
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn the_week_reads_back() {
-        let path = std::env::temp_dir().join(format!("nowbar-music-{}", std::process::id())).join("music.json");
+        let path = std::env::temp_dir().join(format!("pebbly-music-{}", std::process::id())).join("music.json");
         let _ = std::fs::remove_file(&path);
         assert_eq!(load(&path), MusicLog::default(), "no file yet");
         let (mut log, mut l) = (MusicLog::default(), Listening::default());

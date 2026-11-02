@@ -1,13 +1,13 @@
 //! Dev tool: draws the settings window off-screen (software renderer, no window opens) with
 //! sample lists, one PNG per page and one scrolled to each page's last section.
 //! Usage: `settingsheet [out-dir] [dark|light] [width] [height] [--en] [--win10]`; `--win10`
-//! shows what Windows 10 lacks (with `NOWBAR_FONTS=win10` for its fonts).
+//! shows what Windows 10 lacks (with `PEBBLY_FONTS=win10` for its fonts).
 
 use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
-use nowbar_ui::*;
+use pebbly_ui::*;
 
 const SCALE: f32 = 1.25;
 
@@ -19,12 +19,12 @@ fn item(id: &str, name: &str, sub: &str, shown: bool, current: bool, tint: (u8, 
         shown,
         current,
         tint: slint::Color::from_rgb_u8(tint.0, tint.1, tint.2),
-        letter: nowbar::settings_ui::badge_letter(name).into(),
+        letter: pebbly::settings_ui::badge_letter(name).into(),
     }
 }
 
 fn team(id: &str, name: &str, league: &str, abbr: &str, primary: (u8, u8, u8), secondary: (u8, u8, u8), followed: bool) -> Team {
-    let path = nowbar::activities::football_worker::crest_path(id);
+    let path = pebbly::activities::football_worker::crest_path(id);
     let crest = path.exists().then(|| slint::Image::load_from_path(&path).ok()).flatten();
     Team {
         id: id.into(),
@@ -69,11 +69,11 @@ fn sample(ui: &SettingsWindow) {
     st.set_media_live(true);
     st.on_search(|q| model(search_hits(&q)));
     st.on_search_count(|q, page| search_hits(&q).iter().filter(|h| h.page == page).count() as i32);
-    st.on_hex_ok(|t| nowbar::settings::parse_hex(&t).is_some());
+    st.on_hex_ok(|t| pebbly::settings::parse_hex(&t).is_some());
 }
 
 fn search_hits(q: &str) -> Vec<Hit> {
-    nowbar::settings_ui::search(q)
+    pebbly::settings_ui::search(q)
         .into_iter()
         .map(|h| Hit {
             page: h.page as i32,
@@ -96,14 +96,14 @@ fn main() {
     let width: f32 = args.next().and_then(|w| w.parse().ok()).unwrap_or(1240.0);
     let height: f32 = args.next().and_then(|h| h.parse().ok()).unwrap_or(760.0);
     std::fs::create_dir_all(&out).expect("out dir");
-    let window = nowbar::slint_shot::install(SCALE);
+    let window = pebbly::slint_shot::install(SCALE);
     let ui = SettingsWindow::new().expect("settings window");
     if english {
-        nowbar::i18n::set_language(nowbar::i18n::Language::English);
+        pebbly::i18n::set_language(pebbly::i18n::Language::English);
         slint::select_bundled_translation("en").expect("English bundled");
     }
     ui.global::<Theme>().set_dark(dark);
-    nowbar::set_slint_faces!(ui.global::<Theme>());
+    pebbly::set_slint_faces!(ui.global::<Theme>());
     sample(&ui);
     ui.global::<Store>().set_blur_available(!win10);
     ui.show().expect("show");
@@ -111,17 +111,17 @@ fn main() {
     for page in 0..9 {
         ui.global::<Store>().set_page(page);
         let path = format!("{out}/page-{page}.png");
-        nowbar::slint_shot::shot(&window, width, height, SCALE, settle, &path).expect("shot");
+        pebbly::slint_shot::shot(&window, width, height, SCALE, settle, &path).expect("shot");
         println!("{path}");
     }
     ui.global::<Store>().set_page(0);
     ui.global::<Ui>().set_query("opak".into());
     let path = format!("{out}/search.png");
-    nowbar::slint_shot::shot(&window, width, height, SCALE, settle, &path).expect("shot");
+    pebbly::slint_shot::shot(&window, width, height, SCALE, settle, &path).expect("shot");
     println!("{path}");
     ui.global::<Ui>().set_query("".into());
     ui.global::<Ui>().set_dialog(true);
     let path = format!("{out}/dialog.png");
-    nowbar::slint_shot::shot(&window, width, height, SCALE, settle, &path).expect("shot");
+    pebbly::slint_shot::shot(&window, width, height, SCALE, settle, &path).expect("shot");
     println!("{path}");
 }

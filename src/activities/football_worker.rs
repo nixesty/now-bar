@@ -51,7 +51,7 @@ impl Espn {
         // Live data must never come from the WinINet cache.
         filter.CacheControl()?.SetReadBehavior(HttpCacheReadBehavior::MostRecent)?;
         let client = HttpClient::Create(&filter)?;
-        let _ = client.DefaultRequestHeaders()?.UserAgent()?.TryParseAdd(&HSTRING::from("Mozilla/5.0 (Windows NT 10.0; Win64; x64) NowBar"));
+        let _ = client.DefaultRequestHeaders()?.UserAgent()?.TryParseAdd(&HSTRING::from("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Pebbly"));
         Ok(Espn { client })
     }
 
@@ -85,7 +85,7 @@ impl Source for Replay {
         let first = self.files.first().ok_or("replay: no files")?;
         if url.contains("/schedule") {
             let e: serde_json::Value = serde_json::from_str(&read(first)?).map_err(|e| format!("{e:?}"))?;
-            let league = std::env::var("NOWBAR_REPLAY_LEAGUE").unwrap_or_else(|_| "uefa.champions".into());
+            let league = std::env::var("PEBBLY_REPLAY_LEAGUE").unwrap_or_else(|_| "uefa.champions".into());
             let schedule = serde_json::json!({ "events": [{ "id": e["id"], "date": e["date"], "league": { "slug": league },
                 "competitions": [{ "timeValid": true }] }] });
             return Ok(schedule.to_string());
@@ -110,7 +110,7 @@ impl FootballWorker {
         let (tx, rx) = channel::<Msg>();
         let replaying = replay.is_some();
         // A replay needs one "team" so its made-up schedule is read.
-        let teams = if replaying && teams.is_empty() { vec![std::env::var("NOWBAR_REPLAY_FOLLOW").unwrap_or_else(|_| "replay".to_string())] } else { teams };
+        let teams = if replaying && teams.is_empty() { vec![std::env::var("PEBBLY_REPLAY_FOLLOW").unwrap_or_else(|_| "replay".to_string())] } else { teams };
         std::thread::Builder::new()
             .name("football".into())
             .spawn(move || {
@@ -272,7 +272,7 @@ pub(crate) fn fetch_text(url: &str) -> Result<String, String> {
     }
 }
 
-/// %LOCALAPPDATA%\NowBar\crests\{team id}.png
+/// %LOCALAPPDATA%\Pebbly\crests\{team id}.png
 pub fn crest_path(team_id: &str) -> PathBuf {
     crate::platform::log::log_path().with_file_name("crests").join(format!("{team_id}.png"))
 }

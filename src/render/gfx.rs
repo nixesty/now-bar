@@ -143,9 +143,9 @@ fn first_installed<'a>(names: &[&'a str], have: impl Fn(&str) -> bool, as_window
     names.iter().copied().find(usable).unwrap_or(names[names.len() - 1])
 }
 
-/// `NOWBAR_FONTS=win10`: the dev sheets draw with what Windows 10 has.
+/// `PEBBLY_FONTS=win10`: the dev sheets draw with what Windows 10 has.
 fn as_windows_10() -> bool {
-    std::env::var("NOWBAR_FONTS").is_ok_and(|v| v == "win10")
+    std::env::var("PEBBLY_FONTS").is_ok_and(|v| v == "win10")
 }
 
 /// The first of `names` the system has (Windows 10 lacks Segoe UI Variable and Fluent Icons).
@@ -833,7 +833,7 @@ mod tests {
         assert_eq!(first_installed(&ICON_FAMILIES, |_| false, false), "Segoe MDL2 Assets");
     }
 
-    /// `NOWBAR_FONTS=win10`: the sheets draw on Windows 11 as Windows 10 would.
+    /// `PEBBLY_FONTS=win10`: the sheets draw on Windows 11 as Windows 10 would.
     #[test]
     fn windows_10_fonts_on_windows_11() {
         assert_eq!(first_installed(&ICON_FAMILIES, |_| true, true), "Segoe MDL2 Assets");

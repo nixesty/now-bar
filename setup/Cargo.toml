@@ -1,15 +1,15 @@
 [package]
-name = "nowbar-setup"
+name = "pebbly-setup"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [[bin]]
-name = "nowbar-setup"
+name = "pebbly-setup"
 path = "src/main.rs"
 
 [dependencies]
-nowbar = { path = ".." }
+pebbly = { path = ".." }
 slint = { version = "1.18", features = ["raw-window-handle-06", "software-renderer-systemfonts", "unstable-winit-030"] }
 raw-window-handle = "0.6"
 miniz_oxide = "0.8"

@@ -1,4 +1,4 @@
-//! Now Bar's own timer and stopwatch. Pure: every call takes `now` (GetTickCount64 ms),
+//! Pebbly's own timer and stopwatch. Pure: every call takes `now` (GetTickCount64 ms),
 //! which keeps counting through sleep, so a timer that ends while the laptop sleeps is Done on wake.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

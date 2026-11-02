@@ -1,4 +1,4 @@
-// Every setting the window edits. The Rust side (src/bin/nowbar-settings.rs) fills it from
+// Every setting the window edits. The Rust side (src/bin/pebbly-settings.rs) fills it from
 // settings.json and saves it back on `changed()`. Names match the json keys' meaning (notes
 // §10); ints for choices are the index in the order the control shows them.
 
@@ -204,7 +204,7 @@ export global Store {
     in-out property <[City]> city-results;
     /// 0 idle, 1 searching, 2 done, 3 failed.
     in-out property <int> city-search-state: 0;
-    /// Without a city, the weather where the PC is; the Now Bar's last look ("Kadıköy · Türkiye",
+    /// Without a city, the weather where the PC is; Pebbly's last look ("Kadıköy · Türkiye",
     /// "Windows'ta konum kapalı") and the place's name once found.
     in-out property <bool> weather-locate: true;
     in-out property <string> located;
@@ -245,7 +245,7 @@ export global Store {
     in-out property <bool> update-ready: false;
     /// The row is asking GitHub or installing: no click until it's done.
     in-out property <bool> update-busy: false;
-    // Window state (remembered in settings.json, not settings of the Now Bar itself)
+    // Window state (remembered in settings.json, not settings of Pebbly itself)
     /// 0 Görünüm, 1 Genel, 2 Medya, 3 Zamanlayıcı, 4 Galaxy Buds, 5 Canlı maç, 6 Tam ekran, 7 Hakkında, 8 Sistem.
     in-out property <int> page: 0;
     in-out property <bool> preview-collapsed: false;
@@ -278,7 +278,7 @@ export global Store {
     pure callback search(string) -> [Hit];
     /// How many of `search`'s results are on a page.
     pure callback search-count(string, int) -> int;
-    /// `#RRGGBB` the Now Bar can use.
+    /// `#RRGGBB` Pebbly can use.
     pure callback hex-ok(string) -> bool;
     /// Running apps matching what's typed in the exception box, at most five.
     pure callback suggestions(string) -> [Item];

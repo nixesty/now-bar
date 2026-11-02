@@ -1,5 +1,5 @@
 //! Samples the app in front every 5 s and keeps each day's seconds per app in
-//! %LOCALAPPDATA%\NowBar\usage.json (written every minute, and on a limit crossed); posts the
+//! %LOCALAPPDATA%\Pebbly\usage.json (written every minute, and on a limit crossed); posts the
 //! usage, the apps' names and icons' files, and the limits crossed. Nothing leaves the PC.
 
 use std::collections::HashMap;
@@ -48,7 +48,7 @@ struct UsageFile {
 
 pub fn usage_path() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("NowBar").join("usage.json")
+    base.join("Pebbly").join("usage.json")
 }
 
 /// The usage file as saved (the settings window shows today's apps from it).

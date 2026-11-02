@@ -181,7 +181,7 @@ mod tests {
     use flate2::read::DeflateDecoder;
 
     fn dir(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("nowbar-zip-{name}-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("pebbly-zip-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
@@ -246,13 +246,13 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 
-    /// A zip to open elsewhere (Explorer, a phone): `NOWBAR_ZIP_OUT=<file> NOWBAR_ZIP_IN=<a;b>
+    /// A zip to open elsewhere (Explorer, a phone): `PEBBLY_ZIP_OUT=<file> PEBBLY_ZIP_IN=<a;b>
     /// cargo t --lib live_zip -- --ignored`.
     #[test]
     #[ignore]
     fn live_zip() {
-        let out = PathBuf::from(std::env::var_os("NOWBAR_ZIP_OUT").expect("NOWBAR_ZIP_OUT"));
-        let items: Vec<PathBuf> = std::env::var("NOWBAR_ZIP_IN").expect("NOWBAR_ZIP_IN").split(';').map(PathBuf::from).collect();
+        let out = PathBuf::from(std::env::var_os("PEBBLY_ZIP_OUT").expect("PEBBLY_ZIP_OUT"));
+        let items: Vec<PathBuf> = std::env::var("PEBBLY_ZIP_IN").expect("PEBBLY_ZIP_IN").split(';').map(PathBuf::from).collect();
         write_zip(File::create(&out).unwrap(), &out, &items, crate::app::tz_offset_s()).unwrap();
     }
 

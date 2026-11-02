@@ -1,5 +1,5 @@
 [package]
-name = "nowbar"
+name = "pebbly"
 version = "0.5.0"
 edition = "2021"
 license = "GPL-3.0-only"
@@ -12,7 +12,7 @@ members = ["setup"]
 exclude = ["ui"]
 
 [dependencies]
-nowbar-ui = { path = "ui" }
+pebbly-ui = { path = "ui" }
 serde = { version = "1", features = ["derive"] }
 # preserve_order: `claude-hooks` rewrites Claude Code's settings.json in the user's own key order.
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -113,7 +113,7 @@ features = [
 # Only the lib and the settings window have tests: a harness for each of the others was one more
 # exe to link on every `cargo t`.
 [[bin]]
-name = "nowbar"
+name = "pebbly"
 path = "src/main.rs"
 test = false
 
@@ -200,13 +200,13 @@ strip = true
 # at 1: the generated code shifts as a whole). Its cache was 400 MB on disk (twice that after an
 # edit, rustc keeping the old session) of the 2 GB the builds may take: none, a .slint edit pays
 # the full 93 s. The setup's window is small: no cache either.
-[profile.quick.package.nowbar-ui]
+[profile.quick.package.pebbly-ui]
 incremental = false
 opt-level = 0
 
 # In quick the setup only runs its tests and shots (releases are dist): at 3 it took 20 s again on
 # every change to the app it depends on.
-[profile.quick.package.nowbar-setup]
+[profile.quick.package.pebbly-setup]
 incremental = false
 opt-level = 0
 
@@ -222,5 +222,5 @@ strip = true
 opt-level = 3
 
 # The released settings window: its generated code at 1 builds in half the time of 3.
-[profile.dist.package.nowbar-ui]
+[profile.dist.package.pebbly-ui]
 opt-level = 1

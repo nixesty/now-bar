@@ -206,7 +206,7 @@ pub fn parse_reverse(v: &Value) -> Option<(String, String)> {
     Some((name.trim().to_string(), a["country"].as_str().unwrap_or_default().to_string()))
 }
 
-/// How the Now Bar's last look for where the PC is went.
+/// How Pebbly's last look for where the PC is went.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LocateState {
@@ -535,7 +535,7 @@ mod tests {
         assert_eq!(located_text(&l(LocateState::Failed, None)), ("Konum bulunamadı".into(), String::new()));
         assert_eq!(located_text(&l(LocateState::Denied, None)), ("Windows'ta konum kapalı".into(), String::new()));
         assert_eq!(located_text(&l(LocateState::Finding, None)), ("Bulunuyor…".into(), String::new()));
-        assert_eq!(located_text(&l(LocateState::Off, None)), ("Bulunuyor…".into(), String::new()), "just switched on: the Now Bar hasn't looked yet");
+        assert_eq!(located_text(&l(LocateState::Off, None)), ("Bulunuyor…".into(), String::new()), "just switched on: Pebbly hasn't looked yet");
         let unnamed = WeatherCity { name: "Konumun".into(), country: String::new(), lat: 40.99, lon: 29.03 };
         assert_eq!(located_text(&l(LocateState::Found, Some(&unnamed))).0, "Konumun", "no country, no dot");
         let file: Located = serde_json::from_str(r#"{"state": "found", "city": {"name": "Berlin", "country": "Almanya", "lat": 52.52, "lon": 13.4}}"#).expect("parses");

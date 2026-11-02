@@ -19,7 +19,7 @@ pub const BRIEF_ROW_S: i64 = 15 * 60;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AwayKind {
     Claude,
-    /// Something `nowbar.exe push` sent finished.
+    /// Something `pebbly.exe push` sent finished.
     Live,
     Match,
     Rain { snow: bool },
@@ -111,7 +111,7 @@ pub fn hhmm(local: i64) -> String {
     format!("{:02}:{:02}", secs / 3600, secs % 3600 / 60)
 }
 
-/// "Claude bitti · now-bar"
+/// "Claude bitti · pebbly"
 pub fn claude_done(project: &str) -> String {
     trf("Claude bitti · {}", &[&project])
 }
@@ -206,11 +206,11 @@ mod tests {
         let mut log = AwayLog::default();
         log.lock(0);
         log.note(item("match:1", "GS 1–0 FB · 12′", 100));
-        log.note(item("claude:7", "Claude bitti · now-bar", 200));
+        log.note(item("claude:7", "Claude bitti · pebbly", 200));
         log.note(item("match:1", "GS 2–0 FB · 67′", 300));
         let r = log.unlock(1_000).unwrap();
         let texts: Vec<&str> = r.items.iter().map(|i| i.text.as_str()).collect();
-        assert_eq!(texts, ["GS 2–0 FB · 67′", "Claude bitti · now-bar"], "the later goal replaces the row and leads");
+        assert_eq!(texts, ["GS 2–0 FB · 67′", "Claude bitti · pebbly"], "the later goal replaces the row and leads");
     }
 
     #[test]
@@ -231,7 +231,7 @@ mod tests {
         // 14:02 to 17:14 local.
         assert_eq!(span_text(14 * 3600 + 120, 17 * 3600 + 14 * 60), "14:02 – 17:14 · 3 sa 12 dk");
         assert_eq!(hhmm(86_400 + 9 * 3600 + 5 * 60), "09:05");
-        assert_eq!(claude_done("now-bar"), "Claude bitti · now-bar");
+        assert_eq!(claude_done("pebbly"), "Claude bitti · pebbly");
         assert_eq!(live_done("cargo build"), "cargo build bitti");
         assert_eq!(goal_text("GS", "FB", (1, 0), "67′"), "GS 1–0 FB · 67′");
         assert_eq!(goal_text("GS", "FB", (1, 0), ""), "GS 1–0 FB");
@@ -247,7 +247,7 @@ mod tests {
     fn words_in_english() {
         crate::i18n::in_language(crate::i18n::Language::English, || {
             assert_eq!((count_text(1), count_text(4)), ("1 thing".to_string(), "4 things".to_string()));
-            assert_eq!(claude_done("now-bar"), "Claude finished · now-bar");
+            assert_eq!(claude_done("pebbly"), "Claude finished · pebbly");
             assert_eq!(battery_text(15), "Battery at 15%");
             assert_eq!(download_done("Rocket League"), "Rocket League finished downloading");
         });

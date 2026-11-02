@@ -1,4 +1,4 @@
-//! Plain-text log at %LOCALAPPDATA%\NowBar\log.txt. Each line starts with milliseconds since start.
+//! Plain-text log at %LOCALAPPDATA%\Pebbly\log.txt. Each line starts with milliseconds since start.
 //! At 1 MB the log moves to log.old.txt and starts over.
 
 use std::io::Write as _;
@@ -10,7 +10,7 @@ const MAX_BYTES: u64 = 1024 * 1024;
 
 pub fn log_path() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("NowBar").join("log.txt")
+    base.join("Pebbly").join("log.txt")
 }
 
 pub fn log(line: &str) {

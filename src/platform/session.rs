@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn the_day_file_reads_back() {
-        let path = std::env::temp_dir().join("nowbar-brief-day-test");
+        let path = std::env::temp_dir().join("pebbly-brief-day-test");
         let _ = std::fs::remove_file(&path);
         assert_eq!(brief_day_at(&path), None, "no file yet");
         std::fs::write(&path, "2026-10-22\r\n").unwrap();

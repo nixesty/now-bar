@@ -2,7 +2,7 @@
 # whether the card and the pill are drawn (probing one accent-coloured pixel of each).
 # Defaults fit a 1920x1080 screen at 125 % with the demo timer card. Restores the cursor.
 param(
-  [string]$Exe = "$PSScriptRoot/../target/quick/nowbar.exe",
+  [string]$Exe = "$PSScriptRoot/../target/quick/pebbly.exe",
   [int]$PillX = 960, [int]$PillY = 1055, [int]$PillProbeX = 870,
   [int]$CardProbeX = 777, [int]$CardProbeY = 967, [int]$EmptyX = 1250
 )
@@ -33,7 +33,7 @@ $orig = New-Object CardCheck+P; [CardCheck]::GetCursorPos([ref]$orig) | Out-Null
 function State($label) { "{0,-28} card={1,-5} pill={2}" -f $label, [CardCheck]::Blue($CardProbeX, $CardProbeY), [CardCheck]::Blue($PillProbeX, $PillY) }
 function MoveTo($x, $y, $ms) { [CardCheck]::SetCursorPos($x, $y) | Out-Null; Start-Sleep -Milliseconds $ms }
 
-Get-Process nowbar -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process pebbly -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Process $Exe | Out-Null; Start-Sleep -Milliseconds 1500
 State "start"
 [CardCheck]::Click($PillX, $PillY); Start-Sleep -Milliseconds 700; State "click pill"

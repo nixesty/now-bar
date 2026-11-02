@@ -1,4 +1,4 @@
-//! Buds2Popup's lid detection, moved into the Now Bar: a Galaxy Buds advert carries a counter
+//! Buds2Popup's lid detection, moved into Pebbly: a Galaxy Buds advert carries a counter
 //! that goes up each time the case opens; a change while the Buds aren't connected to this PC
 //! offers to connect them. Pure: `buds_nearby_worker.rs` listens, the app offers.
 //!

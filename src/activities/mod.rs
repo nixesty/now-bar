@@ -1,4 +1,4 @@
-//! What is live right now, and which activity is at the front of the Now Bar stack.
+//! What is live right now, and which activity is at the front of Pebbly's stack.
 
 pub mod api;
 pub mod api_desk;
@@ -72,7 +72,7 @@ pub enum ActivityKind {
     WeatherAlert,
     /// A screenshot was just taken: for a moment.
     Capture,
-    /// Sent by another program (`nowbar.exe push`, Claude Code's hooks): the key of its id.
+    /// Sent by another program (`pebbly.exe push`, Claude Code's hooks): the key of its id.
     Live(u32),
     /// A Steam or Epic game downloading or running, or its moment ("Güncellendi", how long it
     /// was played): its key.

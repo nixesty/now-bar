@@ -1,8 +1,8 @@
 # End-to-end timer/stopwatch scenario with synthetic input; saves a screenshot per step into -Dir.
 # Coordinates fit 1920x1080 at 125 % with a left-aligned 50 px taskbar. Plays the alarm once.
 param(
-  [string]$Exe = "$PSScriptRoot/../target/quick/nowbar.exe",
-  [string]$Dir = "$env:TEMP/nowbar-timer-check"
+  [string]$Exe = "$PSScriptRoot/../target/quick/pebbly.exe",
+  [string]$Dir = "$env:TEMP/pebbly-timer-check"
 )
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
@@ -27,7 +27,7 @@ $bmp = New-Object System.Drawing.Bitmap 700, 420; $g = [System.Drawing.Graphics]
 function Shot($name) { $g.CopyFromScreen(610, 660, 0, 0, $bmp.Size); $bmp.Save("$Dir/$name.png", [System.Drawing.Imaging.ImageFormat]::Png) }
 function Wait($ms) { Start-Sleep -Milliseconds $ms }
 
-Get-Process nowbar -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process pebbly -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Process $Exe | Out-Null; Wait 1500; Shot "01-nothing"
 [Tc]::WinAltN(); Wait 700; Shot "02-picker"
 [Tc]::Click(818, 880); Wait 300; Shot "03-preset-1min"

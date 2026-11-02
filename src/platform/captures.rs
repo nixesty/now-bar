@@ -1,5 +1,5 @@
 //! Watches the screenshot folders (ShareX's and Windows' Screenshots) and hands each new image,
-//! once it is fully written, to the Now Bar with its size and a wide thumbnail for the pill.
+//! once it is fully written, to Pebbly with its size and a wide thumbnail for the pill.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};

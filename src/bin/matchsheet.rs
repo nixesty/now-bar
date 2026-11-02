@@ -1,14 +1,14 @@
 //! Dev tool: renders the live-match pill (every state) and card (pre-match, live, goal, full
 //! time) from the recorded ESPN fixtures to a PNG, off-screen. Usage: `matchsheet [out.png]`.
 
-use nowbar::activities::football::{centre_text, parse_event, Fixture, MatchSnapshot, MatchStatus, Side, Team};
-use nowbar::activities::football_worker::crest_path;
-use nowbar::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, CardContent, CardTeam, MatchCard};
-use nowbar::render::color::{accent_from_rgba, team_palette, TeamPalette};
-use nowbar::render::crest::load_crest;
-use nowbar::render::gfx::{rect, rgba, Ink, TextKit, TextStyle, Face, Weight, white};
-use nowbar::render::layout::Scale;
-use nowbar::render::pill::{paint_pill_content, pill_base, MatchPill, MomentKind, PillContent, PillMoment, PillTeam};
+use pebbly::activities::football::{centre_text, parse_event, Fixture, MatchSnapshot, MatchStatus, Side, Team};
+use pebbly::activities::football_worker::crest_path;
+use pebbly::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, CardContent, CardTeam, MatchCard};
+use pebbly::render::color::{accent_from_rgba, team_palette, TeamPalette};
+use pebbly::render::crest::load_crest;
+use pebbly::render::gfx::{rect, rgba, Ink, TextKit, TextStyle, Face, Weight, white};
+use pebbly::render::layout::Scale;
+use pebbly::render::pill::{paint_pill_content, pill_base, MatchPill, MomentKind, PillContent, PillMoment, PillTeam};
 use windows::core::{Interface, Result, HSTRING};
 use windows::Win32::Foundation::GENERIC_WRITE;
 use windows::Win32::Graphics::Direct2D::Common::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_COLOR_F, D2D1_PIXEL_FORMAT};
@@ -51,7 +51,7 @@ fn pill(m: &MatchSnapshot, s: &Scale, moment: Option<PillMoment>, fresh: Option<
         fresh,
         moment,
         followed: m.followed,
-        wide: nowbar::activities::basketball::is_basketball(&m.league),
+        wide: pebbly::activities::basketball::is_basketball(&m.league),
     }
 }
 

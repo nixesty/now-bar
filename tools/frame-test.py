@@ -1,8 +1,8 @@
-"""Opens a settings window of its own (NOWBAR_SETTINGS_SOLO), photographs it from the screen
+"""Opens a settings window of its own (PEBBLY_SETTINGS_SOLO), photographs it from the screen
 (frame, rounded corners and shadow included), minimises and restores it without the mouse,
 photographs it during and after the restore, and ends it (without saving).
 
-Usage: python tools/frame-test.py <nowbar-settings.exe> <out-dir>
+Usage: python tools/frame-test.py <pebbly-settings.exe> <out-dir>
 """
 
 import ctypes
@@ -30,7 +30,7 @@ def window_of(pid):
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
         title = ctypes.create_unicode_buffer(128)
         user32.GetWindowTextW(hwnd, title, 128)
-        if owner.value == pid and user32.IsWindowVisible(hwnd) and title.value == "Now Bar Ayarları":
+        if owner.value == pid and user32.IsWindowVisible(hwnd) and title.value == "Pebbly Ayarları":
             found.append(hwnd)
         return True
 
@@ -80,7 +80,7 @@ def shoot(hwnd, path, margin=28):
 def main():
     exe, out = sys.argv[1], sys.argv[2]
     os.makedirs(out, exist_ok=True)
-    env = dict(os.environ, NOWBAR_SETTINGS_SOLO="1")
+    env = dict(os.environ, PEBBLY_SETTINGS_SOLO="1")
     proc = subprocess.Popen([exe], env=env)
     hwnd = None
     for _ in range(100):

@@ -80,7 +80,7 @@ pub enum UiEvent {
     Headsets,
     /// A new weather answer.
     Weather,
-    /// A command came from `nowbar.exe push` and the like (`ipc::take()` has it).
+    /// A command came from `pebbly.exe push` and the like (`ipc::take()` has it).
     Ipc,
     /// The updater found a release, installed one or failed (its mailbox says which).
     Update,
@@ -535,10 +535,10 @@ extern "system" fn main_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LR
     }
 }
 
-const PASSIVE_CLASS: PCWSTR = w!("NowBarVisual");
-const MAIN_CLASS: PCWSTR = w!("NowBarMain");
-const PILL_INPUT_CLASS: PCWSTR = w!("NowBarPillInput");
-const CARD_INPUT_CLASS: PCWSTR = w!("NowBarCardInput");
+const PASSIVE_CLASS: PCWSTR = w!("PebblyVisual");
+const MAIN_CLASS: PCWSTR = w!("PebblyMain");
+const PILL_INPUT_CLASS: PCWSTR = w!("PebblyPillInput");
+const CARD_INPUT_CLASS: PCWSTR = w!("PebblyCardInput");
 
 fn register_classes() {
     static ONCE: Once = Once::new();
@@ -567,7 +567,7 @@ fn create(class: PCWSTR, ex: WINDOW_EX_STYLE, r: RectPx) -> Result<HWND> {
     register_classes();
     unsafe {
         let instance = GetModuleHandleW(None)?.into();
-        CreateWindowExW(ex, class, w!("Now Bar"), WS_POPUP, r.x, r.y, r.w, r.h, None, None, Some(instance), None)
+        CreateWindowExW(ex, class, w!("Pebbly"), WS_POPUP, r.x, r.y, r.w, r.h, None, None, Some(instance), None)
     }
 }
 

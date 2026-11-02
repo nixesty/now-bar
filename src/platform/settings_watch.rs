@@ -1,4 +1,4 @@
-//! Watches %APPDATA%\NowBar for settings.json changing — the settings window saving it, or a
+//! Watches %APPDATA%\Pebbly for settings.json changing — the settings window saving it, or a
 //! hand edit — and raises `UiEvent::SettingsChanged`. A blocking directory read on its own thread.
 
 use std::time::{Duration, Instant};

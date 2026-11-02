@@ -1,4 +1,4 @@
-//! Fetches synced lyrics on its own thread, cached on disk under %LOCALAPPDATA%\NowBar\lyrics3
+//! Fetches synced lyrics on its own thread, cached on disk under %LOCALAPPDATA%\Pebbly\lyrics3
 //! (a track no source has is cached as such, so it isn't asked again; a busy or unreachable
 //! server isn't cached: the worker asks again a few times, as the app asks only once per
 //! track). Each track: lrclib.net's exact match first, then its search for the cleaned title
@@ -103,7 +103,7 @@ fn client() -> Option<HttpClient> {
         let _ = windows::Win32::System::Com::CoInitializeEx(None, windows::Win32::System::Com::COINIT_MULTITHREADED);
     }
     let client = HttpClient::new().ok()?;
-    let _ = client.DefaultRequestHeaders().and_then(|h| h.UserAgent()).and_then(|u| u.TryParseAdd(&HSTRING::from("NowBar/0.1 (Windows)")));
+    let _ = client.DefaultRequestHeaders().and_then(|h| h.UserAgent()).and_then(|u| u.TryParseAdd(&HSTRING::from("Pebbly/0.1 (Windows)")));
     Some(client)
 }
 
@@ -466,8 +466,8 @@ mod tests {
             Some(None) => "none".into(),
             None => "failed".into(),
         };
-        // One more, kept out of the repo: NOWBAR_LYRICS_TRACK="Artist|Title|seconds".
-        let own = std::env::var("NOWBAR_LYRICS_TRACK").ok();
+        // One more, kept out of the repo: PEBBLY_LYRICS_TRACK="Artist|Title|seconds".
+        let own = std::env::var("PEBBLY_LYRICS_TRACK").ok();
         let own = own.as_deref().and_then(|t| {
             let mut parts = t.split('|');
             Some((parts.next()?, parts.next()?, parts.next()?.parse::<u64>().ok()?))

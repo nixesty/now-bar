@@ -6,7 +6,7 @@ use windows::core::HSTRING;
 use windows::Win32::System::Registry::{RegGetValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_SZ, RRF_RT_REG_SZ};
 
 /// Under HKCU.
-pub const KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\NowBar";
+pub const KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Pebbly";
 
 /// The string value `name` of HKCU\`key`.
 pub fn read_str(key: &str, name: &str) -> Option<String> {

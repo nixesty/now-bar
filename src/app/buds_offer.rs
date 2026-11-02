@@ -1,4 +1,4 @@
-//! Buds2Popup in the Now Bar: while the Buds aren't connected here, opening their case offers to
+//! Buds2Popup in Pebbly: while the Buds aren't connected here, opening their case offers to
 //! connect them (the pill, and the card opening by itself); the audio is asked to reconnect, and
 //! once the Buds talk the card is the manager. The lid counter outlives a restart in
 //! `buds-lid.txt` beside `place.json`.
@@ -11,7 +11,7 @@ use crate::render::card::{bud_art, BudsCard};
 
 fn lid_path() -> std::path::PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("NowBar").join("buds-lid.txt")
+    base.join("Pebbly").join("buds-lid.txt")
 }
 
 /// The lid counter last seen, from before a restart.

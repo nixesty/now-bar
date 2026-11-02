@@ -192,7 +192,7 @@ mod tests {
     }
 
     fn test_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("nowbar-crest-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("pebbly-crest-{name}-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         dir
     }
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn crest_scaled_to_exact_pixels_keeps_alpha() {
-        let dir = std::env::temp_dir().join(format!("nowbar-crest-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("pebbly-crest-test-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("436.png");
         write_png(&path);

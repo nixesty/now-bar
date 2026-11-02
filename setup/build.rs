@@ -1,5 +1,5 @@
 // The setup's window (ui/setup.slint), its manifest and icon (the app's), and its payload: with
-// NOWBAR_SETUP_PAYLOAD set (a folder holding release nowbar.exe and nowbar-settings.exe) both are
+// PEBBLY_SETUP_PAYLOAD set (a folder holding release pebbly.exe and pebbly-settings.exe) both are
 // packed into OUT_DIR/payload.bin; without it the payload is empty (the window works, "Kur" says
 // the setup carries no files). The exe embeds it with include_bytes!: nothing is appended to the
 // file, so signing it later stays possible.
@@ -15,22 +15,22 @@ fn main() {
     let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let out = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
     // The app's English, bundled under this crate's name (Slint looks for <crate>.po).
-    let po = root.join("..").join("i18n").join("en").join("LC_MESSAGES").join("nowbar-ui.po");
+    let po = root.join("..").join("i18n").join("en").join("LC_MESSAGES").join("pebbly-ui.po");
     println!("cargo:rerun-if-changed={}", po.display());
     let bundle = out.join("i18n").join("en").join("LC_MESSAGES");
     std::fs::create_dir_all(&bundle).expect("i18n bundle dir");
-    std::fs::copy(&po, bundle.join("nowbar-setup.po")).expect("nowbar-ui.po");
+    std::fs::copy(&po, bundle.join("pebbly-setup.po")).expect("pebbly-ui.po");
     let config = slint_build::CompilerConfiguration::new()
         .with_bundled_translations(out.join("i18n"))
         .with_default_translation_context(slint_build::DefaultTranslationContext::None);
     slint_build::compile_with_config("ui/setup.slint", config).expect("setup/ui/setup.slint");
 
-    println!("cargo:rerun-if-env-changed=NOWBAR_SETUP_PAYLOAD");
-    println!("cargo:rerun-if-env-changed=NOWBAR_VERSION");
-    let packed = match std::env::var_os("NOWBAR_SETUP_PAYLOAD") {
+    println!("cargo:rerun-if-env-changed=PEBBLY_SETUP_PAYLOAD");
+    println!("cargo:rerun-if-env-changed=PEBBLY_VERSION");
+    let packed = match std::env::var_os("PEBBLY_SETUP_PAYLOAD") {
         Some(dir) => {
             let dir = PathBuf::from(dir);
-            let names = ["nowbar.exe", "nowbar-settings.exe"];
+            let names = ["pebbly.exe", "pebbly-settings.exe"];
             let files: Vec<(&str, Vec<u8>)> = names
                 .iter()
                 .map(|n| {
@@ -40,20 +40,20 @@ fn main() {
                 })
                 .collect();
             let refs: Vec<(&str, &[u8])> = files.iter().map(|(n, b)| (*n, b.as_slice())).collect();
-            let version = std::env::var("NOWBAR_VERSION").unwrap_or_default();
+            let version = std::env::var("PEBBLY_VERSION").unwrap_or_default();
             payload::pack(&version, &refs)
         }
         None => Vec::new(),
     };
     std::fs::write(out.join("payload.bin"), packed).expect("payload.bin");
 
-    let manifest = out.join("nowbar.manifest");
+    let manifest = out.join("pebbly.manifest");
     let app = root.parent().expect("the repo");
-    println!("cargo:rerun-if-changed={}", app.join("nowbar.manifest").display());
-    std::fs::copy(app.join("nowbar.manifest"), &manifest).expect("nowbar.manifest");
+    println!("cargo:rerun-if-changed={}", app.join("pebbly.manifest").display());
+    std::fs::copy(app.join("pebbly.manifest"), &manifest).expect("pebbly.manifest");
     println!("cargo:rustc-link-arg-bins=/MANIFEST:EMBED");
     println!("cargo:rustc-link-arg-bins=/MANIFESTINPUT:{}", manifest.display());
-    embed_icon(&app.join("assets").join("nowbar.ico"), &out);
+    embed_icon(&app.join("assets").join("pebbly.ico"), &out);
 }
 
 /// As the app's build.rs: rc.exe from the Windows SDK, or the default icon and a warning.
@@ -63,8 +63,8 @@ fn embed_icon(source: &Path, out: &Path) {
         println!("cargo:warning=rc.exe (Windows SDK) not found: the setup keeps the default icon");
         return;
     };
-    let ico = out.join("nowbar.ico");
-    std::fs::copy(source, &ico).expect("nowbar.ico");
+    let ico = out.join("pebbly.ico");
+    std::fs::copy(source, &ico).expect("pebbly.ico");
     let script = out.join("setup.rc");
     let path = ico.display().to_string().replace('\\', "\\\\");
     std::fs::write(&script, format!("1 ICON \"{path}\"\n")).expect("setup.rc");

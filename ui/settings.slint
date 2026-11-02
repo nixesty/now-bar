@@ -1,4 +1,4 @@
-// Now Bar Ayarları, laid out like Raycast's Theme Studio (design: .taste-skill/v9): an inset
+// Pebbly Ayarları, laid out like Raycast's Theme Studio (design: .taste-skill/v9): an inset
 // list panel on the left, a preview panel in the middle (search bar, the page's lists and
 // tiles, the action bar), an inspector on the right. Every value lives in `Store`; the Rust
 // side fills it from settings.json and saves it on `changed()`.
@@ -18,7 +18,7 @@ import {
     SystemBody, SystemInspector, GamesBody, GamesInspector, WellbeingBody, WellbeingInspector
 } from "pages.slint";
 
-/// The Now Bar mark: a pill with the accent dot.
+/// Pebbly's mark: a pill with the accent dot.
 component Mark inherits Rectangle {
     width: 22px;
     height: 22px;
@@ -163,11 +163,11 @@ component ResizeEdges inherits Rectangle {
 }
 
 export component SettingsWindow inherits Window {
-    title: @tr("Now Bar Ayarları");
+    title: @tr("Pebbly Ayarları");
     // Its own title bar: the caption buttons sit in the inspector's header (Raycast's layout).
     no-frame: !Ui.framed;
     // The tray's white pill (assets/make_icon.py).
-    icon: @image-url("../assets/nowbar-256.png");
+    icon: @image-url("../assets/pebbly-256.png");
     preferred-width: 1240px;
     preferred-height: 760px;
     min-width: 1040px;
@@ -277,7 +277,7 @@ export component SettingsWindow inherits Window {
                                 Mark { }
                             }
                             Text {
-                                text: "Now Bar";
+                                text: "Pebbly";
                                 font-size: 14.5px;
                                 font-weight: 600;
                                 color: Theme.strong;

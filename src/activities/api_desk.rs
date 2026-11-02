@@ -50,7 +50,7 @@ pub struct Desk {
 }
 
 impl Desk {
-    /// One request from the server; `apps` are the user's answers, `on` whether the Now Bar is
+    /// One request from the server; `apps` are the user's answers, `on` whether Pebbly is
     /// switched on.
     pub fn take(&mut self, call: ApiCall, live: &mut LiveSet, apps: &[ApiApp], on: bool, now: u64) {
         let ApiCall { caller, what, reply } = call;
@@ -521,7 +521,7 @@ mod tests {
         assert_eq!(heard(&rx).map(|h| h.0), Some(403));
         let (c, rx) = call(&ekin(), r#"{"app":"Ekin","title":"t"}"#);
         desk.take(c, &mut live, &allowed(&[ekin()]), false, 1_000);
-        assert_eq!(heard(&rx).map(|h| h.0), Some(503), "the Now Bar is switched off");
+        assert_eq!(heard(&rx).map(|h| h.0), Some(503), "Pebbly is switched off");
         let (tx, rx) = channel();
         let req = crate::activities::api::parse_activity("yedek", br#"{"app":"Ekin","state":"clear"}"#).unwrap();
         desk.take(ApiCall { caller: ekin(), what: ApiWhat::Show { req: Box::new(req), icon: None, exe_icon: None }, reply: tx }, &mut live, &[], true, 1_000);

@@ -1,26 +1,26 @@
 #![windows_subsystem = "windows"]
-//! The Now Bar settings window (Slint). It edits %APPDATA%\NowBar\settings.json; the running
-//! Now Bar watches that file and applies every change live. One window at a time.
+//! Pebbly settings window (Slint). It edits %APPDATA%\Pebbly\settings.json; the running
+//! Pebbly watches that file and applies every change live. One window at a time.
 
 use std::cell::{Cell, RefCell};
 use std::os::windows::io::AsRawHandle;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use nowbar::activities::football::{competition_name, known_team, TeamHit};
-use nowbar::activities::football_worker::{crest_path, fetch_crest, try_search_teams};
-use nowbar::activities::media::app_name;
-use nowbar::activities::weather_worker::geocode;
-use nowbar::platform::audio::{list_outputs, picker_order};
-use nowbar::platform::fullscreen::visible_apps;
-use nowbar::render::card::output_subline;
-use nowbar::settings::{
+use pebbly::activities::football::{competition_name, known_team, TeamHit};
+use pebbly::activities::football_worker::{crest_path, fetch_crest, try_search_teams};
+use pebbly::activities::media::app_name;
+use pebbly::activities::weather_worker::geocode;
+use pebbly::platform::audio::{list_outputs, picker_order};
+use pebbly::platform::fullscreen::visible_apps;
+use pebbly::render::card::output_subline;
+use pebbly::settings::{
     self, AnimationSpeed, CardSize, FollowedTeam, Hotkey, Marquee, PillButtons, PillSize, QuestionHotkey, Settings, Theme as Look, TrayClick, WeatherCity,
 };
-use nowbar::activities::buds::Paired;
-use nowbar::i18n::{self, Language, LanguagePick};
-use nowbar::settings_ui::{app_badge, at_arg, badge_letter, buds_choices, exception_name, page_arg, search, stand_in_colour, team_code, tidy_presets};
-use nowbar::update::{about_row, follow, restart_due, Asking, Outcome, UpdateState};
+use pebbly::activities::buds::Paired;
+use pebbly::i18n::{self, Language, LanguagePick};
+use pebbly::settings_ui::{app_badge, at_arg, badge_letter, buds_choices, exception_name, page_arg, search, stand_in_colour, team_code, tidy_presets};
+use pebbly::update::{about_row, follow, restart_due, Asking, Outcome, UpdateState};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use slint::winit_030::winit::window::ResizeDirection;
 use slint::winit_030::WinitWindowAccessor;
@@ -39,10 +39,10 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SM_CXFRAME, SM_CXPADDEDBORDER, SM_CYFRAME, SW_RESTORE, SW_SHOWNORMAL,
 };
 
-use nowbar::platform::frame::{adopt, frame_from_creation, style_frame};
-use nowbar_ui::*;
+use pebbly::platform::frame::{adopt, frame_from_creation, style_frame};
+use pebbly_ui::*;
 
-const TITLE: PCWSTR = w!("Now Bar Ayarları");
+const TITLE: PCWSTR = w!("Pebbly Ayarları");
 const HOTKEYS: [Hotkey; 5] = [Hotkey::WinAltN, Hotkey::WinAltT, Hotkey::CtrlAltN, Hotkey::WinShiftN, Hotkey::Off];
 const QUESTION_HOTKEYS: [QuestionHotkey; 3] = [QuestionHotkey::WinAltC, QuestionHotkey::WinShiftC, QuestionHotkey::Off];
 const KEEP_MIN: [u32; 5] = [1, 5, 10, 30, 0];
@@ -171,26 +171,26 @@ fn media_apps(s: &Settings, live: &[String]) -> Vec<Item> {
 }
 
 /// The apps that asked to show notifications, newest first; `id` is the app's key (its exe and
-/// name, as the Now Bar keeps them).
+/// name, as Pebbly keeps them).
 fn api_rows(s: &Settings) -> Vec<Item> {
     s.api_apps
         .iter()
         .rev()
         .map(|a| {
-            let key = nowbar::activities::api::Caller { app: a.name.clone(), exe: a.exe.clone() }.key();
+            let key = pebbly::activities::api::Caller { app: a.name.clone(), exe: a.exe.clone() }.key();
             let exe = a.exe.rsplit(['\\', '/']).next().unwrap_or(&a.exe);
             Item { id: key.clone().into(), name: a.name.clone().into(), sub: exe.into(), shown: a.allowed, current: false, tint: colour(app_badge(&a.name)), letter: badge_letter(&a.name).into() }
         })
         .collect()
 }
 
-/// Where the running Now Bar listens (its api.json), else where it would.
+/// Where the running Pebbly listens (its api.json), else where it would.
 fn api_address() -> String {
     let found = std::env::var_os("LOCALAPPDATA")
-        .and_then(|d| std::fs::read_to_string(std::path::Path::new(&d).join("NowBar").join("api.json")).ok())
+        .and_then(|d| std::fs::read_to_string(std::path::Path::new(&d).join("Pebbly").join("api.json")).ok())
         .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
         .and_then(|v| v["url"].as_str().map(|u| u.trim_start_matches("http://").to_string()));
-    found.unwrap_or_else(|| format!("127.0.0.1:{}", nowbar::activities::api::DEFAULT_PORT))
+    found.unwrap_or_else(|| format!("127.0.0.1:{}", pebbly::activities::api::DEFAULT_PORT))
 }
 
 /// An app that isn't hidden has a media session now.
@@ -255,7 +255,7 @@ fn hit_rows(hits: &[TeamHit], s: &Settings) -> Vec<Team> {
 fn running_rows(s: &Settings) -> Vec<Item> {
     visible_apps()
         .into_iter()
-        .filter(|(exe, _)| !exe.to_lowercase().starts_with("nowbar") && !s.fullscreen_exceptions.iter().any(|x| x.eq_ignore_ascii_case(exe)))
+        .filter(|(exe, _)| !exe.to_lowercase().starts_with("pebbly") && !s.fullscreen_exceptions.iter().any(|x| x.eq_ignore_ascii_case(exe)))
         .map(|(exe, title)| item(&exe, &title, "", false, false))
         .collect()
 }
@@ -271,9 +271,9 @@ fn city_row(c: Option<&WeatherCity>) -> City {
     })
 }
 
-/// The location row: what the Now Bar last found of where the PC is (it writes `place.json`).
+/// The location row: what Pebbly last found of where the PC is (it writes `place.json`).
 fn show_located(st: &Store) {
-    let (note, name) = nowbar::activities::weather::located_text(&nowbar::activities::weather_worker::read_located());
+    let (note, name) = pebbly::activities::weather::located_text(&pebbly::activities::weather_worker::read_located());
     st.set_located(note.into());
     st.set_located_name(name.into());
 }
@@ -295,7 +295,7 @@ thread_local! {
     static WALLPAPER: Cell<Option<(u8, u8, u8)>> = const { Cell::new(None) };
 }
 
-/// The accent the previews use, as the Now Bar does: the wallpaper's while "Duvar kâğıdından" is
+/// The accent the previews use, as Pebbly does: the wallpaper's while "Duvar kâğıdından" is
 /// on and it has one, else the chosen hex.
 fn show_accent(st: &Store) {
     let chosen = settings::parse_hex(&st.get_accent());
@@ -313,7 +313,7 @@ fn read_wallpaper(ui: &SettingsWindow) {
         unsafe {
             let _ = windows::Win32::System::Com::CoInitializeEx(None, windows::Win32::System::Com::COINIT_MULTITHREADED);
         }
-        let accent = nowbar::platform::wallpaper::read_accent(None);
+        let accent = pebbly::platform::wallpaper::read_accent(None);
         let _ = slint::invoke_from_event_loop(move || {
             WALLPAPER.with(|w| w.set(accent));
             if let Some(ui) = ui_weak.upgrade() {
@@ -326,14 +326,14 @@ fn read_wallpaper(ui: &SettingsWindow) {
 /// The Dijital Denge page's limit choices, in minutes (0: none).
 const LIMITS: [u32; 6] = [0, 30, 60, 120, 180, 240];
 
-/// Today's apps from the Now Bar's usage file, longest first, each with its limit; the apps
+/// Today's apps from Pebbly's usage file, longest first, each with its limit; the apps
 /// with a limit come too, used today or not.
 fn show_usage(st: &Store, s: &Settings) {
-    use nowbar::activities::games::played_text;
-    use nowbar::activities::wellbeing::{app_name, local_day};
-    let b = nowbar::activities::wellbeing_worker::read_file();
+    use pebbly::activities::games::played_text;
+    use pebbly::activities::wellbeing::{app_name, local_day};
+    let b = pebbly::activities::wellbeing_worker::read_file();
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
-    let day = local_day(now, nowbar::app::tz_offset_s());
+    let day = local_day(now, pebbly::app::tz_offset_s());
     let mut top = b.usage.top(day, 12);
     for l in &s.wellbeing_limits {
         if !top.iter().any(|(e, _)| e.eq_ignore_ascii_case(&l.exe)) {
@@ -364,7 +364,7 @@ fn show_usage(st: &Store, s: &Settings) {
 fn read_libraries(ui: &SettingsWindow) {
     let ui_weak = ui.as_weak();
     std::thread::spawn(move || {
-        let (steam, epic) = nowbar::activities::games_worker::libraries();
+        let (steam, epic) = pebbly::activities::games_worker::libraries();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(ui) = ui_weak.upgrade() {
                 let st = ui.global::<Store>();
@@ -380,7 +380,7 @@ fn read_libraries(ui: &SettingsWindow) {
 fn read_buds(ui: &SettingsWindow) {
     let ui_weak = ui.as_weak();
     std::thread::spawn(move || {
-        let paired = nowbar::activities::buds_worker::paired();
+        let paired = pebbly::activities::buds_worker::paired();
         let _ = slint::invoke_from_event_loop(move || {
             let Some(ui) = ui_weak.upgrade() else { return };
             BRIDGE.with(|b| {
@@ -433,7 +433,7 @@ fn fill(ui: &SettingsWindow, s: &Settings, live_apps: &[String]) {
     st.set_cover_color(s.use_cover_color);
     st.set_card_size(if s.card_size == CardSize::Compact { 0 } else { 1 });
     st.set_card_blur(s.card_blur);
-    st.set_blur_available(nowbar::platform::os::card_blur(nowbar::platform::os::generation(), true, true));
+    st.set_blur_available(pebbly::platform::os::card_blur(pebbly::platform::os::generation(), true, true));
     st.set_darkness(s.material_darkness_pct as f32);
     st.set_saturation(s.material_saturation_pct as f32);
     st.set_speed(index_of(&[AnimationSpeed::Off, AnimationSpeed::Slow, AnimationSpeed::Normal, AnimationSpeed::Fast], &s.animation_speed, 2));
@@ -515,7 +515,7 @@ fn fill(ui: &SettingsWindow, s: &Settings, live_apps: &[String]) {
     st.set_brief_name(s.brief_name.clone().into());
     st.set_away_summary(s.away_summary);
     st.set_transfer_on(s.transfer_on);
-    st.set_windows_name(nowbar::platform::session::windows_full_name().as_deref().and_then(nowbar::activities::brief::first_name).unwrap_or_default().into());
+    st.set_windows_name(pebbly::platform::session::windows_full_name().as_deref().and_then(pebbly::activities::brief::first_name).unwrap_or_default().into());
     st.set_city(city_row(s.weather_city.as_ref()));
     st.set_weather_locate(s.weather_locate);
     show_located(&st);
@@ -526,7 +526,7 @@ fn fill(ui: &SettingsWindow, s: &Settings, live_apps: &[String]) {
     st.set_running_apps(model(running_rows(s)));
     st.set_version(i18n::trf("Sürüm {}", &[&env!("CARGO_PKG_VERSION")]).into());
     st.set_update_check(s.update_check);
-    show_update(&st, &nowbar::platform::updater::state(), ASKING.with(Cell::get));
+    show_update(&st, &pebbly::platform::updater::state(), ASKING.with(Cell::get));
     st.set_page(s.settings_page as i32);
     st.set_preview_collapsed(s.settings_preview_collapsed);
     st.set_system_dark(system_dark());
@@ -628,7 +628,7 @@ fn read(ui: &SettingsWindow, base: &Settings) -> Settings {
         weather_city: picked_city(&st.get_city()),
         weather_locate: st.get_weather_locate(),
         fullscreen_hide: st.get_fullscreen_hide(),
-        settings_page: st.get_page().clamp(0, nowbar::settings_ui::LAST_PAGE as i32) as u8,
+        settings_page: st.get_page().clamp(0, pebbly::settings_ui::LAST_PAGE as i32) as u8,
         settings_preview_collapsed: st.get_preview_collapsed(),
         ..base.clone()
     }
@@ -830,24 +830,24 @@ struct Bridge {
 }
 
 fn main() -> Result<(), slint::PlatformError> {
-    // Dev: NOWBAR_SETTINGS_SHOTS=<dir> draws every page with the real renderer, off-screen, into
+    // Dev: PEBBLY_SETTINGS_SHOTS=<dir> draws every page with the real renderer, off-screen, into
     // <dir>, and quits without saving (and without touching a settings window that is open).
-    let shots_dir = std::env::var("NOWBAR_SETTINGS_SHOTS").ok();
+    let shots_dir = std::env::var("PEBBLY_SETTINGS_SHOTS").ok();
     let opened = unix_ms();
-    // One window: a second launch brings the first to the front. (Dev: NOWBAR_SETTINGS_SOLO=1
+    // One window: a second launch brings the first to the front. (Dev: PEBBLY_SETTINGS_SOLO=1
     // opens another one anyway, for tools/frame-test.py.) Kept to let go of when an update
     // restarts the window.
     let mut instance = None;
-    if shots_dir.is_none() && std::env::var_os("NOWBAR_SETTINGS_SOLO").is_none() {
+    if shots_dir.is_none() && std::env::var_os("PEBBLY_SETTINGS_SOLO").is_none() {
         unsafe {
-        let mutex = CreateMutexW(None, true, w!("Local\\NowBar.Settings"));
+        let mutex = CreateMutexW(None, true, w!("Local\\Pebbly.Settings"));
         if GetLastError() == ERROR_ALREADY_EXISTS {
             // It opens on the page asked for (a right-click on the pill).
             if let Some(page) = page_arg(&std::env::args().collect::<Vec<_>>()) {
                 let _ = std::fs::write(page_request_path(), page.to_string());
             }
             // Its title is in its own language.
-            if let Ok(hwnd) = FindWindowW(None, TITLE).or_else(|_| FindWindowW(None, w!("Now Bar Settings"))) {
+            if let Ok(hwnd) = FindWindowW(None, TITLE).or_else(|_| FindWindowW(None, w!("Pebbly Settings"))) {
                 let _ = ShowWindow(hwnd, SW_RESTORE);
                 let _ = SetForegroundWindow(hwnd);
             }
@@ -859,7 +859,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let ui = SettingsWindow::new()?;
     // Windows 10 has no Segoe Fluent Icons: every glyph was a box.
-    nowbar::set_slint_faces!(ui.global::<Theme>());
+    pebbly::set_slint_faces!(ui.global::<Theme>());
     let loaded = settings::load();
     speak(loaded.language);
     let bridge = Rc::new(RefCell::new(Bridge { settings: loaded.clone(), saved: loaded, hits: Vec::new(), search_gen: 0, city_gen: 0, removed: None, playing: None, buds: None }));
@@ -873,7 +873,7 @@ fn main() -> Result<(), slint::PlatformError> {
     if let Some(page) = page_arg(&std::env::args().collect::<Vec<_>>()) {
         ui.global::<Store>().set_page(page as i32);
     }
-    // The Now Bar finds where the PC is a moment after the location is turned on.
+    // Pebbly finds where the PC is a moment after the location is turned on.
     let located_poll = slint::Timer::default();
     {
         let ui_weak = ui.as_weak();
@@ -883,14 +883,14 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         });
     }
-    // The Hakkında row follows update.json: the Now Bar's daily check, and how an install it was
+    // The Hakkında row follows update.json: Pebbly's daily check, and how an install it was
     // asked for went.
     let update_poll = slint::Timer::default();
     {
         let ui_weak = ui.as_weak();
         update_poll.start(slint::TimerMode::Repeated, Duration::from_millis(500), move || {
             let Some(ui) = ui_weak.upgrade() else { return };
-            let (state, now) = (nowbar::platform::updater::state(), unix_ms());
+            let (state, now) = (pebbly::platform::updater::state(), unix_ms());
             let asking = follow(ASKING.with(Cell::get), state.as_ref(), opened, now);
             ASKING.with(|a| a.set(asking));
             show_update(&ui.global::<Store>(), &state, asking);
@@ -917,7 +917,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let save_timer = Rc::new(slint::Timer::default());
     let search_timer = Rc::new(slint::Timer::default());
 
-    // Saves 300 ms after the last change; the Now Bar notices the file and applies it.
+    // Saves 300 ms after the last change; Pebbly notices the file and applies it.
     let schedule_save = {
         let (ui, bridge, timer) = (ui.as_weak(), bridge.clone(), save_timer.clone());
         move || {
@@ -931,7 +931,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 let next = read(&ui, &working);
                 let merged = to_save(&saved, &next, settings::try_load());
                 if let Err(e) = settings::save(&merged) {
-                    nowbar::platform::log::log(&format!("settings window: save failed: {e:?}"));
+                    pebbly::platform::log::log(&format!("settings window: save failed: {e:?}"));
                 }
                 if merged != next {
                     fill(&ui, &merged, &live_media_apps());
@@ -985,7 +985,7 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let (ui_weak, bridge, schedule_save) = (ui.as_weak(), bridge.clone(), schedule_save.clone());
         st.on_api_app_toggled(move |id, allowed| {
-            let key_of = |a: &settings::ApiApp| nowbar::activities::api::Caller { app: a.name.clone(), exe: a.exe.clone() }.key();
+            let key_of = |a: &settings::ApiApp| pebbly::activities::api::Caller { app: a.name.clone(), exe: a.exe.clone() }.key();
             {
                 let mut b = bridge.borrow_mut();
                 let b = &mut *b;
@@ -1003,7 +1003,7 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let (ui_weak, bridge, schedule_save) = (ui.as_weak(), bridge.clone(), schedule_save.clone());
         st.on_api_app_forget(move |id| {
-            let key_of = |a: &settings::ApiApp| nowbar::activities::api::Caller { app: a.name.clone(), exe: a.exe.clone() }.key();
+            let key_of = |a: &settings::ApiApp| pebbly::activities::api::Caller { app: a.name.clone(), exe: a.exe.clone() }.key();
             {
                 let mut b = bridge.borrow_mut();
                 let b = &mut *b;
@@ -1086,7 +1086,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 let (ui_weak, query) = (ui_weak.clone(), query.clone());
                 std::thread::spawn(move || {
                     // Football (ESPN) and EuroLeague / EuroCup basketball.
-                    let clubs = nowbar::activities::basketball_worker::search_basketball(&query);
+                    let clubs = pebbly::activities::basketball_worker::search_basketball(&query);
                     let found = match try_search_teams(&query) {
                         Some(mut hits) => {
                             hits.extend(clubs);
@@ -1321,7 +1321,7 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let (ui_weak, bridge, live_apps) = (ui.as_weak(), bridge.clone(), live_apps.clone());
         st.on_action(move |what| match what.as_str() {
-            "log" => open_path(&nowbar::platform::log::log_path()),
+            "log" => open_path(&pebbly::platform::log::log_path()),
             "update" => {
                 if let Some(ui) = ui_weak.upgrade() {
                     update_clicked(&ui);
@@ -1380,7 +1380,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 if let (true, Some(ui)) = (maximize, ui_weak.upgrade()) {
                     toggle_maximized(&ui);
                 }
-                // Opened from the Now Bar (which allows it), the window comes in front of the app
+                // Opened from Pebbly (which allows it), the window comes in front of the app
                 // the user is in, so its opening animation is seen.
                 if let (true, Some(hwnd)) = (to_front, ui_weak.upgrade().and_then(|ui| hwnd_of(&ui))) {
                     unsafe {
@@ -1455,7 +1455,7 @@ fn reopen_window(instance: Option<HANDLE>, reopen: Reopen) {
         }
     }
     let Ok(exe) = std::env::current_exe() else { return };
-    let mut cmd = std::process::Command::new(exe.with_file_name("nowbar-settings.exe"));
+    let mut cmd = std::process::Command::new(exe.with_file_name("pebbly-settings.exe"));
     cmd.args(["--page", &reopen.page.to_string()]);
     if reopen.maximized {
         cmd.arg("--maximized");
@@ -1471,7 +1471,7 @@ fn reopen_window(instance: Option<HANDLE>, reopen: Reopen) {
         Ok(child) => unsafe {
             WaitForInputIdle(HANDLE(child.as_raw_handle()), 3000);
         },
-        Err(e) => nowbar::platform::log::log(&format!("settings window: reopening after the update: {e}")),
+        Err(e) => pebbly::platform::log::log(&format!("settings window: reopening after the update: {e}")),
     }
 }
 
@@ -1495,17 +1495,17 @@ fn shoot_pages(ui: &SettingsWindow, dir: &str) -> Result<(), slint::PlatformErro
         let n = step.get();
         // Each tick saves what the last one set up, then sets up the next.
         if n > 0 {
-            let pages = nowbar::settings_ui::PAGES.len() as i32;
+            let pages = pebbly::settings_ui::PAGES.len() as i32;
             let name = if n <= pages { format!("page-{}", n - 1) } else { "search".into() };
             if let Ok(snap) = ui.window().take_snapshot() {
                 let mut bgra = Vec::with_capacity(snap.as_slice().len() * 4);
                 for p in snap.as_slice() {
                     bgra.extend_from_slice(&[p.b, p.g, p.r, p.a]);
                 }
-                let _ = nowbar::slint_shot::save_png(&format!("{dir}/{name}.png"), snap.width(), snap.height(), &bgra);
+                let _ = pebbly::slint_shot::save_png(&format!("{dir}/{name}.png"), snap.width(), snap.height(), &bgra);
             }
         }
-        let pages = nowbar::settings_ui::PAGES.len() as i32;
+        let pages = pebbly::settings_ui::PAGES.len() as i32;
         match n {
             n if n < pages => ui.global::<Store>().set_page(n),
             n if n == pages => {
@@ -1543,7 +1543,7 @@ fn show_update(st: &Store, state: &Option<UpdateState>, asking: Asking) {
 
 fn set_asking(st: &Store, asking: Asking) {
     ASKING.with(|a| a.set(asking));
-    show_update(st, &nowbar::platform::updater::state(), asking);
+    show_update(st, &pebbly::platform::updater::state(), asking);
 }
 
 /// The Hakkında row's click: installs the newer release found, else asks GitHub now.
@@ -1554,16 +1554,16 @@ fn update_clicked(ui: &SettingsWindow) {
         return;
     }
     if st.get_update_ready() {
-        // The running Now Bar downloads, checks, swaps and restarts itself; update.json says how
+        // The running Pebbly downloads, checks, swaps and restarts itself; update.json says how
         // it went (the poll in main follows it).
-        let sent = nowbar::platform::ipc::send(&nowbar::platform::ipc::Command::Update);
+        let sent = pebbly::platform::ipc::send(&pebbly::platform::ipc::Command::Update);
         set_asking(&st, if sent { Asking::Installing(unix_ms()) } else { Asking::Ended(Outcome::NotRunning) });
         return;
     }
     set_asking(&st, Asking::Checking);
     let ui_weak = ui.as_weak();
     std::thread::spawn(move || {
-        let found = nowbar::platform::updater::check().is_some();
+        let found = pebbly::platform::updater::check().is_some();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(ui) = ui_weak.upgrade() {
                 set_asking(&ui.global::<Store>(), if found { Asking::Idle } else { Asking::Ended(Outcome::Unreachable) });

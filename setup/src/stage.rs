@@ -1,9 +1,9 @@
-//! The stage's pills: drawn once at the window's scale by the Now Bar's painter, handed to Slint.
+//! The stage's pills: drawn once at the window's scale by Pebbly's painter, handed to Slint.
 
 use slint::{Color, Image, Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, VecModel};
 
-use nowbar::i18n::{n_, tr};
-use nowbar::render::showcase::{frame, pills, Frame};
+use pebbly::i18n::{n_, tr};
+use pebbly::render::showcase::{frame, pills, Frame};
 
 use crate::SetupWindow;
 

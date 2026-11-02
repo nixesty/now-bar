@@ -95,14 +95,14 @@ mod tests {
 
     fn sample() -> Vec<u8> {
         let exe: Vec<u8> = (0..50_000u32).map(|i| (i % 251) as u8).collect();
-        pack("0.3.0", &[("nowbar.exe", &exe), ("nowbar-settings.exe", b"settings")])
+        pack("0.3.0", &[("pebbly.exe", &exe), ("pebbly-settings.exe", b"settings")])
     }
 
     #[test]
     fn round_trip_keeps_names_bytes_and_version() {
         let (version, files) = unpack(&sample()).unwrap();
         assert_eq!(version, "0.3.0");
-        assert_eq!(files.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["nowbar.exe", "nowbar-settings.exe"]);
+        assert_eq!(files.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["pebbly.exe", "pebbly-settings.exe"]);
         assert_eq!(files[0].bytes.len(), 50_000);
         assert_eq!(files[0].bytes[300], (300 % 251) as u8);
         assert_eq!(files[1].bytes, b"settings");

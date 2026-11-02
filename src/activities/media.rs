@@ -22,10 +22,10 @@ pub fn live_sessions(s: &[SessionInfo], now_ms: u64) -> Vec<usize> {
 }
 
 /// A session that went away stays this long, so a player that recreates its session on a track
-/// change (YouTube Music does, for ~600 ms) neither blinks out of the Now Bar nor closes its card.
+/// change (YouTube Music does, for ~600 ms) neither blinks out of Pebbly nor closes its card.
 pub const SESSION_GRACE_MS: u64 = 2_000;
 
-/// Now Bar ids belong to the app (its AUMID), not to the GSMTC session object: a recreated
+/// Pebbly ids belong to the app (its AUMID), not to the GSMTC session object: a recreated
 /// session keeps its stack item and an open card.
 #[derive(Default)]
 pub struct SessionIds {

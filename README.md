@@ -2,14 +2,14 @@
 
 <img src="assets/readme/hero.png" width="880" alt="Görev çubuğunda çalan şarkının pili, üstünde açılmış müzik kartı; yanında Claude Code, maç, zamanlayıcı, Galaxy Buds, hava ve şarj pilleri">
 
-# Now Bar
+# Pebbly
 
 **Samsung One UI'daki Now Bar, Windows 11 ve 10 görev çubuğunda.**
 
 Görev çubuğunda küçük bir pil durur ve o an olan biteni gösterir: çalan şarkı, zamanlayıcı, maçın<br>
 skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açılır.
 
-**[İndir](https://github.com/nixesty/now-bar/releases/latest)** &nbsp;·&nbsp;
+**[İndir](https://github.com/nixesty/pebbly/releases/latest)** &nbsp;·&nbsp;
 [Neler gösterir](#neler-gösterir) &nbsp;·&nbsp;
 [Kurulum](#kurulum) &nbsp;·&nbsp;
 [Derleme](#derleme)
@@ -39,7 +39,7 @@ skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açıl
   ve ayarı, kulaklığımı bul, dokunmatik kontroller ve dokunup tutma (istersen basılı tutunca
   bilgisayar mikrofonu kapatır, şarkıyı geçer…), kenara çift dokunma, görüşmede kendi sesini
   duyma, kesintisiz bağlantı ve uyum testi de var; bunlar kulaklığın kendisinde saklanır,
-  telefonda da geçerlidir. Kulaklık bu bilgisayara bağlı değilken kutuyu açınca Now Bar
+  telefonda da geçerlidir. Kulaklık bu bilgisayara bağlı değilken kutuyu açınca Pebbly
   bağlanmayı önerir, tek tıkla bilgisayara alır. Birden fazla Buds eşleştirilmişse hangisinin
   gösterileceği ayarlardan seçilir.
 - **Claude Code:** Claude'un o an ne yaptığı ve görev listesi; izin istediğinde kartta
@@ -96,8 +96,8 @@ ekler. Ctrl+F aramaya, Ctrl+K eylemler menüsüne götürür. Arayüz Türkçe v
 
 <img src="assets/readme/setup.png" width="480" align="right" alt="Kurulum penceresi">
 
-[Son sürümden](https://github.com/nixesty/now-bar/releases/latest) `nowbar-setup.exe`'yi indirip
-çalıştır. Yönetici izni istemez ve `%LOCALAPPDATA%\Programs\NowBar` klasörüne kurulur
+[Son sürümden](https://github.com/nixesty/pebbly/releases/latest) `pebbly-setup.exe`'yi indirip
+çalıştır. Yönetici izni istemez ve `%LOCALAPPDATA%\Programs\Pebbly` klasörüne kurulur
 ("Değiştir" ile başka bir klasör seçilebilir). Kurulum ekranındaki seçenekler:
 
 - **Windows'la başlat**
@@ -108,17 +108,17 @@ ekler. Ctrl+F aramaya, Ctrl+K eylemler menüsüne götürür. Arayüz Türkçe v
 - **Masaüstü kısayolu**
 - **Bitince ayarları aç**
 
-Başlat menüsüne her zaman bir kısayol eklenir. Now Bar, Windows'un "Ayarlar → Uygulamalar"
+Başlat menüsüne her zaman bir kısayol eklenir. Pebbly, Windows'un "Ayarlar → Uygulamalar"
 listesinde görünür ve oradan kaldırılabilir. Kaldırınca kısayollar, Windows'la başlatma ve Claude
 Code hook'ları da silinir; ayarları silmek isteğe bağlıdır.
 
 <br clear="right">
 
-Now Bar kuruluyken kurulumu yeniden çalıştırırsan Now Bar güncellenir ya da onarılır: çalışan Now
-Bar kapatılır, dosyaları yenilenir ve yeniden başlatılır.
+Pebbly kuruluyken kurulumu yeniden çalıştırırsan Pebbly güncellenir ya da onarılır: çalışan
+Pebbly kapatılır, dosyaları yenilenir ve yeniden başlatılır.
 
-Sessiz kurulum için `nowbar-setup.exe --quiet` (uygulama bildirimleri ayarına dokunmaz), sessiz
-kaldırma için `"%LOCALAPPDATA%\Programs\NowBar\nowbar-setup.exe" --uninstall --quiet` kullanılır.
+Sessiz kurulum için `pebbly-setup.exe --quiet` (uygulama bildirimleri ayarına dokunmaz), sessiz
+kaldırma için `"%LOCALAPPDATA%\Programs\Pebbly\pebbly-setup.exe" --uninstall --quiet` kullanılır.
 
 ## Kullanım
 
@@ -134,12 +134,12 @@ kaldırma için `"%LOCALAPPDATA%\Programs\NowBar\nowbar-setup.exe" --uninstall -
 
 ## Canlı etkinlikler
 
-Başka bir program ya da betik pilde bir etkinlik gösterebilir. Now Bar çalışmıyorsa komut hiçbir
+Başka bir program ya da betik pilde bir etkinlik gösterebilir. Pebbly çalışmıyorsa komut hiçbir
 şey yapmadan çıkar (çıkış kodu her zaman 0'dır, çıktı vermez):
 
 ```
-nowbar.exe push --id yedek --title "Yedekleme" --text "Belgeler" --progress 40
-nowbar.exe push --id yedek --title "Yedekleme" --state done
+pebbly.exe push --id yedek --title "Yedekleme" --text "Belgeler" --progress 40
+pebbly.exe push --id yedek --title "Yedekleme" --state done
 ```
 
 `--state`: `run` (varsayılan), `wait` (kullanıcıyı bekliyor; kısa bir süre öne gelir), `done`
@@ -152,7 +152,7 @@ yalnızca bu bilgisayardan (`127.0.0.1:20034`) erişilebilir ve sen açana kadar
 **Uygulama bildirimlerini aç** ya da Ayarlar → Sistem → Uygulama bildirimleri). Bir uygulama ilk
 kez istek gönderdiğinde pil "Bildirim göstermek istiyor" diye sorar; verdiğin cevap hatırlanır ve
 ayarlardan değiştirilebilir. İzin verdiğin uygulamalar ve gösterdikleri senin sorumluluğundadır;
-Now Bar yalnızca gösterir. Geliştiriciler için: [DOCS.md](DOCS.md).
+Pebbly yalnızca gösterir. Geliştiriciler için: [DOCS.md](DOCS.md).
 
 ```
 curl -H "Content-Type: application/json" -d "{\"app\":\"Yedekleyici\",\"title\":\"Yedek bitti\"}" http://127.0.0.1:20034/v1/notify
@@ -160,22 +160,22 @@ curl -H "Content-Type: application/json" -d "{\"app\":\"Yedekleyici\",\"title\":
 
 **Claude Code:** kurulumdaki **Claude Code'a bağlan** seçeneği hook'ları kurar. Elle kurmak ya da
 kaldırmak için aşağıdaki komutlar kullanılır. Komut exe'nin kendi yolunu yazar, ilk seferde
-`settings.json.before-nowbar`, sonraki her yazışta `settings.json.nowbar-last` adıyla yedek alır ve
+`settings.json.before-pebbly`, sonraki her yazışta `settings.json.pebbly-last` adıyla yedek alır ve
 başka hook'lara dokunmaz:
 
 ```
-nowbar.exe claude-hooks install
-nowbar.exe claude-hooks remove
+pebbly.exe claude-hooks install
+pebbly.exe claude-hooks remove
 ```
 
-Pil, Claude'un ne yaptığını ve ne kadar süredir çalıştığını gösterir ("now-bar · Düzenliyor:
+Pil, Claude'un ne yaptığını ve ne kadar süredir çalıştığını gösterir ("pebbly · Düzenliyor:
 app.rs"); kartta görev listesinin ilerlemesi, son adımlar ve iş bitince cevabın ilk satırı
 ("Bitti · 12 dk · 9 dosya") bulunur. Claude izin istediğinde kartta **İzin ver / Reddet**
 düğmeleri çıkar; bu yalnızca kartta tamamı görünen tek satırlık komutlar, dosyalar, adresler ve
 aramalar için geçerlidir. Dosya izinlerinde kartta dosyanın tam yolu görünür, değişikliğin
 kendisi Claude'un penceresinde kalır; çok satırlı komutlar, sorular ve plan onayı da orada
 cevaplanır. Claude'un kendi penceresi de aynı anda açıktır; hangisinden önce cevap verilirse o
-geçerli olur. Kart cevabı 60 saniye bekler (Ayarlar → Sistem → Canlı etkinlikler). Now Bar başka
+geçerli olur. Kart cevabı 60 saniye bekler (Ayarlar → Sistem → Canlı etkinlikler). Pebbly başka
 bir klasöre taşınırsa hook'lar bir sonraki açılışta yeni yola güncellenir. Masaüstü uygulamasının
 Code sekmesinde, CLI'da ve VS Code'da çalışır.
 
@@ -189,18 +189,18 @@ cargo b
 ```
 
 `cargo b`, `.cargo\config.toml`'da tanımlı bir kısaltmadır: `cargo build --profile quick --bin
-nowbar --bin nowbar-settings`. Sürüm derlemesi kadar hızlı çalışan bir exe üretir ama programın
+pebbly --bin pebbly-settings`. Sürüm derlemesi kadar hızlı çalışan bir exe üretir ama programın
 tamamını birlikte optimize etmez (LTO yoktur); bu yüzden önbellek doluyken derleme birkaç saniye
 sürer. Ayarlar penceresinin arayüzü (`ui\`, Slint) bu profilde optimizasyonsuz derlenir: bir
 `.slint` değişikliği 4–5 dakika yerine 40 saniyede derlenir.
 
 Çıktılar `target\quick\` klasörüne yazılır; projeyi kısa bir yola klonla (MSVC'nin yol sınırı
-260 karakterdir). İki exe (`nowbar.exe` ve `nowbar-settings.exe`) **aynı klasörde** olmalıdır: Now
-Bar ayarlar penceresini kendi yanında arar. İkisini `bin\` klasörüne kopyalayıp oradan çalıştır.
+260 karakterdir). İki exe (`pebbly.exe` ve `pebbly-settings.exe`) **aynı klasörde** olmalıdır:
+Pebbly ayarlar penceresini kendi yanında arar. İkisini `bin\` klasörüne kopyalayıp oradan çalıştır.
 "Windows ile başlat" açıksa başlangıç kaydı kendiliğinden en son çalıştırılan kopyaya güncellenir.
 
 **Yayın:** `tools\make-setup.ps1`, bir GitHub sürümünde yer alan dosyaları `dist\` klasörüne
-üretir: `nowbar-setup.exe` (iki exe içinde), `nowbar.exe`, `nowbar-settings.exe` (güncelleyicinin
+üretir: `pebbly-setup.exe` (iki exe içinde), `pebbly.exe`, `pebbly-settings.exe` (güncelleyicinin
 indirdikleri) ve `SHA256SUMS.txt`. C çalışma zamanı statik olarak bağlanır; bu sayede exe'ler
 Visual C++ Redistributable kurulu olmayan Windows'larda da açılır. Sürüm derlemesi
 (`target\dist\`, birkaç GB) saklanır: ilk derleme 13–14 dakika sürer, sonrakiler yalnızca değişen
@@ -219,30 +219,30 @@ kullanır. Ayarlar penceresi Inter'i kendi içinde barındırır (`ui\fonts`, SI
 
 ## Dosyalar
 
-- Ayarlar: `%APPDATA%\NowBar\settings.json`
-- Günlük: `%LOCALAPPDATA%\NowBar\log.txt`. Pilin ne zaman ve neden gizlendiği de buraya yazılır
+- Ayarlar: `%APPDATA%\Pebbly\settings.json`
+- Günlük: `%LOCALAPPDATA%\Pebbly\log.txt`. Pilin ne zaman ve neden gizlendiği de buraya yazılır
   (`pill: hidden (nothing active)`, `media: Brave left (paused 10 min)` gibi).
-- Takım armaları: `%LOCALAPPDATA%\NowBar\crests\`
-- Haftanın müziği: `%LOCALAPPDATA%\NowBar\music.json` (yalnızca son yedi gün)
+- Takım armaları: `%LOCALAPPDATA%\Pebbly\crests\`
+- Haftanın müziği: `%LOCALAPPDATA%\Pebbly\music.json` (yalnızca son yedi gün)
 - Raftan çıkan dosyalar (küçültülmüş resimler, zip'ler) asıllarının yanına yazılır; oraya
-  yazılamazsa `%LOCALAPPDATA%\NowBar\Raf\` klasörüne.
+  yazılamazsa `%LOCALAPPDATA%\Pebbly\Raf\` klasörüne.
 
 ## Güncelleme
 
-Now Bar açıldıktan bir dakika sonra ve ardından günde bir kez GitHub'dan son sürümü sorar
+Pebbly açıldıktan bir dakika sonra ve ardından günde bir kez GitHub'dan son sürümü sorar
 (`api.github.com`; sorgu dışında hiçbir şey gönderilmez). Ayarlar → Hakkında'daki **Denetle**
 satırı beklemeden sorar. Yeni sürüm varsa tepsi menüsünde **Güncelle: x.y.z** belirir, Hakkında'daki
 satır da **Güncelle** olur. Tıklayınca iki exe indirilir, `SHA256SUMS.txt` ile doğrulanır,
-eskilerinin yerine konur ve Now Bar yeniden başlar; açık ayarlar penceresi de yeni sürümüyle
+eskilerinin yerine konur ve Pebbly yeniden başlar; açık ayarlar penceresi de yeni sürümüyle
 yerinde yeniden açılır. Ayarlar ve otomatik başlatma olduğu gibi kalır. Hakkında satırı o sırada
 ne olduğunu, olmazsa nedenini yazar. Adımlardan biri bile başarısız olursa
-eski exe'ler yerinde kalır. Now Bar'ın yazma izni olmayan bir klasöre (Program Files gibi)
+eski exe'ler yerinde kalır. Pebbly'nin yazma izni olmayan bir klasöre (Program Files gibi)
 kurulduysa sürüm sayfası açılır. Günlük denetim Ayarlar → Hakkında → Güncellemeleri denetle ile
 kapatılabilir.
 
 ## Gizlilik ve ağ
 
-Now Bar'ın bağlandığı yerler (hiçbiri API anahtarı istemez):
+Pebbly'nin bağlandığı yerler (hiçbiri API anahtarı istemez):
 
 - **Şarkı sözleri:** çalan şarkının sanatçısı, adı ve süresi `lrclib.net`'e, orada
   bulunamazsa NetEase Cloud Music'e (`music.163.com`) ve Kugou'ya (`lyrics.kugou.com`)
@@ -257,18 +257,18 @@ Now Bar'ın bağlandığı yerler (hiçbiri API anahtarı istemez):
 - **Güncelleme:** GitHub (`api.github.com`), yukarıda anlatıldığı gibi.
 - **Claude'a sor:** yazdığın soru bilgisayardaki Claude Code'a verilir (`claude -p`, araçsız:
   dosyalarına ve komut satırına dokunamaz); Claude Code onu kendi oturumunla Anthropic'e gönderir.
-  Now Bar'ın kendisi bir yere bağlanmaz.
+  Pebbly'nin kendisi bir yere bağlanmaz.
 
 Bu bilgisayarda kalanlar: haftanın müziği burada sayılır; **Metni kopyala** Windows'un kendi metin
 tanımasını kullanır; **Paylaş** yalnızca Windows'un paylaşım penceresini açar, dosyalar orada
-seçtiğin yere gider. Eşleştirilmiş Buds bu bilgisayara bağlı değilken Now Bar, kutunun açıldığını
+seçtiğin yere gider. Eşleştirilmiş Buds bu bilgisayara bağlı değilken Pebbly, kutunun açıldığını
 görmek için yakındaki Bluetooth LE yayınlarını dinler (yalnızca dinler, hiçbir şey göndermez;
-kutunun sayacı `%LOCALAPPDATA%\NowBar\buds-lid.txt` dosyasında). Ayarlar → Galaxy Buds → **Kutu
+kutunun sayacı `%LOCALAPPDATA%\Pebbly\buds-lid.txt` dosyasında). Ayarlar → Galaxy Buds → **Kutu
 açılınca bağlanmayı öner** bunu kapatır.
 
-**Uygulama bildirimleri** açıksa Now Bar yalnızca bu bilgisayardan erişilebilen `127.0.0.1:20034`
+**Uygulama bildirimleri** açıksa Pebbly yalnızca bu bilgisayardan erişilebilen `127.0.0.1:20034`
 ve `[::1]` adreslerini dinler (port doluysa Windows'un verdiği başka bir portu kullanır ve bunu
-`%LOCALAPPDATA%\NowBar\api.json` dosyasına yazar). Kapalıyken hiçbir port açılmaz. Web
+`%LOCALAPPDATA%\Pebbly\api.json` dosyasına yazar). Kapalıyken hiçbir port açılmaz. Web
 sayfalarından, ağdan ve bu bilgisayardaki diğer Windows kullanıcılarından gelen istekler
 reddedilir; ayrıntılar [DOCS.md](DOCS.md)'de.
 
@@ -284,7 +284,7 @@ bunu göz önünde bulundur.
   geldi; görev çubuğundaki yerleşimi henüz yalnızca simülasyonla denendi.
 - **Galaxy Buds:** Buds2'de denendi; Buds2 Pro, Buds FE, Buds Core, Buds3, Buds3 FE ve Buds4 aynı
   protokolü kullanır, Buds Pro da tanınır. İlk Galaxy Buds, Buds+ ve Buds Live desteklenmez.
-  GalaxyBudsClient ya da Samsung'un Galaxy Buds uygulaması bağlantıyı kullanırken Now Bar
+  GalaxyBudsClient ya da Samsung'un Galaxy Buds uygulaması bağlantıyı kullanırken Pebbly
   kulaklığı okuyamaz.
 - **Duraklatılan medya 10 dakika sonra pilden kalkar** (Ayarlar → Medya → Duraklayınca kal).
   Başka bir etkinlik yoksa pil de o an gizlenir; müzik yeniden çalınca geri gelir.
@@ -309,7 +309,7 @@ Testler ve clippy (`.cargo\config.toml`'daki kısaltmalar) quick profilinde çal
 - Derlemeyi hızlandıranlar: Rust'ın kendi bağlayıcısı (`rust-lld`), bağımlılıklarda hata ayıklama
   bilgisinin kapalı olması ve ayarlar penceresinin Slint arayüzünün ayrı bir crate'te (`ui\`)
   bulunması: arayüz yalnızca bir `.slint` dosyası değişince yeniden derlenir.
-- `NOWBAR_SETTINGS_SHOTS=<klasör> nowbar-settings.exe`: ayarlar penceresini ekran dışında açar,
+- `PEBBLY_SETTINGS_SHOTS=<klasör> pebbly-settings.exe`: ayarlar penceresini ekran dışında açar,
   her sayfanın gerçek çiziciyle ekran görüntüsünü alır ve ayarları kaydetmeden kapanır.
 - `pillsheet`, `cardsheet`, `matchsheet`, `settingsheet`, `glyphsheet`: pencere açmadan örnek
   görüntüler (PNG) üretir. Hareketli olanları `fxsheet` (havanın efektleri), `glidesheet` (pilin
@@ -320,20 +320,20 @@ Testler ve clippy (`.cargo\config.toml`'daki kısaltmalar) quick profilinde çal
   öğelerini, Explorer'ın kopyalama pencerelerini, ses çıkışlarını, medya oturumlarını ve maç
   verisini yalnızca okuyarak yazdırır.
 - **Çeviri:** arayüz metinleri kodda Türkçe yazılır (`tr("…")`, Slint'te `@tr("…")`); İngilizceleri
-  `i18n\en\LC_MESSAGES\nowbar-ui.po` dosyasındadır. `python tools\i18n-extract.py` eksik metinleri
+  `i18n\en\LC_MESSAGES\pebbly-ui.po` dosyasındadır. `python tools\i18n-extract.py` eksik metinleri
   bu dosyaya boş olarak ekler; her birinin İngilizcesi yazılana kadar `cargo t` başarısız olur.
 - `tools\*.ps1`: titreme, boştaki kullanım, Explorer'ın yeniden başlatılması ve diğer ölçümler.
-- `nowbar.exe --demo`: bir dakikalık örnek bir zamanlayıcıyla başlar; `--match-replay <klasör>`
+- `pebbly.exe --demo`: bir dakikalık örnek bir zamanlayıcıyla başlar; `--match-replay <klasör>`
   kaydedilmiş skor tablolarıyla bir maçı yeniden oynatır.
 - `assets\make_icon.py`: simgeyi (tepsideki beyaz hap) yeniden çizer.
 - **Sürüm yayınlamak:** `Cargo.toml`'daki `version`'ı artır, `tools\make-setup.ps1`'i çalıştır,
   sonra `dist\` içindekileri yayınla:
-  `gh release create vX.Y.Z dist\nowbar-setup.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt`.
-  `nowbar.exe --update-from <klasör>` güncellemeyi GitHub olmadan, bir klasördeki exe'lerle dener.
+  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\SHA256SUMS.txt`.
+  `pebbly.exe --update-from <klasör>` güncellemeyi GitHub olmadan, bir klasördeki exe'lerle dener.
 
 ## Lisans
 
-Now Bar, [GNU Genel Kamu Lisansı sürüm 3](LICENSE) (GPL-3.0) ile lisanslıdır. Kodu
+Pebbly, [GNU Genel Kamu Lisansı sürüm 3](LICENSE) (GPL-3.0) ile lisanslıdır. Kodu
 kullanabilir, değiştirebilir ve dağıtabilirsin; değiştirip dağıttığın sürümün kaynak kodunu da
 aynı lisansla açman gerekir. Telif hakkı © 2026 nixesty.
 

@@ -11,7 +11,7 @@ linker = "rust-lld.exe"
 # `cargo sheet <name> -- <args>`), or the app compiles a second time. Not in [build]: make-setup's
 # releases build without it. A plain `cargo test` would bring back a full set in debug\.
 [alias]
-b = "build --profile quick --config build.rustc-workspace-wrapper='clippy-driver' --bin nowbar --bin nowbar-settings"
+b = "build --profile quick --config build.rustc-workspace-wrapper='clippy-driver' --bin pebbly --bin pebbly-settings"
 t = "test --workspace --profile quick --config build.rustc-workspace-wrapper='clippy-driver'"
 lint = "build --workspace --lib --bins --tests --profile quick --config build.rustc-workspace-wrapper='clippy-driver'"
 sheet = "run --profile quick --config build.rustc-workspace-wrapper='clippy-driver' --bin"

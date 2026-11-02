@@ -535,14 +535,14 @@ fn effects_enabled() -> bool {
     os::card_blur(os::generation(), settings::current().card_blur, transparency)
 }
 
-/// Starts the settings window (`nowbar-settings.exe` next to this exe); it keeps one instance.
+/// Starts the settings window (`pebbly-settings.exe` next to this exe); it keeps one instance.
 fn open_settings() {
     open_settings_at(None);
 }
 
 /// The settings window on `page` (`--page N`; an open window switches to it).
 fn open_settings_at(page: Option<u8>) {
-    let exe = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("nowbar-settings.exe")));
+    let exe = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("pebbly-settings.exe")));
     match exe {
         Some(path) if path.exists() => {
             let mut cmd = std::process::Command::new(path);
@@ -557,7 +557,7 @@ fn open_settings_at(page: Option<u8>) {
                 log(&format!("settings window: {e:?}"));
             }
         }
-        _ => log("settings window: nowbar-settings.exe not found next to nowbar.exe"),
+        _ => log("settings window: pebbly-settings.exe not found next to pebbly.exe"),
     }
 }
 
@@ -774,7 +774,7 @@ pub struct App {
     alert_watch: AlertWatch,
     alerts: std::collections::VecDeque<Alert>,
     alert_moment: Option<(Alert, u64)>,
-    /// What other programs sent (`nowbar.exe push`, Claude Code's hooks, apps through the API).
+    /// What other programs sent (`pebbly.exe push`, Claude Code's hooks, apps through the API).
     live: LiveSet,
     /// The API: its listener while it is on, what it hands over, and the prompts, waiting
     /// requests and clicks.
@@ -1419,7 +1419,7 @@ impl App {
         p
     }
 
-    /// The followed matches the Now Bar shows now (settings: on, the window around kick-off,
+    /// The followed matches Pebbly shows now (settings: on, the window around kick-off,
     /// not hidden from the menu).
     fn shown_matches(&self, _now: u64) -> Vec<&MatchSnapshot> {
         let s = settings::current();
@@ -2076,7 +2076,7 @@ impl App {
     }
 
     /// The card's answer to the permission its Claude session waits for: to the hook process
-    /// (its NowBarAsk window); if that is gone, Claude's own dialog has it.
+    /// (its PebblyAsk window); if that is gone, Claude's own dialog has it.
     fn answer_claude(&mut self, allow: bool, painted: u32) {
         let Some(OpenCard::Activity(ActivityKind::Live(key))) = self.open else { return };
         let Some(ask) = self.live.get(key).and_then(|i| i.info.ask.clone()).filter(|a| !a.id.is_empty()) else { return };
@@ -2977,7 +2977,7 @@ impl App {
         self.refresh()
     }
 
-    /// Takes the football worker's matches (drawn in the Now Bar by the match activity).
+    /// Takes the football worker's matches (drawn in Pebbly by the match activity).
     fn take_matches(&mut self) -> Result<()> {
         let football = self.matches_mailbox.lock().ok().and_then(|mut slot| slot.take());
         let games = self.games_mailbox.lock().ok().and_then(|mut slot| slot.take());
@@ -3044,7 +3044,7 @@ impl App {
             match p {
                 Progress::Found(s) => self.update_ready = newer(&s.latest, VERSION).then_some(s),
                 Progress::Installed => {
-                    // main starts the new Now Bar once this loop is over (restart_after_update).
+                    // main starts the new Pebbly once this loop is over (restart_after_update).
                     unsafe { PostQuitMessage(0) };
                 }
                 Progress::Failed(why) => log(&format!("update: {why}")),
@@ -3053,7 +3053,7 @@ impl App {
         Ok(())
     }
 
-    /// The API listens while the Now Bar and the API are both on; off, it closes the port and
+    /// The API listens while Pebbly and the API are both on; off, it closes the port and
     /// whatever waits hears so.
     fn follow_api(&mut self) {
         let s = settings::current();
@@ -3173,7 +3173,7 @@ impl App {
         }
     }
 
-    /// Commands from `nowbar.exe push` and the like.
+    /// Commands from `pebbly.exe push` and the like.
     fn take_ipc(&mut self) -> Result<()> {
         let now = now_ms();
         let before = self.live_states();
@@ -4616,7 +4616,7 @@ mod tests {
         let (w, h) = card_size_dip(&CardContent::Brief(Box::new(full.clone())));
         assert!(w <= CARD_FRAME_W_DIP && h <= CARD_FRAME_H_DIP, "a full brief is {w}×{h}");
         // The away row takes the screen time's place.
-        let back = BriefCard { screen: None, away: Some(("Sen yokken · 4 şey".into(), "Claude bitti · now-bar".into())), ..full };
+        let back = BriefCard { screen: None, away: Some(("Sen yokken · 4 şey".into(), "Claude bitti · pebbly".into())), ..full };
         assert_eq!(card_size_dip(&CardContent::Brief(Box::new(back))).1, h);
         let row = || AwayRow { kind: AwayKind::Timer, text: "Zamanlayıcı bitti".into(), time: "17:05".into(), crest: None };
         let card = AwayCard { span: "14:02 – 17:14 · 3 sa 12 dk".into(), rows: (0..away::CARD_ROWS).map(|_| row()).collect(), more: 14 };

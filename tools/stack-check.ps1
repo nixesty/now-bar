@@ -1,8 +1,8 @@
 # Two activities at once: starts a 5-minute timer and a stopwatch from the picker, then turns the
 # mouse wheel over the pill. Saves screenshots into -Dir. No alarm.
 param(
-  [string]$Exe = "$PSScriptRoot/../target/quick/nowbar.exe",
-  [string]$Dir = "$env:TEMP/nowbar-stack-check"
+  [string]$Exe = "$PSScriptRoot/../target/quick/pebbly.exe",
+  [string]$Dir = "$env:TEMP/pebbly-stack-check"
 )
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
@@ -27,7 +27,7 @@ $bmp = New-Object System.Drawing.Bitmap 700, 120; $g = [System.Drawing.Graphics]
 function Shot($name) { $g.CopyFromScreen(610, 960, 0, 0, $bmp.Size); $bmp.Save("$Dir/$name.png", [System.Drawing.Imaging.ImageFormat]::Png) }
 function Away { [Sc]::SetCursorPos(1600, 500) | Out-Null }
 
-Get-Process nowbar -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process pebbly -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Process $Exe | Out-Null; Start-Sleep -Milliseconds 1500
 [Sc]::WinAltN(); Start-Sleep -Milliseconds 700; [Sc]::Click(856, 734); Start-Sleep -Milliseconds 200; [Sc]::Click(1103, 880); [Sc]::Key(0x0D); Away; Start-Sleep -Milliseconds 900
 Shot "1-timer"

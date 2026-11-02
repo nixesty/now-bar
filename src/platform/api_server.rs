@@ -111,9 +111,9 @@ impl Drop for ApiServer {
     }
 }
 
-/// `%LOCALAPPDATA%\NowBar\api.json`.
+/// `%LOCALAPPDATA%\Pebbly\api.json`.
 fn discovery_path() -> Option<PathBuf> {
-    std::env::var_os("LOCALAPPDATA").map(|d| PathBuf::from(d).join("NowBar").join("api.json"))
+    std::env::var_os("LOCALAPPDATA").map(|d| PathBuf::from(d).join("Pebbly").join("api.json"))
 }
 
 fn accept(listener: TcpListener, shared: Arc<Shared>) {
@@ -484,7 +484,7 @@ mod tests {
         let (s, _) = server(Duration::from_secs(1));
         let r = ask(s.port(), &format!("GET /v1 HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n", s.port()));
         assert!(r.starts_with("HTTP/1.1 200 OK\r\n"), "{r}");
-        assert!(r.contains(r#""name":"Now Bar""#), "{r}");
+        assert!(r.contains(r#""name":"Pebbly""#), "{r}");
     }
 
     #[test]
@@ -602,13 +602,13 @@ mod tests {
     }
 
     /// Dev: a server for real clients (DOCS.md's examples) for a minute, every app allowed, on
-    /// the port written to `%TEMP%\nowbar-api-probe.port`; each request's caller is printed.
+    /// the port written to `%TEMP%\pebbly-api-probe.port`; each request's caller is printed.
     /// `cargo test --profile quick --lib live_api_clients -- --ignored --nocapture`
     #[test]
     #[ignore]
     fn live_api_clients() {
         let (s, mailbox) = server(Duration::from_secs(20));
-        std::fs::write(std::env::temp_dir().join("nowbar-api-probe.port"), s.port().to_string()).unwrap();
+        std::fs::write(std::env::temp_dir().join("pebbly-api-probe.port"), s.port().to_string()).unwrap();
         let end = std::time::Instant::now() + Duration::from_secs(60);
         while std::time::Instant::now() < end {
             for call in mailbox.lock().map(|mut m| std::mem::take(&mut *m)).unwrap_or_default() {

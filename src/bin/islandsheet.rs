@@ -3,12 +3,12 @@
 //! and photographs the island's window along the way into `<dir>/island-<phase>-<ms>.png`
 //! (PrintWindow asks DWM for the composed content). Usage: `islandsheet [dir]`.
 
-use nowbar::activities::live::LiveState;
-use nowbar::activities::weather_alert::AlertKind;
-use nowbar::render::gfx::Gfx;
-use nowbar::render::island::Island;
-use nowbar::render::layout::{RectPx, Scale};
-use nowbar::render::pill::PillContent;
+use pebbly::activities::live::LiveState;
+use pebbly::activities::weather_alert::AlertKind;
+use pebbly::render::gfx::Gfx;
+use pebbly::render::island::Island;
+use pebbly::render::layout::{RectPx, Scale};
+use pebbly::render::pill::PillContent;
 use windows::core::{Result, HSTRING};
 use windows::Win32::Foundation::{GENERIC_WRITE, HWND};
 use windows::Win32::Graphics::Gdi::*;
@@ -115,7 +115,7 @@ fn main() -> Result<()> {
     // A 1920 × 1080 "monitor" far off every screen: DWM still composes it, nobody sees it.
     let monitor = RectPx { x: -20_000, y: -20_000, w: 1920, h: 1080 };
     let mut island = Island::new(&g)?;
-    let ask = PillContent::Live { key: 1, title: "now-bar".into(), status: "İzin istiyor".into(), claude: true, state: LiveState::Wait, action: "Bash".into() };
+    let ask = PillContent::Live { key: 1, title: "pebbly".into(), status: "İzin istiyor".into(), claude: true, state: LiveState::Wait, action: "Bash".into() };
     island.show(&g, &ask, &s, monitor)?;
     shoot(&island, &dir, "in", &[0, 60, 120, 200, 320, 600])?;
     let wind = PillContent::WeatherAlert { kind: AlertKind::Wind, head: "Kuvvetli rüzgâr".into(), detail: "65 km/sa · 21:00".into() };

@@ -1,6 +1,6 @@
 # Opens a borderless window covering the primary monitor (like a borderless game or F11 video)
-# and reports whether the pill is hidden meanwhile and back afterwards. Starts nowbar --demo.
-param([string]$Exe = "$PSScriptRoot/../target/quick/nowbar.exe")
+# and reports whether the pill is hidden meanwhile and back afterwards. Starts pebbly --demo.
+param([string]$Exe = "$PSScriptRoot/../target/quick/pebbly.exe")
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
 using System; using System.Runtime.InteropServices;
@@ -21,13 +21,13 @@ public static class Fc {
   public static string Fg() { var h = GetForegroundWindow(); var sb = new System.Text.StringBuilder(256); GetClassName(h, sb, 256); R r; DwmGetWindowAttribute(h, 9, out r, 16); return String.Format("{0} ({1},{2})-({3},{4})", sb, r.L, r.T, r.Rt, r.B); }
   public static string Pill() {
     IntPtr bar = FindWindow("Shell_TrayWnd", null);
-    IntPtr input = FindWindowEx(bar, IntPtr.Zero, "NowBarPillInput", null);
+    IntPtr input = FindWindowEx(bar, IntPtr.Zero, "PebblyPillInput", null);
     return input == IntPtr.Zero ? "missing" : (IsWindowVisible(input) ? "visible" : "hidden");
   }
 }
 "@
 [Fc]::SetProcessDpiAwarenessContext([IntPtr]-4) | Out-Null
-Get-Process nowbar -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process pebbly -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Process $Exe -ArgumentList "--demo" | Out-Null; Start-Sleep -Milliseconds 1500
 "before:              pill " + [Fc]::Pill()
 $form = New-Object System.Windows.Forms.Form

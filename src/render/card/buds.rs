@@ -162,8 +162,8 @@ pub(in crate::render) fn buds_height_dip(c: &BudsCard) -> f32 {
 
 macro_rules! renders {
     ($($id:literal => $asset:literal, $colour:expr;)*) => {
-        /// GalaxyBudsClient's renders (Samsung's product pictures, `assets/buds`) of the models the
-        /// Now Bar connects to, left and right, by model id (with its colour), and each render's
+        /// GalaxyBudsClient's renders (Samsung's product pictures, `assets/buds`) of the models
+        /// Pebbly connects to, left and right, by model id (with its colour), and each render's
         /// average colour: the case is drawn in it.
         fn render_of(model: u16) -> Option<([&'static [u8]; 2], (u8, u8, u8))> {
             match model {
@@ -899,7 +899,7 @@ mod tests {
     }
 
     #[test]
-    fn every_model_the_now_bar_reads_has_its_render() {
+    fn every_model_the_pebbly_reads_has_its_render() {
         // Buds Pro, Buds2 (not the unreleased yellow), Core, Buds2 Pro, FE, Buds3, 3 Pro, 3 FE, 4, 4 Pro.
         let ids = [298..=301, 313..=314, 316..=323, 326..=328, 330..=331, 333..=334, 340..=341, 347..=348, 355..=356, 359..=361];
         for id in ids.into_iter().flatten() {

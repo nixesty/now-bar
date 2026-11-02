@@ -1,7 +1,7 @@
 # Clicks through taskbar interactions while probing one pixel of the pill (the accent circle)
 # every frame. Every line must say "hidden in 0". Restores the cursor afterwards.
 param(
-  [string]$Exe = "$PSScriptRoot/../bin/nowbar.exe",
+  [string]$Exe = "$PSScriptRoot/../bin/pebbly.exe",
   [string]$ExeArgs = "",
   [int]$ProbeX = 870, [int]$ProbeY = 1055, [int]$MinBlue = 150,
   [int]$EmptyX = 1250, [int]$BarY = 1055,
@@ -34,7 +34,7 @@ public static class Flick {
 [Flick]::PX = $ProbeX; [Flick]::PY = $ProbeY; [Flick]::Min = $MinBlue
 $orig = New-Object Flick+P; [Flick]::GetCursorPos([ref]$orig) | Out-Null
 if (-not $NoLaunch) {
-  Get-Process nowbar -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process pebbly -ErrorAction SilentlyContinue | Stop-Process -Force
   if ($ExeArgs) { Start-Process $Exe -ArgumentList $ExeArgs | Out-Null } else { Start-Process $Exe | Out-Null }
   Start-Sleep -Milliseconds 1500
 }

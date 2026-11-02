@@ -84,7 +84,7 @@ impl PickerState {
 
 
 /// The media card: the snapshot, the position to draw (interpolated by the app), the output
-/// device name, a seek preview while the thumb is dragged, and (index, count) of the Now Bar
+/// device name, a seek preview while the thumb is dragged, and (index, count) of Pebbly
 /// items for the page dots.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MediaCard {
@@ -290,7 +290,7 @@ pub struct AwayCard {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AwayRow {
     pub kind: AwayKind,
-    /// "Claude bitti · now-bar"
+    /// "Claude bitti · pebbly"
     pub text: String,
     /// "17:05"
     pub time: String,
@@ -597,7 +597,7 @@ pub struct BriefCard {
     pub music: Option<BriefMusic>,
     /// Dijital Denge's row: ("Ekran süresi · 3 sa 40 dk", "Bugün · VS Code 1 sa 50 dk").
     pub screen: Option<(String, String)>,
-    /// Just back from a lock: ("Sen yokken · 4 şey", "Claude bitti · now-bar").
+    /// Just back from a lock: ("Sen yokken · 4 şey", "Claude bitti · pebbly").
     pub away: Option<(String, String)>,
 }
 
@@ -2353,7 +2353,7 @@ impl Painter<'_, '_> {
             self.ink.text(label, chip, &st.centered())?;
             self.hits.push((chip, CardAction::Lyrics));
         }
-        // Page dots: one per Now Bar item, the current one solid (scroll or swipe to change).
+        // Page dots: one per Pebbly item, the current one solid (scroll or swipe to change).
         let (page, pages) = card.pages;
         if pages > 1 {
             let (dot, gap) = (d(6.0), d(5.0));
@@ -2550,7 +2550,7 @@ mod tests {
     #[test]
     fn the_away_row_is_the_screen_rows_shape() {
         let h = |b: BriefCard| card_size_dip(&CardContent::Brief(Box::new(b))).1;
-        let back = BriefCard { away: Some(("Sen yokken · 4 şey".into(), "Claude bitti · now-bar".into())), ..brief(false, false, 0, false, false) };
+        let back = BriefCard { away: Some(("Sen yokken · 4 şey".into(), "Claude bitti · pebbly".into())), ..brief(false, false, 0, false, false) };
         assert_eq!(h(back), 84.0 + 68.0);
     }
 
@@ -2730,7 +2730,7 @@ mod tests {
     fn claude(ask: bool, focus: bool) -> ClaudeCard {
         ClaudeCard {
             key: 1,
-            title: "now-bar".into(),
+            title: "pebbly".into(),
             state: if ask { LiveState::Wait } else { LiveState::Run },
             status: "Çalışıyor · 3:12".into(),
             steps: vec![],

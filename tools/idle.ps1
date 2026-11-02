@@ -1,12 +1,12 @@
-# CPU use and memory of the running nowbar.exe over -Seconds (default 10). Doesn't start it.
+# CPU use and memory of the running pebbly.exe over -Seconds (default 10). Doesn't start it.
 # Uses QueryProcessCycleTime: TotalProcessorTime only counts whole 15.6 ms scheduler ticks.
 param([int]$Seconds = 10)
 Add-Type @"
 using System; using System.Runtime.InteropServices;
 public static class Cyc { [DllImport("kernel32.dll")] public static extern bool QueryProcessCycleTime(IntPtr h, out ulong cycles); }
 "@
-$p = Get-Process nowbar -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $p) { "nowbar is not running"; exit 1 }
+$p = Get-Process pebbly -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $p) { "pebbly is not running"; exit 1 }
 $mhz = (Get-CimInstance Win32_Processor | Select-Object -First 1).MaxClockSpeed
 $c0 = 0; [Cyc]::QueryProcessCycleTime($p.Handle, [ref]$c0) | Out-Null
 Start-Sleep -Seconds $Seconds

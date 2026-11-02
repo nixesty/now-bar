@@ -37,7 +37,7 @@ pub enum Why {
     NoRecognizer,
     /// The file isn't a picture Windows opens.
     Unreadable,
-    /// Nothing could be written, beside the files or in the Now Bar's own folder.
+    /// Nothing could be written, beside the files or in Pebbly's own folder.
     Unwritable,
     /// Past a zip's 4 GB.
     TooBig,
@@ -54,7 +54,7 @@ pub enum Done {
 
 pub type ToolMailbox = Arc<Mutex<Vec<Done>>>;
 
-/// Where a tool's file goes when the source's folder takes none (`%LOCALAPPDATA%\NowBar\Raf`).
+/// Where a tool's file goes when the source's folder takes none (`%LOCALAPPDATA%\Pebbly\Raf`).
 pub fn made_dir() -> PathBuf {
     crate::platform::log::log_path().with_file_name("Raf")
 }
@@ -147,7 +147,7 @@ fn read_text(path: &Path) -> Result<(String, Option<String>), Why> {
     }
 }
 
-/// Each picture shrunk: beside it, or in the Now Bar's folder when its own takes nothing.
+/// Each picture shrunk: beside it, or in Pebbly's folder when its own takes nothing.
 fn shrink_all(pictures: &[(PathBuf, PathBuf)]) -> Done {
     let (mut files, mut not_smaller, mut failed) = (Vec::new(), 0, None);
     for (src, dest) in pictures {
@@ -155,11 +155,11 @@ fn shrink_all(pictures: &[(PathBuf, PathBuf)]) -> Done {
             let write = |at: &Path| unsafe { write_jpeg(at, w, h, &bgr) }.inspect_err(|_| {
                 let _ = std::fs::remove_file(at);
             });
-            // Only a folder that takes no file sends it to the Now Bar's.
+            // Only a folder that takes no file sends it to Pebbly's.
             let at = match write(dest) {
                 Ok(()) => dest.clone(),
                 Err(e) => {
-                    log(&format!("shelf tools: can't write beside the picture ({e}), into the Now Bar's folder"));
+                    log(&format!("shelf tools: can't write beside the picture ({e}), into Pebbly's folder"));
                     let _ = std::fs::create_dir_all(made_dir());
                     let fallback = unique_path(&made_dir(), &dest.file_name().unwrap_or_default().to_string_lossy(), Path::exists);
                     write(&fallback)?;
@@ -237,14 +237,14 @@ unsafe fn write_jpeg(path: &Path, w: u32, h: u32, bgr: &[u8]) -> windows::core::
     }
 }
 
-/// `files` zipped at `out`, or in the Now Bar's folder when `out`'s takes nothing.
+/// `files` zipped at `out`, or in Pebbly's folder when `out`'s takes nothing.
 fn zip(files: &[PathBuf], out: &Path) -> Result<PathBuf, Why> {
-    // Only a folder that takes no file sends it to the Now Bar's; a file that won't read fails it.
+    // Only a folder that takes no file sends it to Pebbly's; a file that won't read fails it.
     // The errors' kinds only: their words may carry a file's name.
     let (file, at) = match File::create(out) {
         Ok(f) => (f, out.to_path_buf()),
         Err(e) => {
-            log(&format!("shelf tools: can't write the zip beside the files ({:?}), into the Now Bar's folder", e.kind()));
+            log(&format!("shelf tools: can't write the zip beside the files ({:?}), into Pebbly's folder", e.kind()));
             let _ = std::fs::create_dir_all(made_dir());
             let fallback = unique_path(&made_dir(), &out.file_name().unwrap_or_default().to_string_lossy(), Path::exists);
             (File::create(&fallback).map_err(|_| Why::Unwritable)?, fallback)
@@ -266,7 +266,7 @@ mod tests {
     use crate::render::crest::write_test_png;
 
     fn dir(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("nowbar-tools-{name}-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("pebbly-tools-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
@@ -324,20 +324,20 @@ mod tests {
         assert_eq!(&bytes[..4], b"PK\x03\x04", "a zip");
         let has = |name: &str| bytes.windows(name.len()).any(|w| w == name.as_bytes());
         assert!(has("şarkı listesi.txt") && has("Klasör/iç.txt"), "by name, in UTF-8");
-        assert!(!has("nowbar-tools"), "not by the path they came from");
+        assert!(!has("pebbly-tools"), "not by the path they came from");
         let _ = std::fs::remove_dir_all(&d);
     }
 
-    /// Windows' recogniser on `NOWBAR_OCR_FILE` (a sheet's PNG), or on made-up bars:
+    /// Windows' recogniser on `PEBBLY_OCR_FILE` (a sheet's PNG), or on made-up bars:
     /// `cargo t --lib live_ocr -- --ignored --nocapture`.
     #[test]
     #[ignore]
     fn live_ocr() {
         let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
-        let path = match std::env::var_os("NOWBAR_OCR_FILE") {
+        let path = match std::env::var_os("PEBBLY_OCR_FILE") {
             Some(p) => PathBuf::from(p),
             None => {
-                let path = std::env::temp_dir().join("nowbar-ocr-test.png");
+                let path = std::env::temp_dir().join("pebbly-ocr-test.png");
                 // Black bars on white: no text, but the whole road from the file to the recogniser.
                 write_test_png(&path, 400, 120, |x, _| if (x / 20) % 2 == 0 { [0, 0, 0, 255] } else { [255, 255, 255, 255] });
                 path

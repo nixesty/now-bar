@@ -3,22 +3,22 @@
 //! `assets/readme/`. The samples are made up: a drawn cover, no club crests, no box art.
 //! Usage: `readmesheet [--en] [dir]`.
 
-use nowbar::activities::buds::{BudsSnapshot, NoiseControl, Worn};
-use nowbar::activities::claude::StepKind;
-use nowbar::activities::football::{centre_text, parse_event, Fixture, MatchSnapshot, MatchStatus, Team};
-use nowbar::activities::games::Store;
-use nowbar::activities::live::LiveState;
-use nowbar::activities::media::{Caps, MediaSnapshot, Timeline};
-use nowbar::activities::shelf::{file_kind, FileKind};
-use nowbar::activities::weather::{describe, symbol, WeatherFx};
-use nowbar::activities::weather_alert::AlertKind;
-use nowbar::i18n::tr;
-use nowbar::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, BudsCard, BriefCard, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LyricsView, MatchCard, MediaCard, ShelfCard, ShelfTile, TimerCard, WeatherCard, WellbeingApp, WellbeingCard};
-use nowbar::render::color::{accent_from_rgba, team_palette};
-use nowbar::render::crest::Crest;
-use nowbar::render::gfx::{rect, rgba, Ink, TextKit};
-use nowbar::render::layout::Scale;
-use nowbar::render::pill::{paint_media_still, paint_pill_content, MatchPill, PillContent, PillTeam, PillThumb};
+use pebbly::activities::buds::{BudsSnapshot, NoiseControl, Worn};
+use pebbly::activities::claude::StepKind;
+use pebbly::activities::football::{centre_text, parse_event, Fixture, MatchSnapshot, MatchStatus, Team};
+use pebbly::activities::games::Store;
+use pebbly::activities::live::LiveState;
+use pebbly::activities::media::{Caps, MediaSnapshot, Timeline};
+use pebbly::activities::shelf::{file_kind, FileKind};
+use pebbly::activities::weather::{describe, symbol, WeatherFx};
+use pebbly::activities::weather_alert::AlertKind;
+use pebbly::i18n::tr;
+use pebbly::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, BudsCard, BriefCard, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LyricsView, MatchCard, MediaCard, ShelfCard, ShelfTile, TimerCard, WeatherCard, WellbeingApp, WellbeingCard};
+use pebbly::render::color::{accent_from_rgba, team_palette};
+use pebbly::render::crest::Crest;
+use pebbly::render::gfx::{rect, rgba, Ink, TextKit};
+use pebbly::render::layout::Scale;
+use pebbly::render::pill::{paint_media_still, paint_pill_content, MatchPill, PillContent, PillTeam, PillThumb};
 use windows::core::{Interface, Result, HSTRING};
 use windows::Win32::Foundation::GENERIC_WRITE;
 use windows::Win32::Graphics::Direct2D::Common::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_COLOR_F, D2D1_PIXEL_FORMAT};
@@ -94,7 +94,7 @@ fn derby() -> MatchSnapshot {
     m
 }
 
-fn colours(t: &Team) -> nowbar::render::color::TeamPalette {
+fn colours(t: &Team) -> pebbly::render::color::TeamPalette {
     let (p, s) = t.colors.unwrap_or(([0x8A; 3], [0xFF; 3]));
     team_palette(p, s)
 }
@@ -108,11 +108,11 @@ fn shelf(n: usize, side: u32) -> ShelfCard {
         .map(|(name, hue)| ShelfTile { name: name.to_string(), thumb: hue.map(|h: usize| swatch(side, photo[h].0, photo[h].1)), kind: file_kind(name, *name == "Projeler"), selected: false })
         .collect::<Vec<_>>();
     // Nothing selected: the chips act on everything.
-    let items: Vec<nowbar::activities::shelf::ShelfItem> =
-        tiles.iter().map(|t| nowbar::activities::shelf::ShelfItem { path: format!(r"C:\Raf\{}", t.name).into(), name: t.name.clone(), kind: t.kind }).collect();
-    let chips = nowbar::activities::shelf::ops(&items.iter().collect::<Vec<_>>())
+    let items: Vec<pebbly::activities::shelf::ShelfItem> =
+        tiles.iter().map(|t| pebbly::activities::shelf::ShelfItem { path: format!(r"C:\Raf\{}", t.name).into(), name: t.name.clone(), kind: t.kind }).collect();
+    let chips = pebbly::activities::shelf::ops(&items.iter().collect::<Vec<_>>())
         .into_iter()
-        .map(|op| (op, nowbar::activities::shelf::op_label(op).to_string()))
+        .map(|op| (op, pebbly::activities::shelf::op_label(op).to_string()))
         .collect();
     ShelfCard { tiles, hover: None, chips, said: None }
 }
@@ -201,7 +201,7 @@ impl Sheet {
 
 fn main() -> Result<()> {
     if std::env::args().any(|a| a == "--en") {
-        nowbar::i18n::set_language(nowbar::i18n::Language::English);
+        pebbly::i18n::set_language(pebbly::i18n::Language::English);
     }
     let dir = std::env::args().skip(1).find(|a| a != "--en").unwrap_or_else(|| std::env::temp_dir().join("readmesheet").to_string_lossy().into_owned());
     let _ = std::fs::create_dir_all(&dir);
@@ -256,13 +256,13 @@ fn main() -> Result<()> {
     sheet.card("card-buds", &CardContent::Buds(BudsCard { b: buds, ..Default::default() }), &s)?;
     let claude = ClaudeCard {
         key: 1,
-        title: "now-bar".into(),
+        title: "pebbly".into(),
         state: LiveState::Wait,
         status: tr("İzin istiyor").into(),
         tasks: None,
         steps: vec![(StepKind::Edit, "Düzenliyor: pill.rs".to_string())],
         summary: None,
-        ask: Some(ClaudeAsk { key: 7, tool: "Bash".into(), detail: "cargo build --profile quick --bin nowbar".into(), answerable: true }),
+        ask: Some(ClaudeAsk { key: 7, tool: "Bash".into(), detail: "cargo build --profile quick --bin pebbly".into(), answerable: true }),
         can_focus: true,
     };
     sheet.card("card-claude", &CardContent::Claude(Box::new(claude)), &s)?;
@@ -345,7 +345,7 @@ fn main() -> Result<()> {
         ("pill-rain", PillContent::Rain { snow: false, when: "~20 dk içinde".into() }),
         ("pill-power", PillContent::Power { pct: 80, low: false }),
         ("pill-buds", PillContent::Buds(BudsSnapshot { left: 60, right: 70, case: Some(40), noise: None, worn: Worn { left: true, right: true }, ..Default::default() })),
-        ("pill-claude", PillContent::Live { key: 1, title: "now-bar".into(), status: "İzin istiyor".into(), claude: true, state: LiveState::Wait, action: "Bash".into() }),
+        ("pill-claude", PillContent::Live { key: 1, title: "pebbly".into(), status: "İzin istiyor".into(), claude: true, state: LiveState::Wait, action: "Bash".into() }),
         ("pill-privacy", PillContent::Privacy { app: "Zoom".into(), mic: true, cam: true, more: 0 }),
         ("pill-game", PillContent::Game { key: 1, store: Store::Steam, title: "Counter-Strike 2".into(), line: "%48 · 18 MB/sn".into(), progress: Some(0.48), art: None, done: false, paused: false }),
         ("pill-shelf", PillContent::Shelf { label: "ekran-goruntusu.png".into(), count: 3, thumbs: vec![PillThumb { thumb: Some(swatch(thumb, [0xE8, 0x6A, 0x3A], [0x8E, 0x2B, 0x5C])), kind: FileKind::Image }, PillThumb { thumb: None, kind: FileKind::Archive }], drop_hint: false, min_width_dip: 0.0 }),

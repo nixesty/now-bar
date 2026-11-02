@@ -1,4 +1,4 @@
-// The setup's one window: a stage on the left where real Now Bar pills turn in a taskbar, the
+// The setup's one window: a stage on the left where real Pebbly pills turn in a taskbar, the
 // app and its choices on the right. Same family as the settings window (Raycast Nocturne, Inter,
 // Windows' own frame without its title bar).
 
@@ -74,8 +74,8 @@ component Primary inherits Rectangle {
     }
 }
 
-/// The left panel: a strip of taskbar at the bottom and the pill in it, turning through what the
-/// Now Bar shows (each pill drawn by the Now Bar's own painter; the body is drawn here so its
+/// The left panel: a strip of taskbar at the bottom and the pill in it, turning through what
+/// Pebbly shows (each pill drawn by Pebbly's own painter; the body is drawn here so its
 /// width and colours can glide from one to the next).
 component Stage inherits Rectangle {
     in property <[image]> pills;
@@ -208,7 +208,7 @@ export component SetupWindow inherits Window {
     in property <string> mode: "install";
     /// "ready", "working", "done" or "error".
     in property <string> phase: "ready";
-    in property <string> heading: "Now Bar";
+    in property <string> heading: "Pebbly";
     in property <string> subtitle: @tr("Görev çubuğunda canlı etkinlikler");
     in property <string> version;
     in property <string> location;
@@ -248,8 +248,8 @@ export component SetupWindow inherits Window {
     property <length> col-x: 368px;
     property <length> col-w: self.width - col-x - 28px;
 
-    title: mode == "uninstall" ? @tr("Now Bar'ı kaldır") : @tr("Now Bar kurulumu");
-    icon: @image-url("../../assets/nowbar-256.png");
+    title: mode == "uninstall" ? @tr("Pebbly'yi kaldır") : @tr("Pebbly kurulumu");
+    icon: @image-url("../../assets/pebbly-256.png");
     width: 700px;
     height: 496px;
     no-frame: !root.framed;
@@ -401,7 +401,7 @@ export component SetupWindow inherits Window {
             width: parent.width - 40px;
             height: 28px;
             vertical-alignment: center;
-            text: root.phase == "done" ? (root.mode == "uninstall" ? @tr("Now Bar kaldırıldı") : @tr("Now Bar kuruldu")) : (root.mode == "uninstall" ? @tr("Kaldırma tamamlanamadı") : @tr("Kurulum tamamlanamadı"));
+            text: root.phase == "done" ? (root.mode == "uninstall" ? @tr("Pebbly kaldırıldı") : @tr("Pebbly kuruldu")) : (root.mode == "uninstall" ? @tr("Kaldırma tamamlanamadı") : @tr("Kurulum tamamlanamadı"));
             font-size: 15px;
             font-weight: 600;
             color: Theme.strong;

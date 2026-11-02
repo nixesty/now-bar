@@ -15,7 +15,7 @@ pub enum Generation {
 /// The first Windows 11 build.
 const WINDOWS_11: u32 = 22000;
 /// Windows 10 1809: the media sessions (GlobalSystemMediaTransportControls) and composition in
-/// desktop windows, which the Now Bar is built on, start here.
+/// desktop windows, which Pebbly is built on, start here.
 pub const MIN_BUILD: u32 = 17763;
 /// 20H1's builds took the dark title bar attribute from 19 to 20.
 const DARK_MODE_20: u32 = 18985;

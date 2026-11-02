@@ -63,10 +63,10 @@ pub fn place() -> Option<WeatherCity> {
 
 fn located_path() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("NowBar").join("place.json")
+    base.join("Pebbly").join("place.json")
 }
 
-/// What the Now Bar last found of where the PC is (the settings window's location row).
+/// What Pebbly last found of where the PC is (the settings window's location row).
 pub fn read_located() -> Located {
     std::fs::read_to_string(located_path()).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
 }

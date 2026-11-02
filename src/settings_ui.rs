@@ -41,7 +41,7 @@ pub const INDEX: &[Entry] = &[
     e(0, "marquee", n_("Hareket"), n_("Kayan başlık"), n_("Pile sığmayan şarkı adı"), "kayma marquee başlık"),
     e(0, "marquee-speed", n_("Hareket"), n_("Kayma hızı"), n_("Kayan başlığın hızı"), "kayma hız marquee"),
     e(1, "language", n_("Dil"), n_("Arayüzün dili"), n_("Otomatik: Windows'unki; Türkçe ya da İngilizce"), "dil language english ingilizce türkçe turkish arayüz"),
-    e(1, "autostart", n_("Başlangıç"), n_("Windows ile başlat"), n_("Oturum açınca Now Bar kendiliğinden çalışır"), "başlangıç açılış otomatik"),
+    e(1, "autostart", n_("Başlangıç"), n_("Windows ile başlat"), n_("Oturum açınca Pebbly kendiliğinden çalışır"), "başlangıç açılış otomatik"),
     e(1, "hotkey", n_("Kısayol ve tepsi"), n_("Seçici kısayolu"), n_("Zamanlayıcı seçicisini açar"), "klavye tuş hotkey win alt"),
     e(1, "question-hotkey", n_("Kısayol ve tepsi"), n_("Claude'a sor"), n_("Kartta bir yazı kutusu açar, cevap Claude Code'dan akar; pile Ctrl ile tıklamak da açar"), "claude soru sor yapay zeka ai kısayol spotlight"),
     e(1, "tray-click", n_("Kısayol ve tepsi"), n_("Tepsi simgesine sol tık"), n_("Zamanlayıcı seçicisi ya da ayarlar"), "tepsi simge tray"),
@@ -83,17 +83,17 @@ pub const INDEX: &[Entry] = &[
     e(5, "opponent-moment", n_("Anlar"), n_("Rakip golünde de an göster"), n_("Pil kısa süre büyür, parıltı olmadan"), "gol rakip an"),
     e(5, "goal-sound", n_("Anlar"), n_("Gol sesi"), n_("Takımın gol atınca kısa bir ses çalar"), "gol ses tada"),
     e(6, "fullscreen-hide", n_("Tam ekran"), n_("Tam ekranda gizle"), n_("Pil ve kartlar, tam ekran bir uygulama öndeyken gizlenir"), "oyun video sunum gizle"),
-    e(6, "exceptions", n_("İstisnalar"), n_("İstisnalar"), n_("Bu uygulamalar tam ekran olsa da Now Bar görünür kalır"), "istisna uygulama exe"),
-    e(7, "update", n_("Güncelleme"), n_("Güncelle"), n_("Yeni sürüm varsa indirir, doğrular ve Now Bar'ı yeniden başlatır"), "güncelle güncelleme sürüm versiyon yeni indir github"),
+    e(6, "exceptions", n_("İstisnalar"), n_("İstisnalar"), n_("Bu uygulamalar tam ekran olsa da Pebbly görünür kalır"), "istisna uygulama exe"),
+    e(7, "update", n_("Güncelleme"), n_("Güncelle"), n_("Yeni sürüm varsa indirir, doğrular ve Pebbly'yi yeniden başlatır"), "güncelle güncelleme sürüm versiyon yeni indir github"),
     e(7, "update-check", n_("Güncelleme"), n_("Güncellemeleri denetle"), n_("Günde bir kez GitHub'a yeni sürüm var mı diye sorar"), "güncelleme denetle otomatik github internet"),
-    e(7, "log", n_("Dosyalar"), n_("Günlük"), n_("Now Bar'ın günlük dosyası"), "log kayıt"),
+    e(7, "log", n_("Dosyalar"), n_("Günlük"), n_("Pebbly'nin günlük dosyası"), "log kayıt"),
     e(7, "file", n_("Dosyalar"), n_("Ayar dosyası"), n_("settings.json"), "json dosya"),
     e(7, "reset", n_("Sıfırla"), n_("Varsayılanlara dön"), n_("Takımlar ve listeler de sıfırlanır"), "sıfırla varsayılan reset"),
     e(8, "volume-moment", n_("Ses seviyesi"), n_("Ses seviyesini göster"), n_("Ses değişince seviye kısa bir an pilde görünür"), "ses seviye volume yükselt kıs sessiz hoparlör"),
     e(8, "power-moment", n_("Şarj"), n_("Şarjı göster"), n_("Şarj aleti takılınca ve pil azalınca pil kısa bir an öne gelir"), "şarj pil batarya güç adaptör priz dizüstü laptop"),
     e(8, "power-low", n_("Şarj"), n_("Düşük pil"), n_("Dizüstünün pili bunun altına inince bir kez uyarır"), "düşük pil batarya uyarı yüzde"),
     e(8, "privacy-on", n_("Mikrofon / kamera"), n_("Mikrofon ve kamera kullanımı"), n_("Bir uygulama mikrofonu ya da kamerayı kullanırken pilde, uygulamanın adıyla"), "mikrofon kamera gizlilik webcam kayıt discord zoom"),
-    e(8, "live-on", n_("Canlı etkinlikler"), n_("Canlı etkinlikler"), n_("nowbar.exe push ve Claude Code'un hook'ları pilde bir etkinlik gösterir"), "claude betik script canlı etkinlik hook push derleme"),
+    e(8, "live-on", n_("Canlı etkinlikler"), n_("Canlı etkinlikler"), n_("pebbly.exe push ve Claude Code'un hook'ları pilde bir etkinlik gösterir"), "claude betik script canlı etkinlik hook push derleme"),
     e(8, "capture-moment", n_("Ekran görüntüleri"), n_("Ekran görüntüsünü göster"), n_("ShareX ya da Ekran Alıntısı Aracı yeni bir görüntü kaydedince pilde kısa bir an; sürükleyip atabilirsin"), "ekran görüntüsü screenshot sharex alıntı snipping kırpma yakalama"),
     e(8, "transfer-on", n_("Dosya kopyalama"), n_("Kopyalama ilerlemesi"), n_("Explorer kopyalar, taşır ya da silerken pilde yüzde ve kalan süre; penceresi küçültülse de"), "kopyala kopyalama taşı sil dosya ilerleme explorer gezgin yüzde kalan süre copy"),
     e(8, "capture-to-shelf", n_("Ekran görüntüleri"), n_("Ekran görüntülerini rafa ekle"), n_("Yeni görüntüler rafa düşer, sonra sürükleyip atmak için"), "ekran görüntüsü raf shelf sharex screenshot"),
@@ -485,8 +485,8 @@ mod tests {
     #[test]
     fn page_arg_parses() {
         let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        assert_eq!(page_arg(&args(&["nowbar-settings.exe", "--page", "5"])), Some(5));
-        assert_eq!(page_arg(&args(&["nowbar-settings.exe"])), None);
+        assert_eq!(page_arg(&args(&["pebbly-settings.exe", "--page", "5"])), Some(5));
+        assert_eq!(page_arg(&args(&["pebbly-settings.exe"])), None);
         assert_eq!(page_arg(&args(&["x", "--page", &(LAST_PAGE + 1).to_string()])), None, "no such page");
         assert_eq!(page_arg(&args(&["x", "--page", "ekin"])), None);
         assert_eq!(page_arg(&args(&["x", "--page"])), None);

@@ -9,10 +9,10 @@ use serde_json::Value;
 
 /// "owner/name" of the repository whose releases are the updates (asked without a token: it
 /// answers once the repository is public); empty: none asked.
-pub const REPO: &str = "nixesty/now-bar";
+pub const REPO: &str = "nixesty/pebbly";
 
 /// The files a release must carry: the two exes and their checksums.
-pub const ASSETS: [&str; 3] = ["nowbar.exe", "nowbar-settings.exe", "SHA256SUMS.txt"];
+pub const ASSETS: [&str; 3] = ["pebbly.exe", "pebbly-settings.exe", "SHA256SUMS.txt"];
 
 pub type Version = (u32, u32, u32);
 
@@ -84,7 +84,7 @@ pub enum Asking {
     Idle,
     /// Its own ask to GitHub.
     Checking,
-    /// An install it asked the Now Bar for at this time (unix ms).
+    /// An install it asked Pebbly for at this time (unix ms).
     Installing(i64),
     /// How the last one it asked for went.
     Ended(Outcome),
@@ -116,8 +116,8 @@ pub fn about_row(state: Option<&UpdateState>, current: &str, asking: Asking) -> 
                 Outcome::Checksum => trf("{} doğrulanamadı", &[&latest]),
                 Outcome::Swap => trf("{} kurulamadı", &[&latest]),
                 Outcome::Reverted => trf("{} açılamadı · eski sürüm geri kondu", &[&latest]),
-                Outcome::NotRunning => tr("Now Bar çalışmıyor").to_string(),
-                Outcome::Silent => tr("Now Bar yanıt vermedi").to_string(),
+                Outcome::NotRunning => tr("Pebbly çalışmıyor").to_string(),
+                Outcome::Silent => tr("Pebbly yanıt vermedi").to_string(),
                 _ => tr("GitHub'a ulaşılamadı").to_string(),
             };
             (line, true)
@@ -126,17 +126,17 @@ pub fn about_row(state: Option<&UpdateState>, current: &str, asking: Asking) -> 
     AboutRow { line, installs, clickable }
 }
 
-/// How long the Now Bar has to say how an install went: a big download on a slow line, then
+/// How long Pebbly has to say how an install went: a big download on a slow line, then
 /// the window stops waiting.
 pub const SILENT_AFTER_MS: i64 = 5 * 60 * 1000;
 
 /// How long "kuruldu" shows before an open settings window restarts into the new exes: about as
-/// long as the old Now Bar takes to quit and watch the new one start (one that dies is put back
+/// long as the old Pebbly takes to quit and watch the new one start (one that dies is put back
 /// meanwhile, and the window says so instead).
 pub const RESTART_AFTER_MS: i64 = 3000;
 
 /// The row's next state by update.json at `now` (unix ms), in a window opened at `opened`: an
-/// install it asked for ends when the Now Bar writes how it went (only what ended after the ask
+/// install it asked for ends when Pebbly writes how it went (only what ended after the ask
 /// is that install's), and one installed since the window opened (from the tray too) shows.
 pub fn follow(asking: Asking, state: Option<&UpdateState>, opened: i64, now: i64) -> Asking {
     let since = if let Asking::Installing(asked) = asking { asked } else { opened };
@@ -168,7 +168,7 @@ pub fn parse_sums(text: &str) -> Vec<(String, String)> {
 /// The renames, in order, that put the exes staged in `staged` in place of the ones in `dir`:
 /// the running ones step aside first (a running exe can be renamed, not overwritten).
 pub fn swap_plan(dir: &Path, staged: &Path) -> Vec<(PathBuf, PathBuf)> {
-    let exes = ["nowbar", "nowbar-settings"];
+    let exes = ["pebbly", "pebbly-settings"];
     let aside = exes.iter().map(|e| (dir.join(format!("{e}.exe")), dir.join(format!("{e}.old.exe"))));
     let new_in = exes.iter().map(|e| (staged.join(format!("{e}.exe")), dir.join(format!("{e}.exe"))));
     aside.chain(new_in).collect()
@@ -179,12 +179,12 @@ pub fn rollback(done: &[(PathBuf, PathBuf)]) -> Vec<(PathBuf, PathBuf)> {
     done.iter().rev().map(|(from, to)| (to.clone(), from.clone())).collect()
 }
 
-/// How an update asked for went. The Now Bar keeps the last one in update.json for the settings
+/// How an update asked for went. Pebbly keeps the last one in update.json for the settings
 /// window, which adds the two only it can tell.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Outcome {
-    /// The new exes are in: the Now Bar restarts.
+    /// The new exes are in: Pebbly restarts.
     Installed,
     /// Nothing newer than the running one after all.
     Current,
@@ -196,15 +196,15 @@ pub enum Outcome {
     Checksum,
     /// The exes couldn't be swapped (a locked or protected folder).
     Swap,
-    /// The new Now Bar died at start: the old exes are back.
+    /// The new Pebbly died at start: the old exes are back.
     Reverted,
-    /// The window's: no Now Bar running to install it.
+    /// The window's: no Pebbly running to install it.
     NotRunning,
-    /// The window's: the Now Bar never said how it went.
+    /// The window's: Pebbly never said how it went.
     Silent,
 }
 
-/// `%LOCALAPPDATA%\NowBar\update.json`: what the last check found, for the settings window.
+/// `%LOCALAPPDATA%\Pebbly\update.json`: what the last check found, for the settings window.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdateState {
     /// The latest release's version ("0.3.0").
@@ -242,11 +242,11 @@ mod tests {
 
     fn answer() -> Value {
         serde_json::json!({
-            "tag_name": "v0.3.0", "html_url": "https://github.com/k/nowbar/releases/tag/v0.3.0",
+            "tag_name": "v0.3.0", "html_url": "https://github.com/k/pebbly/releases/tag/v0.3.0",
             "draft": false, "prerelease": false,
             "assets": [
-                {"name": "nowbar.exe", "browser_download_url": "https://github.com/k/nowbar/releases/download/v0.3.0/nowbar.exe", "size": 9000000},
-                {"name": "SHA256SUMS.txt", "browser_download_url": "https://github.com/k/nowbar/releases/download/v0.3.0/SHA256SUMS.txt"}
+                {"name": "pebbly.exe", "browser_download_url": "https://github.com/k/pebbly/releases/download/v0.3.0/pebbly.exe", "size": 9000000},
+                {"name": "SHA256SUMS.txt", "browser_download_url": "https://github.com/k/pebbly/releases/download/v0.3.0/SHA256SUMS.txt"}
             ]
         })
     }
@@ -255,9 +255,9 @@ mod tests {
     fn release_reads_tag_page_and_assets() {
         let r = parse_release(&answer()).unwrap();
         assert_eq!((r.version, r.tag.as_str()), ((0, 3, 0), "v0.3.0"));
-        assert_eq!(r.page, "https://github.com/k/nowbar/releases/tag/v0.3.0");
-        assert_eq!(r.asset("nowbar.exe"), Some("https://github.com/k/nowbar/releases/download/v0.3.0/nowbar.exe"));
-        assert_eq!(r.asset("nowbar-settings.exe"), None);
+        assert_eq!(r.page, "https://github.com/k/pebbly/releases/tag/v0.3.0");
+        assert_eq!(r.asset("pebbly.exe"), Some("https://github.com/k/pebbly/releases/download/v0.3.0/pebbly.exe"));
+        assert_eq!(r.asset("pebbly-settings.exe"), None);
         let mut draft = answer();
         draft["draft"] = true.into();
         assert_eq!(parse_release(&draft), None);
@@ -265,7 +265,7 @@ mod tests {
         pre["prerelease"] = true.into();
         assert_eq!(parse_release(&pre), None);
         assert_eq!(parse_release(&serde_json::json!({"message": "Not Found", "status": "404"})), None);
-        assert_eq!(latest_url("k/nowbar"), "https://api.github.com/repos/k/nowbar/releases/latest");
+        assert_eq!(latest_url("k/pebbly"), "https://api.github.com/repos/k/pebbly/releases/latest");
     }
 
     #[test]
@@ -301,8 +301,8 @@ mod tests {
         assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Checksum)), row_of("0.4.2 doğrulanamadı", true, true));
         assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Swap)), row_of("0.4.2 kurulamadı", true, true));
         assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Reverted)), row_of("0.4.2 açılamadı · eski sürüm geri kondu", true, true));
-        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::NotRunning)), row_of("Now Bar çalışmıyor", true, true));
-        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Silent)), row_of("Now Bar yanıt vermedi", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::NotRunning)), row_of("Pebbly çalışmıyor", true, true));
+        assert_eq!(row(Some(&newer), Asking::Ended(Outcome::Silent)), row_of("Pebbly yanıt vermedi", true, true));
         crate::i18n::in_language(crate::i18n::Language::English, || {
             assert_eq!(row(Some(&newer), Asking::Installing(5)).line, "Downloading 0.4.2…");
             assert_eq!(row(None, Asking::Ended(Outcome::Unreachable)).line, "Couldn't reach GitHub");
@@ -319,7 +319,7 @@ mod tests {
         // Ended since it was asked.
         assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Checksum)), opened, asked + 60), Asking::Ended(Outcome::Checksum));
         assert_eq!(follow(installing, Some(&ended("0.4.2", asked + 9, Outcome::Installed)), opened, asked + 60), Asking::Ended(Outcome::Installed));
-        // The Now Bar never says.
+        // Pebbly never says.
         assert_eq!(follow(installing, None, opened, asked + SILENT_AFTER_MS + 1), Asking::Ended(Outcome::Silent));
         // A failure stays until the next click, even when the window had nothing to do with it.
         let failed = Asking::Ended(Outcome::Download);
@@ -331,7 +331,7 @@ mod tests {
         assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", opened + 9, Outcome::Installed)), opened, opened + 60), installed);
         assert_eq!(follow(failed, Some(&ended("0.4.2", opened + 9, Outcome::Installed)), opened, opened + 60), installed);
         assert_eq!(follow(Asking::Idle, Some(&ended("0.4.2", opened - 9, Outcome::Installed)), opened, opened + 60), Asking::Idle);
-        // The new Now Bar died at start and the old one is back.
+        // The new Pebbly died at start and the old one is back.
         assert_eq!(follow(installed, Some(&ended("0.4.2", asked + 2_500, Outcome::Reverted)), opened, asked + 2_600), Asking::Ended(Outcome::Reverted));
     }
 
@@ -351,7 +351,7 @@ mod tests {
     #[test]
     fn update_json_keeps_how_the_last_install_went() {
         // Before outcomes were kept: none yet.
-        let old: UpdateState = serde_json::from_str(r#"{"latest":"0.4.1","page":"https://github.com/k/nowbar/releases/tag/v0.4.1","checked":1}"#).unwrap();
+        let old: UpdateState = serde_json::from_str(r#"{"latest":"0.4.1","page":"https://github.com/k/pebbly/releases/tag/v0.4.1","checked":1}"#).unwrap();
         assert_eq!((old.latest.as_str(), old.ended_ms, old.outcome), ("0.4.1", 0, None));
         let state = UpdateState { latest: "0.5.0".into(), ended_ms: 1_700_000_000_123, outcome: Some(Outcome::Checksum), ..UpdateState::default() };
         let json = serde_json::to_string(&state).unwrap();
@@ -361,8 +361,8 @@ mod tests {
 
     #[test]
     fn sums_read_both_formats() {
-        let text = "AB12cd  nowbar.exe\r\nef34 *nowbar-settings.exe\n\nnot a line\n";
-        assert_eq!(parse_sums(text), vec![("nowbar.exe".into(), "ab12cd".into()), ("nowbar-settings.exe".into(), "ef34".into())]);
+        let text = "AB12cd  pebbly.exe\r\nef34 *pebbly-settings.exe\n\nnot a line\n";
+        assert_eq!(parse_sums(text), vec![("pebbly.exe".into(), "ab12cd".into()), ("pebbly-settings.exe".into(), "ef34".into())]);
     }
 
     #[test]
@@ -371,10 +371,10 @@ mod tests {
         assert_eq!(
             swap_plan(dir, staged),
             vec![
-                (dir.join("nowbar.exe"), dir.join("nowbar.old.exe")),
-                (dir.join("nowbar-settings.exe"), dir.join("nowbar-settings.old.exe")),
-                (staged.join("nowbar.exe"), dir.join("nowbar.exe")),
-                (staged.join("nowbar-settings.exe"), dir.join("nowbar-settings.exe")),
+                (dir.join("pebbly.exe"), dir.join("pebbly.old.exe")),
+                (dir.join("pebbly-settings.exe"), dir.join("pebbly-settings.old.exe")),
+                (staged.join("pebbly.exe"), dir.join("pebbly.exe")),
+                (staged.join("pebbly-settings.exe"), dir.join("pebbly-settings.exe")),
             ]
         );
     }

@@ -1,20 +1,20 @@
 //! Dev tool: renders sample cards to a PNG on a stand-in for the card material, to check card
 //! layouts without touching the screen. Usage: `cardsheet [out.png]`.
 
-use nowbar::activities::buds::{BudsSnapshot, Charging, Fit, FitTest, NoiseControl, Place, Touch, Worn};
-use nowbar::activities::buds_controls::{AmbientCustom, Buds2Settings, Equalizer, Health};
-use nowbar::settings::BudsPcAction;
-use nowbar::activities::buds_nearby::Offer;
-use nowbar::activities::media::{Caps, MediaSnapshot, Timeline};
-use nowbar::platform::audio::{list_outputs, output_volume, picker_order, OutputBus, OutputKind};
-use nowbar::activities::live::{AppIcon, LiveState};
-use nowbar::render::card::{card_size_dip, card_tint, output_subline, paint_card, AppCard, BudsCard, BudsPage, AwayCard, AwayRow, BriefCard, MusicCard, MusicRow, QuestionCard, QuestionShow, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LiveCard, LyricsView, MediaCard, MediaPage, OutputPage, OutputRow, ShelfCard, ShelfTile, SubTone, WeatherCard, GameCard, WellbeingApp, WellbeingCard, GAME_COVER_DIP};
-use nowbar::activities::games::Store;
-use nowbar::activities::shelf::{file_kind, op_label, ops, ShelfItem, ShelfOp};
-use nowbar::activities::claude::StepKind;
-use nowbar::render::crest::Crest;
-use nowbar::render::gfx::{rect, Ink, TextKit};
-use nowbar::render::layout::Scale;
+use pebbly::activities::buds::{BudsSnapshot, Charging, Fit, FitTest, NoiseControl, Place, Touch, Worn};
+use pebbly::activities::buds_controls::{AmbientCustom, Buds2Settings, Equalizer, Health};
+use pebbly::settings::BudsPcAction;
+use pebbly::activities::buds_nearby::Offer;
+use pebbly::activities::media::{Caps, MediaSnapshot, Timeline};
+use pebbly::platform::audio::{list_outputs, output_volume, picker_order, OutputBus, OutputKind};
+use pebbly::activities::live::{AppIcon, LiveState};
+use pebbly::render::card::{card_size_dip, card_tint, output_subline, paint_card, AppCard, BudsCard, BudsPage, AwayCard, AwayRow, BriefCard, MusicCard, MusicRow, QuestionCard, QuestionShow, BriefMatchRow, BriefMusic, BriefWeather, CardContent, CardTeam, ClaudeAsk, ClaudeCard, LiveCard, LyricsView, MediaCard, MediaPage, OutputPage, OutputRow, ShelfCard, ShelfTile, SubTone, WeatherCard, GameCard, WellbeingApp, WellbeingCard, GAME_COVER_DIP};
+use pebbly::activities::games::Store;
+use pebbly::activities::shelf::{file_kind, op_label, ops, ShelfItem, ShelfOp};
+use pebbly::activities::claude::StepKind;
+use pebbly::render::crest::Crest;
+use pebbly::render::gfx::{rect, Ink, TextKit};
+use pebbly::render::layout::Scale;
 use windows::core::{Interface, Result, HSTRING};
 use windows::Win32::Foundation::GENERIC_WRITE;
 use windows::Win32::Graphics::Direct2D::Common::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_COLOR_F, D2D1_PIXEL_FORMAT};
@@ -125,18 +125,18 @@ fn epic(md5: &str) -> String {
 /// A game's card with this PC's cached box art (`cover` "" or missing: the store's colour).
 fn game_card(store: Store, title: &str, cover: &str, status: &str, detail: &str, progress: Option<f32>, s: &Scale) -> CardContent {
     let (w, h) = (s.px(GAME_COVER_DIP.0).round() as u32, s.px(GAME_COVER_DIP.1).round() as u32);
-    let cover = nowbar::render::crest::load_cover(std::path::Path::new(cover), w, h);
+    let cover = pebbly::render::crest::load_cover(std::path::Path::new(cover), w, h);
     let paused = status.starts_with("Duraklatıldı");
     CardContent::Game(Box::new(GameCard { store, title: title.into(), cover, status: status.into(), detail: detail.into(), progress, paused }))
 }
 
 /// The question card as the app fills it (made-up words).
 fn question(show: QuestionShow, asked: &str, answer: &str) -> CardContent {
-    let answer = nowbar::activities::question::plain(answer);
+    let answer = pebbly::activities::question::plain(answer);
     let lines = match show {
         QuestionShow::Idle => 0,
         QuestionShow::Thinking => 1,
-        _ => nowbar::activities::question::lines_estimate(&answer, 46),
+        _ => pebbly::activities::question::lines_estimate(&answer, 46),
     };
     let copy = (show == QuestionShow::Answer).then(|| "Kopyala".to_string());
     CardContent::Question(Box::new(QuestionCard { question: asked.into(), caret: true, show, answer, lines, scroll: None, copy }))
@@ -144,12 +144,12 @@ fn question(show: QuestionShow, asked: &str, answer: &str) -> CardContent {
 
 /// Back from a lock: one row of each kind (made up).
 fn away_card() -> AwayCard {
-    use nowbar::activities::away::{self, AwayKind};
+    use pebbly::activities::away::{self, AwayKind};
     let row = |kind, text: String, time: &str| AwayRow { kind, text, time: time.into(), crest: None };
     AwayCard {
         span: away::span_text(14 * 3600 + 120, 17 * 3600 + 14 * 60),
         rows: vec![
-            row(AwayKind::Claude, away::claude_done("now-bar"), "17:09"),
+            row(AwayKind::Claude, away::claude_done("pebbly"), "17:09"),
             row(AwayKind::Match, away::goal_text("GS", "FB", (1, 0), "67′"), "16:52"),
             row(AwayKind::Rain { snow: false }, away::rain_text(false).into(), "16:20"),
             row(AwayKind::Game(Store::Epic), away::download_done("Rocket League"), "15:41"),
@@ -172,7 +172,7 @@ fn claude_card(state: LiveState, thinking: bool, ask: bool, focus: bool) -> Clau
     };
     ClaudeCard {
         key: 1,
-        title: "now-bar".into(),
+        title: "pebbly".into(),
         state,
         status: match state {
             LiveState::Run => "Çalışıyor · 3:12".into(),
@@ -181,8 +181,8 @@ fn claude_card(state: LiveState, thinking: bool, ask: bool, focus: bool) -> Clau
         },
         tasks: (!thinking && state == LiveState::Run).then(|| (3, 7, Some("Pill ve kart çizimleri".to_string()))),
         steps,
-        summary: (state == LiveState::Done).then(|| "Raf artık ShareX'in ekran görüntülerini de alıyor; testler ve clippy temiz, Now Bar yeniden başladı.".to_string()),
-        ask: ask.then(|| ClaudeAsk { key: 7, tool: "Bash".into(), detail: "cargo build --profile quick --bin nowbar --bin nowbar-settings".into(), answerable: true }),
+        summary: (state == LiveState::Done).then(|| "Raf artık ShareX'in ekran görüntülerini de alıyor; testler ve clippy temiz, Pebbly yeniden başladı.".to_string()),
+        ask: ask.then(|| ClaudeAsk { key: 7, tool: "Bash".into(), detail: "cargo build --profile quick --bin pebbly --bin pebbly-settings".into(), answerable: true }),
         can_focus: focus,
     }
 }
@@ -190,7 +190,7 @@ fn claude_card(state: LiveState, thinking: bool, ask: bool, focus: bool) -> Clau
 fn main() -> Result<()> {
     // --en: the painters' own words in English (the samples' lines stay as written).
     if std::env::args().any(|a| a == "--en") {
-        nowbar::i18n::set_language(nowbar::i18n::Language::English);
+        pebbly::i18n::set_language(pebbly::i18n::Language::English);
     }
     let out = std::env::args().skip(1).find(|a| a != "--en").unwrap_or_else(|| std::env::temp_dir().join("cardsheet.png").to_string_lossy().into_owned());
     unsafe { CoInitializeEx(None, COINIT_MULTITHREADED).ok()? };
@@ -216,7 +216,7 @@ fn main() -> Result<()> {
         health: Some(Health { temp: [35.9, 34.1], volt: [4.30, 4.01] }),
         firmware: Some("R177XXU0AXL3".into()),
         capacity: Some(58),
-        remaining: Some(nowbar::activities::buds_controls::remaining_text(200)),
+        remaining: Some(pebbly::activities::buds_controls::remaining_text(200)),
         ..Default::default()
     };
     let out_of_ears = BudsSnapshot { worn: Worn::default(), place: [Place::Out, Place::Out], charging: Some(Charging::default()), ..buds2 };
@@ -290,18 +290,18 @@ fn main() -> Result<()> {
         temp: "18°".into(),
         summary: "Açık · En düşük 11° · En yüksek 21°".into(),
         hours: vec![hour("20:00", "🌙", "18°"), hour("21:00", "🌙", "17°"), hour("22:00", "⛅", "15°"), hour("23:00", "☁\u{FE0F}", "15°"), hour("00:00", "🌧\u{FE0F}", "14°"), hour("01:00", "🌫\u{FE0F}", "14°")],
-        fx: nowbar::activities::weather::WeatherFx::ClearNight,
+        fx: pebbly::activities::weather::WeatherFx::ClearNight,
         alert: None,
     };
     let windy = WeatherCard {
         summary: "Kapalı · En düşük 9° · En yüksek 14°".into(),
         symbol: "☁\u{FE0F}".into(),
         temp: "12°".into(),
-        fx: nowbar::activities::weather::WeatherFx::Clouds,
-        alert: Some((nowbar::activities::weather_alert::AlertKind::Wind, "Kuvvetli rüzgâr".into(), "65 km/sa · 21:00".into())),
+        fx: pebbly::activities::weather::WeatherFx::Clouds,
+        alert: Some((pebbly::activities::weather_alert::AlertKind::Wind, "Kuvvetli rüzgâr".into(), "65 km/sa · 21:00".into())),
         ..weather.clone()
     };
-    let team = |code: &str, primary: [u8; 3], secondary: [u8; 3]| CardTeam { name: code.into(), code: code.into(), palette: nowbar::render::color::team_palette(primary, secondary), crest: None };
+    let team = |code: &str, primary: [u8; 3], secondary: [u8; 3]| CardTeam { name: code.into(), code: code.into(), palette: pebbly::render::color::team_palette(primary, secondary), crest: None };
     let (fb, gs, efes) = (team("FB", [0x0B, 0x1E, 0x5B], [0xFF, 0xED, 0x00]), team("GS", [0xA9, 0x00, 0x32], [0xFD, 0xB9, 0x12]), team("EFS", [0x00, 0x2E, 0x6D], [0xE3, 0x1E, 0x24]));
     let cover = swatch(120, [0xE8, 0x6A, 0x3A], [0x8E, 0x2B, 0x5C]);
     let full = BriefCard {
@@ -313,7 +313,7 @@ fn main() -> Result<()> {
             summary: "Parçalı bulutlu · 11° / 21°".into(),
             hours: vec![hour("09:00", "⛅", "17°"), hour("10:00", "⛅", "18°"), hour("11:00", "☀\u{FE0F}", "19°"), hour("12:00", "☀\u{FE0F}", "20°"), hour("13:00", "☁\u{FE0F}", "20°"), hour("14:00", "🌧\u{FE0F}", "18°")],
             rain: Some("14:00 civarı yağmur".into()),
-            fx: nowbar::activities::weather::WeatherFx::Clouds,
+            fx: pebbly::activities::weather::WeatherFx::Clouds,
         }),
         matches: vec![
             BriefMatchRow { home: efes.clone(), away: fb.clone(), status: "Ç3 04:12 · Canlı".into(), live: true },
@@ -322,7 +322,7 @@ fn main() -> Result<()> {
         ],
         music: Some(BriefMusic { title: "GEM DELÍRIO (Slowed)".into(), artist: "ZXVRF".into(), art: Some(cover.px.clone()), art_size: cover.size, playing: false }),
         screen: None,
-        away: Some((format!("{} · {}", nowbar::i18n::tr("Sen yokken"), nowbar::activities::away::count_text(4)), nowbar::activities::away::claude_done("now-bar"))),
+        away: Some((format!("{} · {}", pebbly::i18n::tr("Sen yokken"), pebbly::activities::away::count_text(4)), pebbly::activities::away::claude_done("pebbly"))),
     };
     let short = BriefCard {
         greeting: "İyi akşamlar".into(),
@@ -371,7 +371,7 @@ fn main() -> Result<()> {
         })),
         CardContent::Music(Box::new(MusicCard {
             total: "6 sa 20 dk".into(),
-            caption: nowbar::activities::music::week_caption(142, Some("Deniz Kaya")),
+            caption: pebbly::activities::music::week_caption(142, Some("Deniz Kaya")),
             tracks: [
                 ("Gece Yarısı Treni", "Deniz Kaya", 14, (0x1D, 0xB9, 0x54)),
                 ("Sabah Olunca", "Gece Yolcuları", 11, (0xE8, 0x6A, 0x3A)),
@@ -380,7 +380,7 @@ fn main() -> Result<()> {
                 ("Kuzey", "Lale", 1, (0x8A, 0x93, 0xB4)),
             ]
             .into_iter()
-            .map(|(title, artist, plays, accent)| MusicRow { title: title.into(), artist: artist.into(), plays: nowbar::activities::music::plays_text(plays), accent })
+            .map(|(title, artist, plays, accent)| MusicRow { title: title.into(), artist: artist.into(), plays: pebbly::activities::music::plays_text(plays), accent })
             .collect(),
             artists: vec![("Deniz Kaya".into(), "2 sa 10 dk".into()), ("Gece Yolcuları".into(), "1 sa 5 dk".into()), ("Ekin".into(), "48 dk".into())],
             accent: (0x1D, 0xB9, 0x54),
@@ -408,7 +408,7 @@ fn main() -> Result<()> {
         CardContent::Claude(Box::new(claude_card(LiveState::Run, false, false, true))),
         CardContent::Claude(Box::new(claude_card(LiveState::Wait, false, true, true))),
         CardContent::Claude(Box::new(claude_card(LiveState::Done, false, false, true))),
-        CardContent::Live(LiveCard { key: 2, title: "cargo build --release".into(), text: "nowbar-settings derleniyor".into(), status: "%40".into(), progress: Some(40), claude: false, state: LiveState::Run }),
+        CardContent::Live(LiveCard { key: 2, title: "cargo build --release".into(), text: "pebbly-settings derleniyor".into(), status: "%40".into(), progress: Some(40), claude: false, state: LiveState::Run }),
         app_card("Deploy hazır", "main dalı staging'e gönderilsin mi? Testler geçti, 3 commit.", "", None, Some(AppIcon::Glyph('\u{E8B7}')), &["Hayır", "Gönder"], false),
         app_card("Yedekleme", "Belgeler klasörü", "%40", Some(40), Some(AppIcon::Image { id: 1, src: swatch(s.px(40.0) as u32, [0x2F, 0x80, 0xED], [0x56, 0xCC, 0xF2]) }), &["Durdur"], false),
         app_card("Ekin", r"C:\Apps\Ekin\ekin.exe", "", None, Some(AppIcon::Image { id: 2, src: swatch(s.px(40.0) as u32, [0xF2, 0x99, 0x4A], [0xEB, 0x57, 0x57]) }), &[], true),
@@ -443,7 +443,7 @@ fn main() -> Result<()> {
         let mut x = pad;
         for (card, (cw, ch)) in cards.iter().zip(&sizes) {
             // Stand-in for the blurred material: the flat fallback plus the album tint.
-            let radius = s.px(nowbar::render::card::card_radius_dip(card));
+            let radius = s.px(pebbly::render::card::card_radius_dip(card));
             ink.rrect(rect(x, pad, *cw, *ch), radius, [0.11, 0.11, 0.12, 0.96])?;
             if let Some((top, bottom)) = card_tint(card) {
                 let c = |k: windows::UI::Color| [k.R as f32 / 255.0, k.G as f32 / 255.0, k.B as f32 / 255.0, k.A as f32 / 255.0];

@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
-//! `nowbar-setup.exe`: installs the Now Bar for this user (no elevation), upgrades or repairs it,
+//! `pebbly-setup.exe`: installs Pebbly for this user (no elevation), upgrades or repairs it,
 //! and, as `--uninstall`, takes it out again. One Slint window in the settings window's style;
-//! `--quiet` does the same without it. The Now Bar's exes travel inside (payload.bin).
+//! `--quiet` does the same without it. Pebbly's exes travel inside (payload.bin).
 
 mod install;
 mod payload;
@@ -26,18 +26,18 @@ use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, GetForegroundWindow, MessageBoxW, SetForegroundWindow, MB_ICONERROR, MB_OK};
 
 use install::Options;
-use nowbar::i18n::{tr, trf};
+use pebbly::i18n::{tr, trf};
 use plan::{kind, short_path, Kind};
 use system::Places;
 
 slint::include_modules!();
 
 static PAYLOAD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/payload.bin"));
-const VERSION: &str = nowbar::platform::updater::VERSION;
+const VERSION: &str = pebbly::platform::updater::VERSION;
 const SIZE: (f32, f32) = (700.0, 496.0);
 /// payload.rs's DAMAGED (the build script shares that file, so it can't reach i18n): marked here,
 /// and shown through tr like the other step messages.
-const _DAMAGED: &str = nowbar::i18n::n_("Kurulum dosyası bozuk; yeniden indir.");
+const _DAMAGED: &str = pebbly::i18n::n_("Kurulum dosyası bozuk; yeniden indir.");
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -45,12 +45,12 @@ fn main() {
     let (quiet, no_launch) = (has("--quiet"), has("--no-launch"));
     let from = args.iter().position(|a| a == "--uninstall-from").and_then(|i| args.get(i + 1)).map(PathBuf::from);
     let uninstalling = has("--uninstall") || from.is_some();
-    // The language the Now Bar's settings pick (a first install has none: Windows' own).
-    nowbar::i18n::set_language(nowbar::i18n::chosen(nowbar::settings::load().language));
-    // Older Windows 10s lack what the Now Bar runs on; removing it still works there.
-    if !uninstalling && nowbar::platform::os::build().is_some_and(|b| !nowbar::platform::os::supported(b)) {
+    // The language Pebbly's settings pick (a first install has none: Windows' own).
+    pebbly::i18n::set_language(pebbly::i18n::chosen(pebbly::settings::load().language));
+    // Older Windows 10s lack what Pebbly runs on; removing it still works there.
+    if !uninstalling && pebbly::platform::os::build().is_some_and(|b| !pebbly::platform::os::supported(b)) {
         if !quiet {
-            message(tr("Now Bar, Windows 10 sürüm 1809 veya sonrasını gerektirir."));
+            message(tr("Pebbly, Windows 10 sürüm 1809 veya sonrasını gerektirir."));
         }
         std::process::exit(1);
     }
@@ -95,7 +95,7 @@ fn main() {
 
 fn message(text: &str) {
     unsafe {
-        MessageBoxW(None, &HSTRING::from(text), &HSTRING::from("Now Bar"), MB_OK | MB_ICONERROR);
+        MessageBoxW(None, &HSTRING::from(text), &HSTRING::from("Pebbly"), MB_OK | MB_ICONERROR);
     }
 }
 
@@ -107,8 +107,8 @@ fn describe(ui: &SetupWindow, places: &Places, uninstalling: bool) {
     ui.set_claude_available(places.claude.is_some());
     if uninstalling {
         ui.set_mode("uninstall".into());
-        ui.set_heading(tr("Now Bar'ı kaldır").into());
-        ui.set_subtitle(tr("Now Bar, kısayolları ve Claude Code bağlantısı kaldırılacak.").into());
+        ui.set_heading(tr("Pebbly'yi kaldır").into());
+        ui.set_subtitle(tr("Pebbly, kısayolları ve Claude Code bağlantısı kaldırılacak.").into());
         ui.set_primary(tr("Kaldır").into());
         return;
     }
@@ -124,12 +124,12 @@ fn describe(ui: &SetupWindow, places: &Places, uninstalling: bool) {
     ui.set_primary(primary.into());
     if installed.is_some() {
         // As it is set up now; the folder stays.
-        let exe = places.dir.join("nowbar.exe");
+        let exe = places.dir.join("pebbly.exe");
         ui.set_location_visible(false);
-        ui.set_autostart(nowbar::platform::autostart::run_value(&places.run_name).is_some_and(|v| nowbar::platform::autostart::points_at(&v, &exe)));
-        ui.set_desktop(places.desktop.join("Now Bar.lnk").exists());
+        ui.set_autostart(pebbly::platform::autostart::run_value(&places.run_name).is_some_and(|v| pebbly::platform::autostart::points_at(&v, &exe)));
+        ui.set_desktop(places.desktop.join("Pebbly.lnk").exists());
         ui.set_claude(places.claude.as_deref().is_some_and(has_our_hooks));
-        ui.set_api(nowbar::settings::load_from(&places.roaming.join("settings.json")).api_enabled);
+        ui.set_api(pebbly::settings::load_from(&places.roaming.join("settings.json")).api_enabled);
         ui.set_open_settings(false);
     }
 }
@@ -137,15 +137,15 @@ fn describe(ui: &SetupWindow, places: &Places, uninstalling: bool) {
 fn has_our_hooks(path: &Path) -> bool {
     let text = std::fs::read_to_string(path).unwrap_or_default();
     let v: serde_json::Value = serde_json::from_str(text.trim_start_matches('\u{feff}')).unwrap_or_default();
-    v["hooks"].as_object().is_some_and(|h| h.values().filter_map(|e| e.as_array()).flatten().filter_map(|e| e["hooks"].as_array()).flatten().any(nowbar::claude_hooks::is_ours))
+    v["hooks"].as_object().is_some_and(|h| h.values().filter_map(|e| e.as_array()).flatten().filter_map(|e| e["hooks"].as_array()).flatten().any(pebbly::claude_hooks::is_ours))
 }
 
 fn window(places: Places, uninstalling: bool, launch: bool) -> Result<(), slint::PlatformError> {
-    let shots = std::env::var("NOWBAR_SETUP_SHOTS").ok();
+    let shots = std::env::var("PEBBLY_SETUP_SHOTS").ok();
     let ui = SetupWindow::new()?;
     // Windows 10 has no Segoe Fluent Icons: the glyphs would be boxes.
-    nowbar::set_slint_faces!(ui.global::<Theme>());
-    let _ = slint::select_bundled_translation(if nowbar::i18n::lang() == nowbar::i18n::Language::English { "en" } else { "" });
+    pebbly::set_slint_faces!(ui.global::<Theme>());
+    let _ = slint::select_bundled_translation(if pebbly::i18n::lang() == pebbly::i18n::Language::English { "en" } else { "" });
     let (position, scale) = centre_at_mouse();
     stage::fill(&ui, scale);
     describe(&ui, &places, uninstalling);
@@ -180,7 +180,7 @@ fn window(places: Places, uninstalling: bool, launch: bool) -> Result<(), slint:
             if ui.get_phase() == "done" {
                 let dir = places.borrow().dir.clone();
                 if !uninstalling && launch && ui.get_open_settings() {
-                    let _ = std::process::Command::new(dir.join("nowbar-settings.exe")).spawn();
+                    let _ = std::process::Command::new(dir.join("pebbly-settings.exe")).spawn();
                 }
                 let _ = slint::quit_event_loop();
                 return;
@@ -196,7 +196,7 @@ fn window(places: Places, uninstalling: bool, launch: bool) -> Result<(), slint:
         ui.window().set_position(position);
     }
     let had_focus = shots.as_ref().map(|_| unsafe { GetForegroundWindow() });
-    nowbar::platform::frame::frame_from_creation(true);
+    pebbly::platform::frame::frame_from_creation(true);
     ui.show()?;
     let frame_timer = Rc::new(slint::Timer::default());
     {
@@ -205,9 +205,9 @@ fn window(places: Places, uninstalling: bool, launch: bool) -> Result<(), slint:
         frame_timer.start(slint::TimerMode::Repeated, Duration::from_millis(5), move || {
             let Some(ui) = weak.upgrade() else { return };
             let Some(hwnd) = hwnd_of(&ui) else { return };
-            nowbar::platform::frame::adopt(hwnd);
+            pebbly::platform::frame::adopt(hwnd);
             ui.set_framed(true);
-            nowbar::platform::frame::style_frame(hwnd, true);
+            pebbly::platform::frame::style_frame(hwnd, true);
             if to_front {
                 unsafe {
                     let _ = SetForegroundWindow(hwnd);
@@ -252,8 +252,8 @@ fn start(ui: &SetupWindow, places: Places, uninstalling: bool, launch: bool) {
             uninstall::run(&places, wipe, progress).map(|_| String::new())
         } else {
             install::run(&places, &opts, PAYLOAD, VERSION, progress).map(|notes| match (notes.is_empty(), launch) {
-                (true, true) => tr("Now Bar görev çubuğunda. Her şeyi ayarlar penceresinden değiştirebilirsin.").to_string(),
-                (true, false) => tr("Dosyalar yerinde; Now Bar başlatılmadı.").to_string(),
+                (true, true) => tr("Pebbly görev çubuğunda. Her şeyi ayarlar penceresinden değiştirebilirsin.").to_string(),
+                (true, false) => tr("Dosyalar yerinde; Pebbly başlatılmadı.").to_string(),
                 (false, _) => notes.join("\n"),
             })
         };
@@ -315,12 +315,12 @@ fn shoot(ui: &SetupWindow, dir: &str) -> Result<(), slint::PlatformError> {
         ("4-kuruldu", Box::new(|ui| {
             ui.set_phase("done".into());
             ui.set_primary(tr("Bitir").into());
-            ui.set_message(tr("Now Bar görev çubuğunda. Her şeyi ayarlar penceresinden değiştirebilirsin.").into());
+            ui.set_message(tr("Pebbly görev çubuğunda. Her şeyi ayarlar penceresinden değiştirebilirsin.").into());
         })),
         ("5-hata", Box::new(|ui| {
             ui.set_phase("error".into());
             ui.set_primary(tr("Tekrar dene").into());
-            ui.set_message(tr("Now Bar kapanmadı; görev çubuğundan kapatıp tekrar dene.").into());
+            ui.set_message(tr("Pebbly kapanmadı; görev çubuğundan kapatıp tekrar dene.").into());
         })),
         ("6-guncelle", Box::new(|ui| {
             ui.set_phase("ready".into());
@@ -335,8 +335,8 @@ fn shoot(ui: &SetupWindow, dir: &str) -> Result<(), slint::PlatformError> {
         })),
         ("8-kaldir", Box::new(|ui| {
             ui.set_mode("uninstall".into());
-            ui.set_heading(tr("Now Bar'ı kaldır").into());
-            ui.set_subtitle(tr("Now Bar, kısayolları ve Claude Code bağlantısı kaldırılacak.").into());
+            ui.set_heading(tr("Pebbly'yi kaldır").into());
+            ui.set_subtitle(tr("Pebbly, kısayolları ve Claude Code bağlantısı kaldırılacak.").into());
             ui.set_primary(tr("Kaldır").into());
         })),
         ("9-kaldiriliyor", Box::new(|ui| {
@@ -363,7 +363,7 @@ fn shoot(ui: &SetupWindow, dir: &str) -> Result<(), slint::PlatformError> {
                 for p in snap.as_slice() {
                     bgra.extend_from_slice(&[p.b, p.g, p.r, p.a]);
                 }
-                let _ = nowbar::slint_shot::save_png(&format!("{dir}/{}.png", states[n - 1].0), snap.width(), snap.height(), &bgra);
+                let _ = pebbly::slint_shot::save_png(&format!("{dir}/{}.png", states[n - 1].0), snap.width(), snap.height(), &bgra);
             }
         }
         let Some((_, set_up)) = states.get(n) else {

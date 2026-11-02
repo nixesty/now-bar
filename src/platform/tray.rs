@@ -83,7 +83,7 @@ pub fn create_tray(owner: HWND) -> Result<()> {
     nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     nid.uCallbackMessage = WM_TRAY;
     nid.hIcon = pill_icon()?;
-    for (dst, src) in nid.szTip.iter_mut().zip("Now Bar".encode_utf16()) {
+    for (dst, src) in nid.szTip.iter_mut().zip("Pebbly".encode_utf16()) {
         *dst = src;
     }
     unsafe { Shell_NotifyIconW(NIM_ADD, &nid).ok() }

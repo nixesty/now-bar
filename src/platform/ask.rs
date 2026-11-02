@@ -1,8 +1,8 @@
 //! The hook side of a permission answered on the card: a hidden window titled with the ask's id,
-//! which the Now Bar sends its answer to, waited on for the seconds the Now Bar named.
+//! which Pebbly sends its answer to, waited on for the seconds Pebbly named.
 //!
 //! The id is public (a window title); an answer must also carry the nonce, which only went to
-//! the Now Bar inside the ask itself, so another process can't approve in the card's name.
+//! Pebbly inside the ask itself, so another process can't approve in the card's name.
 
 use std::cell::{Cell, RefCell};
 
@@ -16,8 +16,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use super::ipc::{self, Command};
 
-/// The class the Now Bar looks the waiting hook up by (the title is the ask's id).
-pub const ASK_CLASS: windows::core::PCWSTR = w!("NowBarAsk");
+/// The class Pebbly looks the waiting hook up by (the title is the ask's id).
+pub const ASK_CLASS: windows::core::PCWSTR = w!("PebblyAsk");
 
 thread_local! {
     /// (id, nonce) of the ask this process waits on.
@@ -53,7 +53,7 @@ impl AskWindow {
             let instance = GetModuleHandleW(None).ok()?.into();
             RegisterClassW(&WNDCLASSW { lpfnWndProc: Some(ask_proc), hInstance: instance, lpszClassName: ASK_CLASS, ..Default::default() });
             let hwnd = CreateWindowExW(WS_EX_TOOLWINDOW, ASK_CLASS, &HSTRING::from(id), WS_POPUP, 0, 0, 0, 0, None, None, Some(instance), None).ok()?;
-            // An elevated Claude still takes the (medium) Now Bar's answer; the nonce guards it.
+            // An elevated Claude still takes the (medium) Pebbly's answer; the nonce guards it.
             let _ = ChangeWindowMessageFilterEx(hwnd, WM_COPYDATA, MSGFLT_ALLOW, None);
             Some(AskWindow(hwnd))
         }

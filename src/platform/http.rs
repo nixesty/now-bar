@@ -30,7 +30,7 @@ pub fn get_bytes(url: &str, headers: &[(&str, &str)]) -> Result<(u32, Vec<u8>), 
         WinHttpCrackUrl(&wide, 0, &mut parts).map_err(|e| format!("bad URL: {e:?}"))?;
         let host = String::from_utf16_lossy(std::slice::from_raw_parts(parts.lpszHostName.0, parts.dwHostNameLength as usize));
         let rest = String::from_utf16_lossy(std::slice::from_raw_parts(parts.lpszUrlPath.0, (parts.dwUrlPathLength + parts.dwExtraInfoLength) as usize));
-        let session = Handle(WinHttpOpen(&HSTRING::from("Mozilla/5.0 (Windows NT 10.0; Win64; x64) NowBar"), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, PCWSTR::null(), PCWSTR::null(), 0));
+        let session = Handle(WinHttpOpen(&HSTRING::from("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Pebbly"), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, PCWSTR::null(), PCWSTR::null(), 0));
         if session.0.is_null() {
             return Err(format!("WinHttpOpen: {:?}", windows::core::Error::from_thread()));
         }

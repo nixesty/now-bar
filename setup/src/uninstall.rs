@@ -2,26 +2,26 @@
 
 use std::time::Duration;
 
-use nowbar::i18n::tr;
+use pebbly::i18n::tr;
 
 use crate::install::without_ours;
 use crate::plan::ours;
-use crate::system::{close_settings, delete_key, quit_now_bar, Places};
+use crate::system::{close_settings, delete_key, quit_pebbly, Places};
 
-/// Takes the Now Bar out of `places.dir`; `wipe` also deletes its settings and log.
+/// Takes Pebbly out of `places.dir`; `wipe` also deletes its settings and log.
 pub fn run(places: &Places, wipe: bool, progress: impl Fn(&str, f32)) -> Result<(), String> {
     let dir = places.dir.clone();
     if !places.sandbox {
-        progress(tr("Now Bar kapatılıyor"), 0.15);
-        quit_now_bar(Duration::from_secs(10))?;
+        progress(tr("Pebbly kapatılıyor"), 0.15);
+        quit_pebbly(Duration::from_secs(10))?;
         close_settings(&dir, Duration::from_secs(3));
     }
     progress(tr("Kısayollar ve kayıtlar"), 0.4);
-    let _ = nowbar::platform::autostart::set_autostart_for(&places.run_name, &dir.join("nowbar.exe"), false);
+    let _ = pebbly::platform::autostart::set_autostart_for(&places.run_name, &dir.join("pebbly.exe"), false);
     if let Some(path) = &places.claude {
-        let _ = nowbar::claude_hooks::rewrite_at(path, without_ours);
+        let _ = pebbly::claude_hooks::rewrite_at(path, without_ours);
     }
-    for lnk in [places.start_menu.join("Now Bar.lnk"), places.desktop.join("Now Bar.lnk")] {
+    for lnk in [places.start_menu.join("Pebbly.lnk"), places.desktop.join("Pebbly.lnk")] {
         let _ = std::fs::remove_file(lnk);
     }
     progress(tr("Dosyalar siliniyor"), 0.7);
@@ -44,7 +44,7 @@ pub fn run(places: &Places, wipe: bool, progress: impl Fn(&str, f32)) -> Result<
 }
 
 /// Deletes `p`, trying for a few seconds: the uninstaller that handed over to this temp copy,
-/// or a Now Bar just told to quit, may still hold its exe for a moment.
+/// or a Pebbly just told to quit, may still hold its exe for a moment.
 fn delete(p: &std::path::Path) -> bool {
     for _ in 0..25 {
         let gone = if p.is_dir() { std::fs::remove_dir_all(p) } else if p.exists() { std::fs::remove_file(p) } else { Ok(()) };

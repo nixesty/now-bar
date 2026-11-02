@@ -81,11 +81,11 @@ impl Usage {
     }
 }
 
-/// Whether a sample counts: an app in front that isn't the lock screen or the Now Bar, and
+/// Whether a sample counts: an app in front that isn't the lock screen or Pebbly, and
 /// someone at the screen (input lately, something fullscreen, sound playing).
 pub fn counts(exe: &str, idle_ms: u64, fullscreen: bool, playing: bool) -> bool {
     let exe = exe.to_ascii_lowercase();
-    let ours = exe.starts_with("nowbar");
+    let ours = exe.starts_with("pebbly");
     !exe.is_empty() && exe != "lockapp.exe" && !ours && (idle_ms < IDLE_MS || fullscreen || playing)
 }
 
@@ -186,7 +186,7 @@ mod tests {
         assert!(counts("vlc.exe", IDLE_MS * 10, true, false), "a film fullscreen");
         assert!(counts("brave.exe", IDLE_MS * 10, false, true), "a video playing in a window");
         assert!(!counts("LockApp.exe", 0, false, false), "the lock screen");
-        assert!(!counts("nowbar.exe", 0, false, false));
+        assert!(!counts("pebbly.exe", 0, false, false));
         assert!(!counts("", 0, false, false), "nothing in front");
     }
 

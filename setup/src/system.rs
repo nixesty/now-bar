@@ -1,11 +1,11 @@
 //! The places the setup writes, and the Win32 it does it with: the installed apps entry,
-//! shortcuts, the running Now Bar, the folder picker, the uninstaller's temp copy.
+//! shortcuts, the running Pebbly, the folder picker, the uninstaller's temp copy.
 
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use nowbar::i18n::{tr, trf};
+use pebbly::i18n::{tr, trf};
 use windows::core::{w, Interface, HSTRING, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, WAIT_OBJECT_0, WPARAM};
 use windows::Win32::System::Com::{CoCreateInstance, CoTaskMemFree, IPersistFile, CLSCTX_INPROC_SERVER};
@@ -22,17 +22,17 @@ use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, FindWindowW, GetWindo
 use crate::plan::Value;
 
 /// Everything the setup touches. `sandbox`: a dev run that touches nothing of the real system
-/// (`NOWBAR_SETUP_SANDBOX`): its own folders, registry key and Run value, no Now Bar quit or started.
+/// (`PEBBLY_SETUP_SANDBOX`): its own folders, registry key and Run value, no Pebbly quit or started.
 #[derive(Clone, Debug)]
 pub struct Places {
     pub dir: PathBuf,
     /// Under HKCU.
     pub uninstall_key: String,
     pub run_name: String,
-    /// Where `Now Bar.lnk` goes in the Start menu.
+    /// Where `Pebbly.lnk` goes in the Start menu.
     pub start_menu: PathBuf,
     pub desktop: PathBuf,
-    /// The Now Bar's own folders: `%APPDATA%\NowBar` (settings.json) and `%LOCALAPPDATA%\NowBar`.
+    /// Pebbly's own folders: `%APPDATA%\Pebbly` (settings.json) and `%LOCALAPPDATA%\Pebbly`.
     pub roaming: PathBuf,
     pub local: PathBuf,
     /// Claude Code's settings.json, when Claude Code is set up on this computer.
@@ -42,7 +42,7 @@ pub struct Places {
 
 impl Places {
     pub fn current() -> Places {
-        match std::env::var_os("NOWBAR_SETUP_SANDBOX") {
+        match std::env::var_os("PEBBLY_SETUP_SANDBOX") {
             Some(root) => Places::sandbox(Path::new(&root)),
             None => Places::real(),
         }
@@ -50,32 +50,32 @@ impl Places {
 
     pub fn real() -> Places {
         let local = known(&FOLDERID_LocalAppData);
-        let installed = installed_at(nowbar::platform::uninstall_entry::KEY);
+        let installed = installed_at(pebbly::platform::uninstall_entry::KEY);
         Places {
             dir: installed.map(|(d, _)| d).unwrap_or_else(|| crate::plan::default_dir(&local)),
-            uninstall_key: nowbar::platform::uninstall_entry::KEY.into(),
-            run_name: nowbar::platform::autostart::NAME.into(),
+            uninstall_key: pebbly::platform::uninstall_entry::KEY.into(),
+            run_name: pebbly::platform::autostart::NAME.into(),
             start_menu: known(&FOLDERID_Programs),
             desktop: known(&FOLDERID_Desktop),
-            roaming: known(&FOLDERID_RoamingAppData).join("NowBar"),
-            local: local.join("NowBar"),
-            claude: nowbar::claude_hooks::settings_path().filter(|p| p.parent().is_some_and(Path::is_dir)),
+            roaming: known(&FOLDERID_RoamingAppData).join("Pebbly"),
+            local: local.join("Pebbly"),
+            claude: pebbly::claude_hooks::settings_path().filter(|p| p.parent().is_some_and(Path::is_dir)),
             sandbox: false,
         }
     }
 
     pub fn sandbox(root: &Path) -> Places {
-        let key = r"Software\NowBar-Sandbox\Uninstall\NowBar".to_string();
+        let key = r"Software\Pebbly-Sandbox\Uninstall\Pebbly".to_string();
         let installed = installed_at(&key);
         let claude = root.join(".claude");
         Places {
             dir: installed.map(|(d, _)| d).unwrap_or_else(|| crate::plan::default_dir(root)),
             uninstall_key: key,
-            run_name: "NowBar-Sandbox".into(),
+            run_name: "Pebbly-Sandbox".into(),
             start_menu: root.join("Start Menu"),
             desktop: root.join("Desktop"),
-            roaming: root.join("Roaming").join("NowBar"),
-            local: root.join("Local").join("NowBar"),
+            roaming: root.join("Roaming").join("Pebbly"),
+            local: root.join("Local").join("Pebbly"),
             claude: claude.is_dir().then(|| claude.join("settings.json")),
             sandbox: true,
         }
@@ -88,10 +88,10 @@ impl Places {
 }
 
 fn installed_at(key: &str) -> Option<(PathBuf, String)> {
-    use nowbar::platform::uninstall_entry::read_str;
+    use pebbly::platform::uninstall_entry::read_str;
     let dir = PathBuf::from(read_str(key, "InstallLocation")?);
     let version = read_str(key, "DisplayVersion").unwrap_or_default();
-    dir.join("nowbar.exe").exists().then_some((dir, version))
+    dir.join("pebbly.exe").exists().then_some((dir, version))
 }
 
 fn known(id: &windows::core::GUID) -> PathBuf {
@@ -149,9 +149,9 @@ pub fn shortcut(lnk: &Path, target: &Path) -> Result<(), String> {
     }
 }
 
-/// Asks the running Now Bar (wherever it runs from) to quit and waits for it; `Ok` when none runs.
-pub fn quit_now_bar(timeout: Duration) -> Result<(), String> {
-    let Ok(hwnd) = (unsafe { FindWindowW(w!("NowBarMain"), None) }) else { return Ok(()) };
+/// Asks the running Pebbly (wherever it runs from) to quit and waits for it; `Ok` when none runs.
+pub fn quit_pebbly(timeout: Duration) -> Result<(), String> {
+    let Ok(hwnd) = (unsafe { FindWindowW(w!("PebblyMain"), None) }) else { return Ok(()) };
     let mut pid = 0u32;
     let thread = unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid)) };
     let process = unsafe { OpenProcess(PROCESS_SYNCHRONIZE, false, pid) };
@@ -161,8 +161,8 @@ pub fn quit_now_bar(timeout: Duration) -> Result<(), String> {
     let Ok(process) = process else {
         // Gone already, or not ours to wait on: give it the time and look again.
         std::thread::sleep(Duration::from_millis(500));
-        return match unsafe { FindWindowW(w!("NowBarMain"), None) } {
-            Ok(_) => Err(tr("Now Bar kapanmadı; görev çubuğundan kapatıp tekrar dene.").into()),
+        return match unsafe { FindWindowW(w!("PebblyMain"), None) } {
+            Ok(_) => Err(tr("Pebbly kapanmadı; görev çubuğundan kapatıp tekrar dene.").into()),
             Err(_) => Ok(()),
         };
     };
@@ -173,14 +173,14 @@ pub fn quit_now_bar(timeout: Duration) -> Result<(), String> {
     if waited == WAIT_OBJECT_0 {
         Ok(())
     } else {
-        Err(tr("Now Bar kapanmadı; görev çubuğundan kapatıp tekrar dene.").into())
+        Err(tr("Pebbly kapanmadı; görev çubuğundan kapatıp tekrar dene.").into())
     }
 }
 
 /// Asks the settings windows that run from `dir` to close, and waits up to `timeout` (one that
-/// stays is renamed aside like a running Now Bar).
+/// stays is renamed aside like a running Pebbly).
 pub fn close_settings(dir: &Path, timeout: Duration) {
-    let exe = dir.join("nowbar-settings.exe");
+    let exe = dir.join("pebbly-settings.exe");
     let mut found: Vec<(HWND, u32)> = Vec::new();
     unsafe extern "system" fn each(hwnd: HWND, lp: LPARAM) -> windows::core::BOOL {
         let list = unsafe { &mut *(lp.0 as *mut Vec<(HWND, u32)>) };
@@ -215,19 +215,19 @@ fn process_path(pid: u32) -> Option<String> {
     }
 }
 
-/// A folder from Windows' picker; the Now Bar gets its own folder in it.
+/// A folder from Windows' picker; Pebbly gets its own folder in it.
 pub fn pick_folder(owner: Option<HWND>) -> Option<PathBuf> {
     unsafe {
         let dialog: IFileOpenDialog = CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER).ok()?;
         dialog.SetOptions(dialog.GetOptions().ok()? | FOS_PICKFOLDERS).ok()?;
-        dialog.SetTitle(w!("Now Bar nereye kurulsun?")).ok()?;
+        dialog.SetTitle(w!("Pebbly nereye kurulsun?")).ok()?;
         dialog.Show(owner).ok()?;
         let item = dialog.GetResult().ok()?;
         let name = item.GetDisplayName(SIGDN_FILESYSPATH).ok()?;
         let path = PathBuf::from(name.to_string().unwrap_or_default());
         CoTaskMemFree(Some(name.0 as *const _));
-        let named = path.file_name().is_some_and(|n| n.eq_ignore_ascii_case("NowBar"));
-        Some(if named { path } else { path.join("NowBar") })
+        let named = path.file_name().is_some_and(|n| n.eq_ignore_ascii_case("Pebbly"));
+        Some(if named { path } else { path.join("Pebbly") })
     }
 }
 
@@ -248,7 +248,7 @@ pub fn start_and_watch(exe: &Path, args: &[&str], watch: Duration) -> bool {
 /// in %TEMP% (`--uninstall-from <dir>`) and this one ends.
 pub fn relaunch_from_temp(dir: &Path, quiet: bool) -> Result<(), String> {
     let me = std::env::current_exe().map_err(|e| e.to_string())?;
-    let copy = std::env::temp_dir().join(format!("nowbar-uninstall-{}.exe", std::process::id()));
+    let copy = std::env::temp_dir().join(format!("pebbly-uninstall-{}.exe", std::process::id()));
     std::fs::copy(&me, &copy).map_err(|e| trf("Kaldırıcı başlatılamadı: {}", &[&e]))?;
     let mut cmd = std::process::Command::new(&copy);
     cmd.arg("--uninstall-from").arg(dir);

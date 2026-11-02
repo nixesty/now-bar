@@ -2032,7 +2032,7 @@ mod tests {
 
     #[test]
     fn claudes_pill_has_room_for_its_step() {
-        let live = |claude| PillContent::Live { key: 1, title: "now-bar".into(), status: "3:12".into(), claude, state: LiveState::Run, action: String::new() };
+        let live = |claude| PillContent::Live { key: 1, title: "pebbly".into(), status: "3:12".into(), claude, state: LiveState::Run, action: String::new() };
         assert_eq!(live(true).width_dip(), 300.0, "the project and \"Düzenliyor: app.rs\"");
         assert_eq!(live(false).width_dip(), 220.0);
     }

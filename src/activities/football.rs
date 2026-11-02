@@ -553,7 +553,7 @@ pub fn next_poll_s(status: MatchStatus, secs_to_kickoff: i64, failures: u32) -> 
     (base << failures.min(16)).min(base.max(300))
 }
 
-/// Whether the Now Bar shows the match now (unix seconds): from `before_min` ahead of kickoff
+/// Whether Pebbly shows the match now (unix seconds): from `before_min` ahead of kickoff
 /// until `keep_min` after the end (or after kickoff, for matches called off).
 /// When a match ended: kept once known; `now` when it was seen live and is finished now; else
 /// unknown, so a result found late (a cold start, last night's match) isn't news again.

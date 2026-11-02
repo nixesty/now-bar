@@ -1,10 +1,10 @@
 //! Dev tool: renders every icon and a Turkish text sample in each face and weight to a PNG,
 //! to check icon code points and font fallback by eye.
 //! Usage: `glyphsheet [out.png] [--probe E768,F5B0,...]` (probe draws extra code points, 12 to a
-//! row). `NOWBAR_FONTS=win10` draws with Windows 10's fonts (Segoe MDL2 Assets, Segoe UI).
+//! row). `PEBBLY_FONTS=win10` draws with Windows 10's fonts (Segoe MDL2 Assets, Segoe UI).
 
-use nowbar::render::gfx::{rect, white, Face, Ink, TextKit, TextStyle, Weight};
-use nowbar::render::icons::{glyph, Icon};
+use pebbly::render::gfx::{rect, white, Face, Ink, TextKit, TextStyle, Weight};
+use pebbly::render::icons::{glyph, Icon};
 use windows::core::{Interface, Result, HSTRING};
 use windows::Win32::Foundation::GENERIC_WRITE;
 use windows::Win32::Graphics::Direct2D::Common::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_COLOR_F, D2D1_PIXEL_FORMAT};

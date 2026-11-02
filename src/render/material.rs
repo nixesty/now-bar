@@ -17,7 +17,7 @@ use windows::Win32::System::WinRT::Graphics::Direct2D::{
 
 use super::gfx::{draw_surface, white, Gfx};
 
-/// White lift fitted to Now Bar screenshots (black wallpaper → #121212). Saturation (2.0) and
+/// White lift fitted to One UI's Now Bar screenshots (black wallpaper → #121212). Saturation (2.0) and
 /// brightness (0.65) are settings.
 const LIFT: f32 = 0.07;
 

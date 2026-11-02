@@ -378,7 +378,7 @@ pub fn epic_titles(catalog: &Value) -> HashMap<String, EpicTitle> {
         .collect()
 }
 
-/// A game the Now Bar shows: its key (the store and its id), title and pictures (the tall box
+/// A game Pebbly shows: its key (the store and its id), title and pictures (the tall box
 /// art for the card, a square or wide one for the pill's circle).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Game {

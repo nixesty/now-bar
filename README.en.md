@@ -2,14 +2,14 @@
 
 <img src="assets/readme/hero.png" width="880" alt="The playing song's pill in the taskbar with the music card open above it; beside it the Claude Code, match, timer, Galaxy Buds, weather and charging pills">
 
-# Now Bar
+# Pebbly
 
 **Samsung One UI's Now Bar, in the Windows 11 and 10 taskbar.**
 
 A small pill sits in the taskbar and shows what's going on right now: the song that's playing, a<br>
 timer, a match's score, what Claude Code is doing. Click the pill and a card opens above it.
 
-**[Download](https://github.com/nixesty/now-bar/releases/latest)** &nbsp;·&nbsp;
+**[Download](https://github.com/nixesty/pebbly/releases/latest)** &nbsp;·&nbsp;
 [What it shows](#what-it-shows) &nbsp;·&nbsp;
 [Install](#install) &nbsp;·&nbsp;
 [Building](#building)
@@ -45,7 +45,7 @@ The pictures on this page show it in Turkish.
   and touch and hold (holding can mute the PC's microphone, skip the song…), double tap the edge,
   hearing your own voice in calls, seamless connection and the fit test; these are kept in the
   earbuds themselves and apply on the phone too. When the earbuds aren't connected to this PC,
-  opening the case makes Now Bar offer to connect, and one click brings them over. With more than
+  opening the case makes Pebbly offer to connect, and one click brings them over. With more than
   one pair of Buds paired, the settings pick which one is shown.
 - **Claude Code:** what Claude is doing right now and its task list; when it asks for permission,
   the card shows **Allow / Deny** buttons ([below](#live-activities)).
@@ -101,8 +101,8 @@ the Full screen page it adds exceptions. Ctrl+F goes to the search, Ctrl+K to th
 
 <img src="assets/readme/setup.png" width="480" align="right" alt="The setup window">
 
-Download `nowbar-setup.exe` from the [latest release](https://github.com/nixesty/now-bar/releases/latest)
-and run it. It needs no admin rights and installs to `%LOCALAPPDATA%\Programs\NowBar` (**Change**
+Download `pebbly-setup.exe` from the [latest release](https://github.com/nixesty/pebbly/releases/latest)
+and run it. It needs no admin rights and installs to `%LOCALAPPDATA%\Programs\Pebbly` (**Change**
 picks another folder). The options on the setup screen:
 
 - **Start with Windows**
@@ -112,17 +112,17 @@ picks another folder). The options on the setup screen:
 - **Desktop shortcut**
 - **Open settings when done**
 
-A Start menu shortcut is always added. Now Bar shows in Windows' "Settings → Apps" list and can be
+A Start menu shortcut is always added. Pebbly shows in Windows' "Settings → Apps" list and can be
 uninstalled from there. Uninstalling also removes the shortcuts, the start with Windows entry and
 the Claude Code hooks; deleting the settings is up to you.
 
 <br clear="right">
 
-Running the setup again while Now Bar is installed updates or repairs it: the running Now Bar is
+Running the setup again while Pebbly is installed updates or repairs it: the running Pebbly is
 closed, its files are replaced and it starts again.
 
-For a silent install use `nowbar-setup.exe --quiet` (it leaves the app notifications setting as it
-is); for a silent uninstall, `"%LOCALAPPDATA%\Programs\NowBar\nowbar-setup.exe" --uninstall --quiet`.
+For a silent install use `pebbly-setup.exe --quiet` (it leaves the app notifications setting as it
+is); for a silent uninstall, `"%LOCALAPPDATA%\Programs\Pebbly\pebbly-setup.exe" --uninstall --quiet`.
 
 ## Usage
 
@@ -138,12 +138,12 @@ is); for a silent uninstall, `"%LOCALAPPDATA%\Programs\NowBar\nowbar-setup.exe" 
 
 ## Live activities
 
-Another program or a script can show an activity on the pill. When Now Bar isn't running, the
+Another program or a script can show an activity on the pill. When Pebbly isn't running, the
 command quits without doing anything (its exit code is always 0 and it prints nothing):
 
 ```
-nowbar.exe push --id backup --title "Backup" --text "Documents" --progress 40
-nowbar.exe push --id backup --title "Backup" --state done
+pebbly.exe push --id backup --title "Backup" --text "Documents" --progress 40
+pebbly.exe push --id backup --title "Backup" --state done
 ```
 
 `--state`: `run` (the default), `wait` (waiting for the user; comes to the front for a moment),
@@ -155,7 +155,7 @@ single HTTP request, with their own icon, colour and up to two buttons. The API 
 this PC (`127.0.0.1:20034`) and stays off until you turn it on (**Turn on app notifications** in
 the setup, or Settings → System → App notifications). The first time an app sends a request, the
 pill asks whether it may ("Wants to show notifications"); your answer is remembered and can be
-changed in the settings. The apps you allow, and what they show, are your responsibility; Now Bar
+changed in the settings. The apps you allow, and what they show, are your responsibility; Pebbly
 only shows it. For developers: [DOCS.md](DOCS.md).
 
 ```
@@ -164,22 +164,22 @@ curl -H "Content-Type: application/json" -d "{\"app\":\"Backup\",\"title\":\"Bac
 
 **Claude Code:** the setup's **Connect to Claude Code** option installs the hooks. To install or
 remove them by hand, use the commands below. The command writes the exe's own path, keeps a backup
-(`settings.json.before-nowbar` the first time, `settings.json.nowbar-last` on every later write)
+(`settings.json.before-pebbly` the first time, `settings.json.pebbly-last` on every later write)
 and leaves other hooks alone:
 
 ```
-nowbar.exe claude-hooks install
-nowbar.exe claude-hooks remove
+pebbly.exe claude-hooks install
+pebbly.exe claude-hooks remove
 ```
 
-The pill shows what Claude is doing and for how long it has been working ("now-bar · Editing:
+The pill shows what Claude is doing and for how long it has been working ("pebbly · Editing:
 app.rs"); the card has the task list's progress, the last steps and, when the work is done, the
 first line of the answer ("Done · 12 min · 9 files"). When Claude asks for permission the card
 shows **Allow / Deny** buttons; this holds only for single-line commands, files, addresses and
 searches the card shows in full. For a file, the card shows the file's full path while the change
 itself stays in Claude's window; multi-line commands, questions and plan approval are answered
 there as well. Claude's own window stays open at the same time; whichever answers first counts.
-The card waits 60 seconds for an answer (Settings → System → Live activities). If Now Bar moves to
+The card waits 60 seconds for an answer (Settings → System → Live activities). If Pebbly moves to
 another folder, the hooks follow the new path the next time it starts. It works in the desktop
 app's Code tab, the CLI and VS Code.
 
@@ -192,19 +192,19 @@ It builds without the SDK too, but then the exes keep Windows' default icon.
 cargo b
 ```
 
-`cargo b` is an alias defined in `.cargo\config.toml`: `cargo build --profile quick --bin nowbar
---bin nowbar-settings`. The exe runs as fast as a release build, but the program isn't optimised
+`cargo b` is an alias defined in `.cargo\config.toml`: `cargo build --profile quick --bin pebbly
+--bin pebbly-settings`. The exe runs as fast as a release build, but the program isn't optimised
 as a whole (no LTO), so with a warm cache a build takes seconds. The settings window's interface
 (`ui\`, Slint) is built without optimisation in this profile: a `.slint` change builds in 40
 seconds instead of 4–5 minutes.
 
 The output goes to `target\quick\`; clone the project to a short path (MSVC's path limit is 260
-characters). The two exes (`nowbar.exe` and `nowbar-settings.exe`) must sit **in the same folder**:
-Now Bar looks for the settings window next to itself. Copy both to `bin\` and run them from there.
+characters). The two exes (`pebbly.exe` and `pebbly-settings.exe`) must sit **in the same folder**:
+Pebbly looks for the settings window next to itself. Copy both to `bin\` and run them from there.
 With "Start with Windows" on, the startup entry follows the copy that ran last.
 
 **Release:** `tools\make-setup.ps1` builds what a GitHub release carries into `dist\`:
-`nowbar-setup.exe` (both exes inside), `nowbar.exe` and `nowbar-settings.exe` (what the updater
+`pebbly-setup.exe` (both exes inside), `pebbly.exe` and `pebbly-settings.exe` (what the updater
 downloads) and `SHA256SUMS.txt`. The C runtime is linked statically, so the exes open on Windows
 without the Visual C++ Redistributable. The release build (`target\dist\`, a few GB) is kept: the
 first build takes 13–14 minutes, later ones build only what changed (about 5 minutes after a code
@@ -223,29 +223,29 @@ License).
 
 ## Files
 
-- Settings: `%APPDATA%\NowBar\settings.json`
-- Log: `%LOCALAPPDATA%\NowBar\log.txt`. When and why the pill hid goes here too
+- Settings: `%APPDATA%\Pebbly\settings.json`
+- Log: `%LOCALAPPDATA%\Pebbly\log.txt`. When and why the pill hid goes here too
   (`pill: hidden (nothing active)`, `media: Brave left (paused 10 min)` and the like).
-- Team crests: `%LOCALAPPDATA%\NowBar\crests\`
-- The week's music: `%LOCALAPPDATA%\NowBar\music.json` (the last seven days only)
+- Team crests: `%LOCALAPPDATA%\Pebbly\crests\`
+- The week's music: `%LOCALAPPDATA%\Pebbly\music.json` (the last seven days only)
 - Files the shelf makes (shrunk pictures, zips) are written next to their originals; when that
-  folder can't be written to, into `%LOCALAPPDATA%\NowBar\Raf\`.
+  folder can't be written to, into `%LOCALAPPDATA%\Pebbly\Raf\`.
 
 ## Updates
 
-A minute after it starts, and then once a day, Now Bar asks GitHub for the latest release
+A minute after it starts, and then once a day, Pebbly asks GitHub for the latest release
 (`api.github.com`; nothing is sent but the request). The **Check** row in Settings → About asks
 without waiting. When there's a newer one, **Update: x.y.z** shows in the tray menu and the About
 row turns into **Update**. A click downloads the two exes, checks them against `SHA256SUMS.txt`,
-puts them in place of the old ones and restarts Now Bar; an open settings window reopens in place
+puts them in place of the old ones and restarts Pebbly; an open settings window reopens in place
 with the new version too. The settings and start with Windows stay as they are. The About row says
-what is happening meanwhile and, if it fails, why. If any step fails, the old exes stay. If Now
-Bar is installed in a folder it can't write to (such as Program Files), the release page opens
+what is happening meanwhile and, if it fails, why. If any step fails, the old exes stay. If
+Pebbly is installed in a folder it can't write to (such as Program Files), the release page opens
 instead. Settings → About → Check for updates turns the daily check off.
 
 ## Privacy and network
 
-Where Now Bar connects (none of them needs an API key):
+Where Pebbly connects (none of them needs an API key):
 
 - **Lyrics:** the playing song's artist, title and length go to `lrclib.net`, and when it doesn't
   have the lyrics to NetEase Cloud Music (`music.163.com`) and Kugou (`lyrics.kugou.com`)
@@ -260,18 +260,18 @@ Where Now Bar connects (none of them needs an API key):
 - **Updates:** GitHub (`api.github.com`), as described above.
 - **Ask Claude:** your question goes to Claude Code on the PC (`claude -p`, with no tools: it can't
   touch your files or the command line); Claude Code sends it to Anthropic with your own session.
-  Now Bar itself connects nowhere.
+  Pebbly itself connects nowhere.
 
 What stays on this PC: the week's music is counted here; **Copy text** uses Windows' own text
 recognition; **Share** only opens Windows' share window, and the files go where you choose there.
-While the paired Buds aren't connected to this PC, Now Bar listens to nearby Bluetooth LE adverts
+While the paired Buds aren't connected to this PC, Pebbly listens to nearby Bluetooth LE adverts
 to see the case open (it only listens and sends nothing; the case's counter is kept in
-`%LOCALAPPDATA%\NowBar\buds-lid.txt`). Settings → Galaxy Buds → **Offer to connect when the case
+`%LOCALAPPDATA%\Pebbly\buds-lid.txt`). Settings → Galaxy Buds → **Offer to connect when the case
 opens** turns this off.
 
-With **app notifications** on, Now Bar listens only on `127.0.0.1:20034` and `[::1]`, which only
+With **app notifications** on, Pebbly listens only on `127.0.0.1:20034` and `[::1]`, which only
 this PC can reach (if the port is taken it uses another one Windows gives and writes it to
-`%LOCALAPPDATA%\NowBar\api.json`). With them off, no port is opened. Requests from web pages, the
+`%LOCALAPPDATA%\Pebbly\api.json`). With them off, no port is opened. Requests from web pages, the
 network and other Windows users on this PC are refused; the details are in [DOCS.md](DOCS.md).
 
 Watched folders: ShareX's screenshot folder and Windows' `Pictures\Screenshots` folder (a new
@@ -286,8 +286,8 @@ your screen.
   0.2.1; its placement in the taskbar has only been tried in a simulation so far.
 - **Galaxy Buds:** tried with Buds2; Buds2 Pro, Buds FE, Buds Core, Buds3, Buds3 FE and Buds4 use
   the same protocol, and Buds Pro is recognised too. The first Galaxy Buds, Buds+ and Buds Live
-  aren't supported. While GalaxyBudsClient or Samsung's Galaxy Buds app uses the connection, Now
-  Bar can't read the earbuds.
+  aren't supported. While GalaxyBudsClient or Samsung's Galaxy Buds app uses the connection,
+  Pebbly can't read the earbuds.
 - **Paused media leaves the pill after 10 minutes** (Settings → Media → Stay when paused). With no
   other activity, the pill hides then too; it comes back when the music plays again.
 - The settings window doesn't show live data: instead of a match's live score, the Buds' current
@@ -310,7 +310,7 @@ Tests and clippy (the aliases in `.cargo\config.toml`) run in the quick profile;
 - What makes the build faster: Rust's own linker (`rust-lld`), no debug info in the dependencies,
   and the settings window's Slint interface in a crate of its own (`ui\`): the interface rebuilds
   only when a `.slint` file changes.
-- `NOWBAR_SETTINGS_SHOTS=<folder> nowbar-settings.exe`: opens the settings window off-screen, takes
+- `PEBBLY_SETTINGS_SHOTS=<folder> pebbly-settings.exe`: opens the settings window off-screen, takes
   a screenshot of every page with the real renderer and closes without saving the settings.
 - `pillsheet`, `cardsheet`, `matchsheet`, `settingsheet`, `glyphsheet`: render sample pictures
   (PNG) without opening a window. `fxsheet` (the weather's effects), `glidesheet` (the pill making
@@ -321,20 +321,20 @@ Tests and clippy (the aliases in `.cargo\config.toml`) run in the quick profile;
   elements, Explorer's copy windows, the audio outputs, the media sessions and the match data,
   read-only.
 - **Translation:** the interface's text is written in Turkish in the code (`tr("…")`, in Slint
-  `@tr("…")`); its English is in `i18n\en\LC_MESSAGES\nowbar-ui.po`. `python tools\i18n-extract.py`
+  `@tr("…")`); its English is in `i18n\en\LC_MESSAGES\pebbly-ui.po`. `python tools\i18n-extract.py`
   adds the missing strings to that file, empty; `cargo t` fails until each one has its English.
 - `tools\*.ps1`: flicker, idle use, Explorer restarts and other measurements.
-- `nowbar.exe --demo`: starts with a one-minute sample timer; `--match-replay <folder>` replays a
+- `pebbly.exe --demo`: starts with a one-minute sample timer; `--match-replay <folder>` replays a
   match from recorded scoreboards.
 - `assets\make_icon.py`: redraws the icon (the white pill in the tray).
 - **Publishing a release:** raise `version` in `Cargo.toml`, run `tools\make-setup.ps1`, then
   publish what's in `dist\`:
-  `gh release create vX.Y.Z dist\nowbar-setup.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt`.
-  `nowbar.exe --update-from <folder>` tries the update without GitHub, with the exes in a folder.
+  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\SHA256SUMS.txt`.
+  `pebbly.exe --update-from <folder>` tries the update without GitHub, with the exes in a folder.
 
 ## License
 
-Now Bar is licensed under the [GNU General Public License version 3](LICENSE) (GPL-3.0). You may
+Pebbly is licensed under the [GNU General Public License version 3](LICENSE) (GPL-3.0). You may
 use, change and share the code; if you share a changed version, you have to publish its source
 under the same license. Copyright © 2026 nixesty.
 

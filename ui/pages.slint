@@ -1337,11 +1337,11 @@ export component AboutBody inherits VerticalLayout {
     Tiles {
         Tile {
             width: parent.tw;
-            title: "Now Bar";
+            title: "Pebbly";
             sub: Store.version;
             selected: true;
             clickable: false;
-            // The Now Bar mark, large: a pill with the accent dot.
+            // Pebbly's mark, large: a pill with the accent dot.
             Rectangle {
                 width: 96px;
                 height: 44px;
@@ -1401,7 +1401,7 @@ export component AboutBody inherits VerticalLayout {
     }
     LRow {
         title: @tr("Günlük");
-        sub: "%LOCALAPPDATA%\\NowBar\\log.txt";
+        sub: "%LOCALAPPDATA%\\Pebbly\\log.txt";
         clickable: true;
         lead: 1;
         glyph: "\u{E8A5}";
@@ -1410,7 +1410,7 @@ export component AboutBody inherits VerticalLayout {
     }
     LRow {
         title: @tr("Ayar dosyası");
-        sub: "%APPDATA%\\NowBar\\settings.json";
+        sub: "%APPDATA%\\Pebbly\\settings.json";
         clickable: true;
         lead: 1;
         glyph: "\u{E8A5}";
@@ -1855,7 +1855,7 @@ export component SystemInspector inherits VerticalLayout {
             }
         }
         Text {
-            text: @tr("Açıkken, izin verdiğin uygulamalar pilde bildirim gösterebilir. Hangi uygulamalara izin verdiğin ve gösterdikleri senin sorumluluğunda; Now Bar yalnızca gösterir.");
+            text: @tr("Açıkken, izin verdiğin uygulamalar pilde bildirim gösterebilir. Hangi uygulamalara izin verdiğin ve gösterdikleri senin sorumluluğunda; Pebbly yalnızca gösterir.");
             font-size: 13px;
             color: Theme.text2;
             wrap: word-wrap;

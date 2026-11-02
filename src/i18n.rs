@@ -1,5 +1,5 @@
 //! The interface's language. Every string in the code is Turkish (the source); English comes from
-//! `i18n/en/LC_MESSAGES/nowbar-ui.po`, built into a table at compile time. The settings window's
+//! `i18n/en/LC_MESSAGES/pebbly-ui.po`, built into a table at compile time. The settings window's
 //! Slint strings use the same file through Slint's bundled translations.
 
 use std::cell::Cell;
@@ -67,10 +67,10 @@ pub fn pick(p: LanguagePick, windows_turkish: bool) -> Language {
     }
 }
 
-/// The language a setting gives on this PC: `NOWBAR_LANG` ("tr" or "en": the dev sheets and the
+/// The language a setting gives on this PC: `PEBBLY_LANG` ("tr" or "en": the dev sheets and the
 /// setup's shots in either language) first, else [`pick`] with Windows' own.
 pub fn chosen(p: LanguagePick) -> Language {
-    match std::env::var("NOWBAR_LANG").as_deref() {
+    match std::env::var("PEBBLY_LANG").as_deref() {
         Ok("en") => Language::English,
         Ok("tr") => Language::Turkish,
         _ => pick(p, windows_is_turkish()),

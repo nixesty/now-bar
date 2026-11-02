@@ -1,6 +1,6 @@
 //! What Claude Code is doing, from its hooks: the step (tool and target), the task list, the
 //! files it changed, its last answer and a permission it waits for. The pure part; the hook
-//! process (`nowbar.exe claude-hook`) builds a `ClaudeNote` and the Now Bar keeps a `ClaudeInfo`.
+//! process (`pebbly.exe claude-hook`) builds a `ClaudeNote` and Pebbly keeps a `ClaudeInfo`.
 
 use std::collections::BTreeSet;
 
@@ -231,7 +231,7 @@ pub fn error_text(error: &str) -> &'static str {
 
 /// A permission Claude waits for. `id` names the hook process waiting for the card's answer
 /// (empty: nothing waits, the card only shows it); `nonce` is the secret an answer must carry,
-/// which only the Now Bar learns (the id is a window title anyone can read).
+/// which only Pebbly learns (the id is a window title anyone can read).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Ask {
     pub id: String,
@@ -256,7 +256,7 @@ pub fn decision_json(allow: bool) -> String {
     let decision = if allow {
         serde_json::json!({"behavior": "allow"})
     } else {
-        serde_json::json!({"behavior": "deny", "message": "Now Bar'dan reddedildi"})
+        serde_json::json!({"behavior": "deny", "message": "Pebbly'den reddedildi"})
     };
     serde_json::json!({"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": decision}}).to_string()
 }
@@ -355,7 +355,7 @@ pub struct ClaudeNote {
     pub new_prompt: bool,
 }
 
-/// A session's state on the Now Bar side.
+/// A session's state on Pebbly's side.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ClaudeInfo {
     /// The last three, newest first.
@@ -427,7 +427,7 @@ mod tests {
         assert_eq!(step("Write", json!({"file_path": "C:/x/notes.md"})), "Yazıyor: notes.md");
         assert_eq!(step("Read", json!({"file_path": r"C:\x\pill.rs"})), "Okuyor: pill.rs");
         assert_eq!(step("Bash", json!({"command": "cargo test --lib", "description": "Run the tests"})), "Çalıştırıyor: Run the tests");
-        assert_eq!(step("PowerShell", json!({"command": "Get-Process nowbar\nmore"})), "Çalıştırıyor: Get-Process nowbar");
+        assert_eq!(step("PowerShell", json!({"command": "Get-Process pebbly\nmore"})), "Çalıştırıyor: Get-Process pebbly");
         assert_eq!(step("Grep", json!({"pattern": "paint_shelf"})), "Arıyor: paint_shelf");
         assert_eq!(step("Glob", json!({"pattern": "**/*.rs"})), "Arıyor: **/*.rs");
         assert_eq!(step("WebFetch", json!({"url": "https://code.claude.com/docs/en/hooks.md"})), "Okuyor: code.claude.com");
@@ -530,7 +530,7 @@ mod tests {
         assert_eq!(allow, json!({"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": {"behavior": "allow"}}}));
         let deny: Value = serde_json::from_str(&decision_json(false)).unwrap();
         assert_eq!(deny["hookSpecificOutput"]["decision"]["behavior"], "deny");
-        assert_eq!(deny["hookSpecificOutput"]["decision"]["message"], "Now Bar'dan reddedildi");
+        assert_eq!(deny["hookSpecificOutput"]["decision"]["message"], "Pebbly'den reddedildi");
     }
 
     #[test]

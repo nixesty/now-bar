@@ -7,7 +7,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PO = os.path.join(ROOT, 'i18n', 'en', 'LC_MESSAGES', 'nowbar-ui.po')
+PO = os.path.join(ROOT, 'i18n', 'en', 'LC_MESSAGES', 'pebbly-ui.po')
 LIT = r'"((?:[^"\\]|\\.)*)"'
 # trc("ctx", "text"), @tr("ctx" => "text"), then the one-string calls.
 WITH_CONTEXT = re.compile(r'(?<![\w.])(?:trc\(' + LIT + r'\s*,\s*' + LIT + r'|@?tr\(' + LIT + r'\s*=>\s*' + LIT + r')')

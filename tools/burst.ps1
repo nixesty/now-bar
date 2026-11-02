@@ -10,7 +10,7 @@ Add-Type -AssemblyName System.Drawing
 New-Item -ItemType Directory -Force $Dir | Out-Null
 Get-ChildItem $Dir -Filter *.png | Remove-Item
 if ($Launch) {
-  Get-Process nowbar -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process pebbly -ErrorAction SilentlyContinue | Stop-Process -Force
   if ($LaunchArgs) { Start-Process $Launch -ArgumentList $LaunchArgs | Out-Null } else { Start-Process $Launch | Out-Null }
 }
 $bmp = New-Object System.Drawing.Bitmap $W, $H

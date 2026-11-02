@@ -1,5 +1,5 @@
 # Restarts Explorer (closes open File Explorer windows!) and measures how long until the pill is
-# back inside the new taskbar. Run with nowbar.exe --demo already running.
+# back inside the new taskbar. Run with pebbly.exe --demo already running.
 # -Simulate only broadcasts the TaskbarCreated message, without touching Explorer.
 param([switch]$Simulate, [int]$TimeoutMs = 20000)
 Add-Type @"
@@ -17,12 +17,12 @@ public static class Er {
   public static bool PillIn() {
     IntPtr bar = FindWindow("Shell_TrayWnd", null);
     if (bar == IntPtr.Zero) return false;
-    IntPtr input = FindWindowEx(bar, IntPtr.Zero, "NowBarPillInput", null);
+    IntPtr input = FindWindowEx(bar, IntPtr.Zero, "PebblyPillInput", null);
     return input != IntPtr.Zero && IsWindowVisible(input);
   }
 }
 "@
-if (-not (Get-Process nowbar -ErrorAction SilentlyContinue)) { "start nowbar.exe --demo first"; exit 1 }
+if (-not (Get-Process pebbly -ErrorAction SilentlyContinue)) { "start pebbly.exe --demo first"; exit 1 }
 "before: pill in taskbar = " + [Er]::PillIn()
 $sw = [Diagnostics.Stopwatch]::StartNew()
 if ($Simulate) {
@@ -45,4 +45,4 @@ while ($sw.ElapsedMilliseconds -lt $TimeoutMs) {
 # Windows' own part (the taskbar coming back) and ours (the pill back in it) apart.
 "taskbar back after {0} ms" -f $barBack
 "after:  pill in taskbar = {0} ({1} ms; {2} ms after the taskbar)" -f [Er]::PillIn(), $sw.ElapsedMilliseconds, ($sw.ElapsedMilliseconds - $barBack)
-"nowbar instances: " + @(Get-Process nowbar -ErrorAction SilentlyContinue).Count
+"pebbly instances: " + @(Get-Process pebbly -ErrorAction SilentlyContinue).Count

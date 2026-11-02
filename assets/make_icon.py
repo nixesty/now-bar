@@ -1,6 +1,6 @@
-"""Draws the Now Bar icon: the tray's white pill (src/platform/tray.rs `pill_icon_bgra`: a white
+"""Draws Pebbly's icon: the tray's white pill (src/platform/tray.rs `pill_icon_bgra`: a white
 capsule 84 % wide and 44 % tall, centred, anti-aliased) on a transparent square. Writes
-nowbar.ico (16-256 px, each size drawn on its own pixel grid) and nowbar-256.png (the settings
+pebbly.ico (16-256 px, each size drawn on its own pixel grid) and pebbly-256.png (the settings
 window's icon).
 
 Run: python assets/make_icon.py   (needs Pillow)"""
@@ -34,8 +34,8 @@ def draw(size: int) -> Image.Image:
 
 def main():
     images = [draw(n) for n in SIZES]
-    images[-1].save(os.path.join(HERE, "nowbar.ico"), sizes=[(n, n) for n in SIZES], append_images=images[:-1])
-    images[-1].save(os.path.join(HERE, "nowbar-256.png"))
+    images[-1].save(os.path.join(HERE, "pebbly.ico"), sizes=[(n, n) for n in SIZES], append_images=images[:-1])
+    images[-1].save(os.path.join(HERE, "pebbly-256.png"))
     print("ok")
 
 

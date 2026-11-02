@@ -10,7 +10,7 @@ use windows::Win32::System::Registry::{
 
 const RUN: PCWSTR = w!(r"Software\Microsoft\Windows\CurrentVersion\Run");
 /// The Run value's name.
-pub const NAME: &str = "NowBar";
+pub const NAME: &str = "Pebbly";
 
 pub fn autostart_enabled() -> bool {
     run_value(NAME).is_some()
@@ -79,10 +79,10 @@ mod tests {
 
     #[test]
     fn run_entry_points_at_this_exe_whatever_the_quotes_and_case() {
-        let exe = Path::new(r"C:\Projects\nowbar\bin\nowbar.exe");
-        assert!(points_at(r#""C:\Projects\nowbar\bin\nowbar.exe""#, exe));
-        assert!(points_at(r"c:\projects\NOWBAR\bin\nowbar.exe", exe));
-        assert!(!points_at(r#""C:\Users\k\AppData\Local\Temp\nbt-app\release\nowbar.exe""#, exe));
-        assert_eq!(run_command(exe), r#""C:\Projects\nowbar\bin\nowbar.exe""#);
+        let exe = Path::new(r"C:\Projects\pebbly\bin\pebbly.exe");
+        assert!(points_at(r#""C:\Projects\pebbly\bin\pebbly.exe""#, exe));
+        assert!(points_at(r"c:\projects\PEBBLY\bin\pebbly.exe", exe));
+        assert!(!points_at(r#""C:\Users\k\AppData\Local\Temp\nbt-app\release\pebbly.exe""#, exe));
+        assert_eq!(run_command(exe), r#""C:\Projects\pebbly\bin\pebbly.exe""#);
     }
 }

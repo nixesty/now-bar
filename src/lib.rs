@@ -1,4 +1,4 @@
-//! Now Bar for Windows: a One UI 9 Now Bar that lives inside the taskbar.
+//! Pebbly: Samsung One UI's Now Bar, living inside the Windows taskbar.
 
 pub mod activities;
 pub mod app;

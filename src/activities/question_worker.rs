@@ -118,7 +118,7 @@ impl AskWorker {
             };
             const CREATE_NO_WINDOW: u32 = 0x0800_0000;
             // An empty folder: no project's files or settings come with the question.
-            let here = std::env::temp_dir().join("nowbar-question");
+            let here = std::env::temp_dir().join("pebbly-question");
             let _ = std::fs::create_dir_all(&here);
             // No tools and no MCP servers (--strict-mcp-config without a config: none start).
             let started = Command::new(&exe)
@@ -128,7 +128,7 @@ impl AskWorker {
                 .env_remove("CLAUDECODE")
                 .env_remove("CLAUDE_CODE_ENTRYPOINT")
                 // Our own hook stays out of it even if hooks run (no live item for the card's question).
-                .env("NOWBAR_QUESTION", "1")
+                .env("PEBBLY_QUESTION", "1")
                 .current_dir(here)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())

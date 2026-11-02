@@ -1,5 +1,5 @@
-//! Everything the user can configure, stored as JSON in %APPDATA%\NowBar\settings.json and
-//! shared with the settings window (`nowbar-settings.exe`), which tells the app to reload.
+//! Everything the user can configure, stored as JSON in %APPDATA%\Pebbly\settings.json and
+//! shared with the settings window (`pebbly-settings.exe`), which tells the app to reload.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// Registered window message the settings window posts after saving.
-pub const SETTINGS_CHANGED: &str = "NowBar.SettingsChanged";
+pub const SETTINGS_CHANGED: &str = "Pebbly.SettingsChanged";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -129,7 +129,7 @@ pub struct ApiApp {
     pub allowed: bool,
 }
 
-/// A team whose matches come to the Now Bar (ESPN team id, its display name and its league
+/// A team whose matches come to Pebbly (ESPN team id, its display name and its league
 /// slug, which the settings window shows under the name).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FollowedTeam {
@@ -254,7 +254,7 @@ pub struct Settings {
     pub rain_moment: bool,
     /// Thunder, gales, heat, frost and bad air there show for a moment (and on the weather card).
     pub weather_alerts: bool,
-    /// Live activities other programs send (`nowbar.exe push`, Claude Code's hooks).
+    /// Live activities other programs send (`pebbly.exe push`, Claude Code's hooks).
     pub live_enabled: bool,
     /// A new screenshot (ShareX, Windows' Screenshots folder) shows in the pill for a moment.
     pub capture_moment: bool,
@@ -516,7 +516,7 @@ fn from_value(value: Value) -> Settings {
 
 pub fn settings_path() -> PathBuf {
     let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("NowBar").join("settings.json")
+    base.join("Pebbly").join("settings.json")
 }
 
 /// Missing file → defaults; unreadable JSON → defaults, and the file is kept as `settings.json.bad`.
@@ -559,7 +559,7 @@ pub fn merge(base: &Settings, mine: &Settings, disk: &Settings) -> Settings {
     serde_json::from_value(Value::Object(d)).unwrap_or_else(|_| mine.clone())
 }
 
-/// What the Now Bar saves for an app's answer (a prompt, "Sustur"): the file as it is now, since
+/// What Pebbly saves for an app's answer (a prompt, "Sustur"): the file as it is now, since
 /// the settings window may have saved after the last reload, with only the answer added.
 pub fn with_api_answer(disk: Option<Settings>, running: &Settings, answer: ApiApp) -> Settings {
     let mut s = disk.unwrap_or_else(|| running.clone());
@@ -581,7 +581,7 @@ pub fn with_buds_model(disk: Option<Settings>, running: &Settings, model: u16) -
     s.sanitized()
 }
 
-/// The settings window's answers before it changes one: the file's (the Now Bar may have kept
+/// The settings window's answers before it changes one: the file's (Pebbly may have kept
 /// one since the window opened), in its working copy and in what it last saved, so its save
 /// changes only the one it touched.
 pub fn rebase_api_apps(working: &mut Settings, saved: &mut Settings, disk: Option<&Settings>) {
@@ -630,7 +630,7 @@ mod tests {
     use super::*;
 
     fn temp_file(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("nowbar-settings-test-{}-{name}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("pebbly-settings-test-{}-{name}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         dir.join("settings.json")
     }
@@ -750,7 +750,7 @@ mod tests {
 
     #[test]
     fn merge_keeps_api_apps_written_by_the_app() {
-        // The window is open; meanwhile the Now Bar saved the user's answer to a prompt.
+        // The window is open; meanwhile Pebbly saved the user's answer to a prompt.
         let base = Settings::default();
         let disk = Settings { api_apps: vec![ApiApp { name: "Ekin".into(), exe: r"C:\Apps\ekin.exe".into(), allowed: true }], ..Settings::default() };
         let mine = Settings { idle_clock: false, ..Settings::default() };
@@ -760,7 +760,7 @@ mod tests {
 
     #[test]
     fn an_answer_lands_on_the_file_as_it_is() {
-        // The window saved the clock off; the Now Bar hasn't reloaded it yet.
+        // The window saved the clock off; Pebbly hasn't reloaded it yet.
         let disk = Settings { idle_clock: false, ..Settings::default() };
         let ekin = ApiApp { name: "Ekin".into(), exe: r"C:\Apps\ekin.exe".into(), allowed: true };
         let s = with_api_answer(Some(disk), &Settings::default(), ekin.clone());
@@ -771,7 +771,7 @@ mod tests {
     #[test]
     fn the_window_edits_the_files_answers() {
         let app = |name: &str, allowed| ApiApp { name: name.into(), exe: r"C:\Apps\a.exe".into(), allowed };
-        // The window opened with Deniz; meanwhile the Now Bar kept an answer for Ekin.
+        // The window opened with Deniz; meanwhile Pebbly kept an answer for Ekin.
         let (mut working, mut saved) = (Settings { api_apps: vec![app("Deniz", true)], ..Settings::default() }, Settings { api_apps: vec![app("Deniz", true)], ..Settings::default() });
         let disk = Settings { api_apps: vec![app("Deniz", true), app("Ekin", false)], ..Settings::default() };
         rebase_api_apps(&mut working, &mut saved, Some(&disk));
@@ -781,7 +781,7 @@ mod tests {
 
     #[test]
     fn a_bom_doesnt_reset_every_setting() {
-        let dir = std::env::temp_dir().join(format!("nowbar-bom-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("pebbly-bom-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("settings.json");
         std::fs::write(&path, "\u{feff}{\"pill_opacity_pct\": 77}").unwrap();

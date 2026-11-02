@@ -1,4 +1,4 @@
-//! The pills the setup's stage turns through: what the Now Bar shows, drawn by its own painter.
+//! The pills the setup's stage turns through: what Pebbly shows, drawn by its own painter.
 
 use windows::core::Result;
 
@@ -47,7 +47,7 @@ pub fn pills() -> Vec<PillContent> {
     let file = |kind| PillThumb { thumb: None, kind };
     vec![
         PillContent::media(song),
-        PillContent::Live { key: 1, title: "now-bar".into(), status: "4:12".into(), claude: true, state: LiveState::Run, action: format!("{}: app.rs", crate::i18n::tr("Düzenliyor")) },
+        PillContent::Live { key: 1, title: "pebbly".into(), status: "4:12".into(), claude: true, state: LiveState::Run, action: format!("{}: app.rs", crate::i18n::tr("Düzenliyor")) },
         PillContent::Match(Box::new(game)),
         PillContent::Buds(BudsSnapshot { left: 80, right: 75, case: Some(60), noise: None, worn: Worn { left: true, right: true }, ..Default::default() }),
         PillContent::Shelf {

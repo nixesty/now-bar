@@ -1,8 +1,8 @@
 //! Dev tool: runs the football worker and prints every update.
 //! Usage: `footballprobe <seconds> --team 436 [--team 432]` or `footballprobe <seconds> --replay <dir>`.
 
-use nowbar::activities::football::minute_text;
-use nowbar::activities::football_worker::{search_teams, FootballWorker};
+use pebbly::activities::football::minute_text;
+use pebbly::activities::football_worker::{search_teams, FootballWorker};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();

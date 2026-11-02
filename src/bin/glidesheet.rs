@@ -7,12 +7,12 @@
 //! Windows 10's (made-up windows read by `classic_items`, as the app reads the real ones) at
 //! 100 % or `--scale`, 40 DIP tall or 30 with `--small` buttons.
 
-use nowbar::activities::weather::WeatherFx;
-use nowbar::platform::taskbar::{classic_items, BarWindow};
-use nowbar::platform::windows::PillWindow;
-use nowbar::render::gfx::{draw_surface, rect, Gfx};
-use nowbar::render::layout::{fit_pill, pill_fit, pill_rect, RectPx, Scale, TaskbarAlign, TaskbarInfo};
-use nowbar::render::pill::{layout_for, PillContent, PillVisual, MAX_SLIVERS, PILL_H_DIP, SLIVER_STEP_DIP};
+use pebbly::activities::weather::WeatherFx;
+use pebbly::platform::taskbar::{classic_items, BarWindow};
+use pebbly::platform::windows::PillWindow;
+use pebbly::render::gfx::{draw_surface, rect, Gfx};
+use pebbly::render::layout::{fit_pill, pill_fit, pill_rect, RectPx, Scale, TaskbarAlign, TaskbarInfo};
+use pebbly::render::pill::{layout_for, PillContent, PillVisual, MAX_SLIVERS, PILL_H_DIP, SLIVER_STEP_DIP};
 use windows::core::{w, Interface, Result, HSTRING};
 use windows::Win32::Foundation::{GENERIC_WRITE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::*;
@@ -199,9 +199,9 @@ fn main() -> Result<()> {
 
     let bar = unsafe {
         let instance = GetModuleHandleW(None)?.into();
-        let class = WNDCLASSW { lpfnWndProc: Some(proc), hInstance: instance, lpszClassName: w!("NowBarGlideSheet"), ..Default::default() };
+        let class = WNDCLASSW { lpfnWndProc: Some(proc), hInstance: instance, lpszClassName: w!("PebblyGlideSheet"), ..Default::default() };
         RegisterClassW(&class);
-        CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP, w!("NowBarGlideSheet"), w!("glidesheet"), WS_POPUP | WS_VISIBLE, bar_r.x, bar_r.y, bar_r.w, bar_r.h, None, None, Some(instance), None)?
+        CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP, w!("PebblyGlideSheet"), w!("glidesheet"), WS_POPUP | WS_VISIBLE, bar_r.x, bar_r.y, bar_r.w, bar_r.h, None, None, Some(instance), None)?
     };
     let target = unsafe { c.cast::<ICompositorDesktopInterop>()?.CreateDesktopWindowTarget(bar, false)? };
     let root = c.CreateContainerVisual()?;

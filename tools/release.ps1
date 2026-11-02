@@ -19,7 +19,7 @@ if (-not $repo) {
 $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
 Remove-Item Env:RUSTFLAGS -ErrorAction SilentlyContinue
 $env:CARGO_ENCODED_RUSTFLAGS = @("--remap-path-prefix=$cargoHome=cargo", "--remap-path-prefix=$root=.") -join [char]0x1f
-cargo build --profile $Profile --bin nowbar --bin nowbar-settings
+cargo build --profile $Profile --bin pebbly --bin pebbly-settings
 if ($LASTEXITCODE -ne 0) { throw 'cargo build failed' }
 # .cargo\config.toml keeps the build out of this (deep) folder.
 $target = (cargo metadata --format-version 1 --no-deps | ConvertFrom-Json).target_directory
@@ -27,12 +27,12 @@ $target = (cargo metadata --format-version 1 --no-deps | ConvertFrom-Json).targe
 $dist = Join-Path $root 'dist'
 if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
 New-Item -ItemType Directory $dist | Out-Null
-$exes = 'nowbar.exe', 'nowbar-settings.exe'
+$exes = 'pebbly.exe', 'pebbly-settings.exe'
 foreach ($exe in $exes) { Copy-Item (Join-Path $target "$Profile\$exe") $dist }
 
 # No fonts: the pill draws with Segoe UI Variable then, as on the machine it was made on
 # (One UI Sans can't be shared; the settings window carries Inter itself).
-$zip = "NowBar-$version.zip"
+$zip = "Pebbly-$version.zip"
 $packed = @($exes | ForEach-Object { Join-Path $dist $_ }) + (Join-Path $root 'README.md')
 Compress-Archive -Path $packed -DestinationPath (Join-Path $dist $zip)
 
@@ -42,4 +42,4 @@ $sums = foreach ($f in $exes + $zip) {
 [IO.File]::WriteAllText((Join-Path $dist 'SHA256SUMS.txt'), ($sums -join "`n") + "`n")
 
 Write-Host "dist\ is ready for v$version. To publish:"
-Write-Host "gh release create v$version dist\$zip dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt --title `"Now Bar $version`" --notes `"`""
+Write-Host "gh release create v$version dist\$zip dist\pebbly.exe dist\pebbly-settings.exe dist\SHA256SUMS.txt --title `"Pebbly $version`" --notes `"`""

@@ -1,5 +1,5 @@
 //! The update thread: asks GitHub for the latest release once a day, and on demand downloads it,
-//! checks the exes against SHA256SUMS.txt, swaps them in and starts the new Now Bar.
+//! checks the exes against SHA256SUMS.txt, swaps them in and starts the new Pebbly.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, RecvTimeoutError, Sender};
@@ -20,7 +20,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The first ask waits for the start to settle; then one a day (GitHub allows 60 an hour).
 const FIRST: Duration = Duration::from_secs(60);
 const EVERY: Duration = Duration::from_secs(24 * 3600);
-const EXES: [&str; 2] = ["nowbar.exe", "nowbar-settings.exe"];
+const EXES: [&str; 2] = ["pebbly.exe", "pebbly-settings.exe"];
 
 /// What the thread tells the app.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -60,7 +60,7 @@ impl Updater {
                 let mut enabled = crate::settings::current().update_check;
                 let mut next = Instant::now() + FIRST;
                 // Swapped in, the restart under way: another ask would download again and rename
-                // over the exe still running as nowbar.old.exe.
+                // over the exe still running as pebbly.old.exe.
                 let mut installed = false;
                 loop {
                     let result = match rx.recv_timeout(next.saturating_duration_since(Instant::now())) {
@@ -109,7 +109,7 @@ impl Updater {
     }
 }
 
-/// `%LOCALAPPDATA%\NowBar\update.json`.
+/// `%LOCALAPPDATA%\Pebbly\update.json`.
 fn state_path() -> PathBuf {
     log_path().with_file_name("update.json")
 }
@@ -170,7 +170,7 @@ fn apply(report: &impl Fn(Progress)) -> Result<(), Failed> {
     install(&dir, &r.page)
 }
 
-/// The release's files into `%LOCALAPPDATA%\NowBar\update\<tag>\`, checked.
+/// The release's files into `%LOCALAPPDATA%\Pebbly\update\<tag>\`, checked.
 fn download(r: &Release) -> Result<PathBuf, Failed> {
     let failed = |why: String| (Outcome::Download, why);
     let dir = log_path().with_file_name("update").join(&r.tag);
@@ -214,7 +214,7 @@ type Renames = Vec<(PathBuf, PathBuf)>;
 /// A swap waiting for the app to quit: the folder and the renames, to undo if the new exe dies.
 static PENDING: Mutex<Option<(PathBuf, Renames)>> = Mutex::new(None);
 
-/// Swaps the exes in the running one's folder for those in `staged`; the new Now Bar starts once
+/// Swaps the exes in the running one's folder for those in `staged`; the new Pebbly starts once
 /// this one has quit (`restart_after_update`). A folder it may not write (Program Files) opens
 /// `page` instead.
 fn install(staged: &Path, page: &str) -> Result<(), Failed> {
@@ -246,13 +246,13 @@ fn undo(done: &[(PathBuf, PathBuf)]) {
 }
 
 /// After the message loop of an update's quit (main calls it, still holding the mutex): starts the
-/// new Now Bar and watches it 2 s. One that dies at once (blocked, broken) gets the old exes put
-/// back, and the old Now Bar starts again in its place: never no Now Bar at all.
+/// new Pebbly and watches it 2 s. One that dies at once (blocked, broken) gets the old exes put
+/// back, and the old Pebbly starts again in its place: never no Pebbly at all.
 pub fn restart_after_update() {
     let Some((dir, done)) = PENDING.lock().ok().and_then(|mut p| p.take()) else { return };
-    let exe = dir.join("nowbar.exe");
+    let exe = dir.join("pebbly.exe");
     if !start_and_watch(&exe, &["--after-update"], Duration::from_secs(2)) {
-        log("update: the new Now Bar died at start; the old exes are back");
+        log("update: the new Pebbly died at start; the old exes are back");
         undo(&done);
         record(Outcome::Reverted);
         let _ = std::process::Command::new(&exe).arg("--after-update").spawn();
@@ -293,7 +293,7 @@ fn start_and_watch(exe: &Path, args: &[&str], watch: Duration) -> bool {
 /// The old exes a swap left beside the new ones (one may still be open: next time, then).
 pub fn cleanup_old() {
     let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(Path::to_path_buf)) else { return };
-    for old in ["nowbar.old.exe", "nowbar-settings.old.exe"] {
+    for old in ["pebbly.old.exe", "pebbly-settings.old.exe"] {
         let _ = std::fs::remove_file(dir.join(old));
     }
 }
@@ -320,7 +320,7 @@ mod tests {
 
     /// A fresh folder under the temp dir with `files` (name, contents).
     fn folder(name: &str, files: &[(&str, &str)]) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("nowbar-test-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("pebbly-test-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         for (f, text) in files {
@@ -335,25 +335,25 @@ mod tests {
 
     #[test]
     fn swap_puts_the_new_exes_in_and_the_old_aside() {
-        let app = folder("app", &[("nowbar.exe", "old"), ("nowbar-settings.exe", "old settings")]);
-        let staged = folder("staged", &[("nowbar.exe", "new"), ("nowbar-settings.exe", "new settings")]);
+        let app = folder("app", &[("pebbly.exe", "old"), ("pebbly-settings.exe", "old settings")]);
+        let staged = folder("staged", &[("pebbly.exe", "new"), ("pebbly-settings.exe", "new settings")]);
         assert!(swap(&app, &staged).is_ok());
-        assert_eq!((read(app.join("nowbar.exe")), read(app.join("nowbar-settings.exe"))), ("new".into(), "new settings".into()));
-        assert_eq!(read(app.join("nowbar.old.exe")), "old");
+        assert_eq!((read(app.join("pebbly.exe")), read(app.join("pebbly-settings.exe"))), ("new".into(), "new settings".into()));
+        assert_eq!(read(app.join("pebbly.old.exe")), "old");
         let _ = (std::fs::remove_dir_all(&app), std::fs::remove_dir_all(&staged));
     }
 
     #[test]
     fn a_locked_exe_leaves_the_old_ones_in_place() {
         use std::os::windows::fs::OpenOptionsExt;
-        let app = folder("locked", &[("nowbar.exe", "old"), ("nowbar-settings.exe", "old settings")]);
-        let staged = folder("locked-staged", &[("nowbar.exe", "new"), ("nowbar-settings.exe", "new settings")]);
+        let app = folder("locked", &[("pebbly.exe", "old"), ("pebbly-settings.exe", "old settings")]);
+        let staged = folder("locked-staged", &[("pebbly.exe", "new"), ("pebbly-settings.exe", "new settings")]);
         // An open settings window of an older build: no sharing, so it can't be renamed.
-        let lock = std::fs::OpenOptions::new().read(true).share_mode(0).open(app.join("nowbar-settings.exe")).unwrap();
+        let lock = std::fs::OpenOptions::new().read(true).share_mode(0).open(app.join("pebbly-settings.exe")).unwrap();
         assert!(swap(&app, &staged).is_err());
         drop(lock);
-        assert_eq!((read(app.join("nowbar.exe")), read(app.join("nowbar-settings.exe"))), ("old".into(), "old settings".into()), "rolled back");
-        assert!(!app.join("nowbar.old.exe").exists());
+        assert_eq!((read(app.join("pebbly.exe")), read(app.join("pebbly-settings.exe"))), ("old".into(), "old settings".into()), "rolled back");
+        assert!(!app.join("pebbly.old.exe").exists());
         let _ = (std::fs::remove_dir_all(&app), std::fs::remove_dir_all(&staged));
     }
 
@@ -366,11 +366,11 @@ mod tests {
     }
 
     /// Checks a release folder the way an update will (BCrypt against its SHA256SUMS.txt), before
-    /// publishing it: `NOWBAR_DIST=<repo>\dist cargo test --lib verify_dist -- --ignored`.
+    /// publishing it: `PEBBLY_DIST=<repo>\dist cargo test --lib verify_dist -- --ignored`.
     #[test]
     #[ignore]
     fn verify_dist() {
-        let dir = std::env::var("NOWBAR_DIST").expect("NOWBAR_DIST=<folder>");
+        let dir = std::env::var("PEBBLY_DIST").expect("PEBBLY_DIST=<folder>");
         verify(Path::new(&dir)).unwrap();
     }
 

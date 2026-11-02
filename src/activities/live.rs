@@ -1,5 +1,5 @@
-//! Live activities other programs send (`nowbar.exe push`, Claude Code's hooks): the messages
-//! and their state. The pure part; platform/ipc.rs carries a message to the running Now Bar.
+//! Live activities other programs send (`pebbly.exe push`, Claude Code's hooks): the messages
+//! and their state. The pure part; platform/ipc.rs carries a message to the running Pebbly.
 
 use serde::{Deserialize, Serialize};
 
@@ -339,8 +339,8 @@ impl LiveSet {
 /// What one Claude Code hook call means for the session's item (`claude:<session_id>`, titled
 /// with the project folder); `None` for events that change nothing.
 ///
-/// The hook process adds `nowbar_window` (the foreground window at UserPromptSubmit) and
-/// `nowbar_ask_id` (when it waits for an answer from the card) to Claude Code's JSON.
+/// The hook process adds `pebbly_window` (the foreground window at UserPromptSubmit) and
+/// `pebbly_ask_id` (when it waits for an answer from the card) to Claude Code's JSON.
 pub fn claude_msg(hook: &serde_json::Value) -> Option<LiveMsg> {
     let session = hook["session_id"].as_str().filter(|s| !s.is_empty())?;
     let (tool, input) = (hook["tool_name"].as_str().unwrap_or(""), &hook["tool_input"]);
@@ -350,7 +350,7 @@ pub fn claude_msg(hook: &serde_json::Value) -> Option<LiveMsg> {
     let (state, text) = match hook["hook_event_name"].as_str()? {
         "UserPromptSubmit" => {
             note.new_prompt = true;
-            note.window = hook["nowbar_window"].as_i64();
+            note.window = hook["pebbly_window"].as_i64();
             (LiveState::Run, tr("Düşünüyor").to_string())
         }
         // Only PreToolUse moves the task list and counts the file: a move must not apply twice.
@@ -371,7 +371,7 @@ pub fn claude_msg(hook: &serde_json::Value) -> Option<LiveMsg> {
             (LiveState::Run, tr("Reddedildi").to_string())
         }
         "PermissionRequest" => {
-            let (id, nonce) = (hook["nowbar_ask_id"].as_str().unwrap_or(""), hook["nowbar_ask_nonce"].as_str().unwrap_or(""));
+            let (id, nonce) = (hook["pebbly_ask_id"].as_str().unwrap_or(""), hook["pebbly_ask_nonce"].as_str().unwrap_or(""));
             note.ask = Some(Ask { id: id.to_string(), tool: tool.to_string(), detail: ask_detail(tool, input), nonce: nonce.to_string(), agent });
             match tool {
                 "" => (LiveState::Wait, tr("İzin istiyor").to_string()),
@@ -425,7 +425,7 @@ mod tests {
     use super::*;
 
     fn msg(id: &str, state: LiveState) -> LiveMsg {
-        LiveMsg { id: id.into(), title: "now-bar".into(), text: String::new(), progress: None, state, claude: None, app: None }
+        LiveMsg { id: id.into(), title: "pebbly".into(), text: String::new(), progress: None, state, claude: None, app: None }
     }
 
     /// An app's item (`owner` stands for its caller's key) living `life` ms, if a notification.
@@ -523,7 +523,7 @@ mod tests {
     #[test]
     fn claude_events_map_to_states() {
         let hook = |extra: serde_json::Value| {
-            let mut v = serde_json::json!({"session_id": "s1", "cwd": "C:\\Users\\Ekin\\Desktop\\now-bar", "transcript_path": "x"});
+            let mut v = serde_json::json!({"session_id": "s1", "cwd": "C:\\Users\\Ekin\\Desktop\\pebbly", "transcript_path": "x"});
             for (k, val) in extra.as_object().unwrap() {
                 v[k] = val.clone();
             }
@@ -533,8 +533,8 @@ mod tests {
         let text = |m: Option<LiveMsg>| m.map(|m| (m.state, m.text));
         let note = |m: Option<LiveMsg>| m.and_then(|m| m.claude).unwrap_or_default();
 
-        let prompt = hook(serde_json::json!({"hook_event_name": "UserPromptSubmit", "nowbar_window": 4242}));
-        assert_eq!(prompt.as_ref().map(|m| (m.id.as_str(), m.title.as_str())), Some(("claude:s1", "now-bar")));
+        let prompt = hook(serde_json::json!({"hook_event_name": "UserPromptSubmit", "pebbly_window": 4242}));
+        assert_eq!(prompt.as_ref().map(|m| (m.id.as_str(), m.title.as_str())), Some(("claude:s1", "pebbly")));
         assert_eq!(text(prompt.clone()), Some((LiveState::Run, "Düşünüyor".into())));
         assert_eq!(note(prompt), ClaudeNote { new_prompt: true, window: Some(4242), ..Default::default() });
 
@@ -554,7 +554,7 @@ mod tests {
         let denied = hook(serde_json::json!({"hook_event_name": "PermissionDenied", "tool_name": "Bash", "tool_input": {"command": "rm x"}}));
         assert_eq!(note(denied).denied, Some(Call { tool: "Bash".into(), detail: "rm x".into() }));
 
-        let ask = hook(serde_json::json!({"hook_event_name": "PermissionRequest", "tool_name": "Bash", "tool_input": {"command": "cargo build"}, "nowbar_ask_id": "77", "nowbar_ask_nonce": "s3cr3t"}));
+        let ask = hook(serde_json::json!({"hook_event_name": "PermissionRequest", "tool_name": "Bash", "tool_input": {"command": "cargo build"}, "pebbly_ask_id": "77", "pebbly_ask_nonce": "s3cr3t"}));
         assert_eq!(note(ask).ask, Some(Ask { id: "77".into(), tool: "Bash".into(), detail: "cargo build".into(), nonce: "s3cr3t".into(), agent: String::new() }));
         let question = hook(serde_json::json!({"hook_event_name": "PermissionRequest", "tool_name": "AskUserQuestion", "tool_input": {"questions": [{"question": "Hangisi?"}]}}));
         assert_eq!(text(question), Some((LiveState::Wait, "Soru soruyor".into())));

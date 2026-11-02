@@ -3,12 +3,12 @@
 //! activated), lets the compositor run, and photographs the window now and then into
 //! `<dir>/fx-<ms>.png` (PrintWindow asks DWM for the composed content). Usage: `fxsheet [dir]`.
 
-use nowbar::activities::weather::{describe, symbol, WeatherFx};
-use nowbar::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, CardContent, WeatherCard, WEATHER_ICON_AT};
-use nowbar::render::gfx::{draw_surface, rect, white, Face, Gfx, TextStyle, Weight};
-use nowbar::render::layout::Scale;
-use nowbar::render::pill::{paint_pill_content, PillContent};
-use nowbar::render::weather_fx;
+use pebbly::activities::weather::{describe, symbol, WeatherFx};
+use pebbly::render::card::{card_radius_dip, card_size_dip, card_tint, paint_card, CardContent, WeatherCard, WEATHER_ICON_AT};
+use pebbly::render::gfx::{draw_surface, rect, white, Face, Gfx, TextStyle, Weight};
+use pebbly::render::layout::Scale;
+use pebbly::render::pill::{paint_pill_content, PillContent};
+use pebbly::render::weather_fx;
 use windows::core::{w, Interface, Result, HSTRING};
 use windows::Win32::Foundation::{GENERIC_WRITE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::*;
@@ -169,10 +169,10 @@ fn main() -> Result<()> {
 
     let hwnd = unsafe {
         let instance = GetModuleHandleW(None)?.into();
-        let class = WNDCLASSW { lpfnWndProc: Some(proc), hInstance: instance, lpszClassName: w!("NowBarFxSheet"), ..Default::default() };
+        let class = WNDCLASSW { lpfnWndProc: Some(proc), hInstance: instance, lpszClassName: w!("PebblyFxSheet"), ..Default::default() };
         RegisterClassW(&class);
         // Far off every screen: DWM still composes it, nobody sees it.
-        CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP, w!("NowBarFxSheet"), w!("fxsheet"), WS_POPUP, -20_000, -20_000, w, h, None, None, Some(instance), None)?
+        CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP, w!("PebblyFxSheet"), w!("fxsheet"), WS_POPUP, -20_000, -20_000, w, h, None, None, Some(instance), None)?
     };
     let target = unsafe { c.cast::<ICompositorDesktopInterop>()?.CreateDesktopWindowTarget(hwnd, true)? };
     let root = c.CreateContainerVisual()?;

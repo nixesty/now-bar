@@ -1,4 +1,4 @@
-# English for the Now Bar. msgid: the Turkish in the code; msgstr: its English.
+# English for Pebbly. msgid: the Turkish in the code; msgstr: its English.
 # tools/i18n-extract.py adds what's missing (empty msgstr); `cargo t` fails until it's filled in.
 msgid ""
 msgstr ""
@@ -1990,8 +1990,8 @@ msgid " · 2 sa 14 dk oynadın"
 msgstr " · Played 2 h 14 min"
 
 #: ui/settings.slint
-msgid "Now Bar Ayarları"
-msgstr "Now Bar Settings"
+msgid "Pebbly Ayarları"
+msgstr "Pebbly Settings"
 
 #: ui/settings.slint
 msgid "Aç"
@@ -2090,8 +2090,8 @@ msgid "Claude Code hook'ları kaldırıldı."
 msgstr "Claude Code hooks removed."
 
 #: src/main.rs
-msgid "Kullanım: nowbar.exe claude-hooks install | remove"
-msgstr "Usage: nowbar.exe claude-hooks install | remove"
+msgid "Kullanım: pebbly.exe claude-hooks install | remove"
+msgstr "Usage: pebbly.exe claude-hooks install | remove"
 
 #: src/main.rs
 msgid "Claude Code ayarları yazılamadı: {}"
@@ -2099,11 +2099,11 @@ msgstr "Couldn't write Claude Code's settings: {}"
 
 #: src/main.rs
 msgid "Claude Code ayarlarındaki \"hooks\" alanı tanınmadı; dosyaya dokunulmadı."
-msgstr "Claude Code's settings have a \"hooks\" field Now Bar doesn't recognise; the file was left as it was."
+msgstr "Claude Code's settings have a \"hooks\" field Pebbly doesn't recognise; the file was left as it was."
 
 #: src/main.rs
-msgid "Now Bar açılamadı: {}\nAyrıntılar: {}"
-msgstr "Now Bar couldn't start: {}\nDetails: {}"
+msgid "Pebbly açılamadı: {}\nAyrıntılar: {}"
+msgstr "Pebbly couldn't start: {}\nDetails: {}"
 
 #: src/settings_ui.rs
 msgid "Galaxy Buds"
@@ -2186,8 +2186,8 @@ msgid "Otomatik: Windows'unki; Türkçe ya da İngilizce"
 msgstr "Automatic: Windows' own; Turkish or English"
 
 #: src/settings_ui.rs
-msgid "Oturum açınca Now Bar kendiliğinden çalışır"
-msgstr "Now Bar starts by itself when you sign in"
+msgid "Oturum açınca Pebbly kendiliğinden çalışır"
+msgstr "Pebbly starts by itself when you sign in"
 
 #: src/settings_ui.rs
 msgid "Zamanlayıcı seçicisini açar"
@@ -2422,20 +2422,20 @@ msgid "Pil ve kartlar, tam ekran bir uygulama öndeyken gizlenir"
 msgstr "The pill and cards hide while a full-screen app is in front"
 
 #: src/settings_ui.rs
-msgid "Bu uygulamalar tam ekran olsa da Now Bar görünür kalır"
-msgstr "Now Bar stays visible even when these apps are full screen"
+msgid "Bu uygulamalar tam ekran olsa da Pebbly görünür kalır"
+msgstr "Pebbly stays visible even when these apps are full screen"
 
 #: src/settings_ui.rs
-msgid "Yeni sürüm varsa indirir, doğrular ve Now Bar'ı yeniden başlatır"
-msgstr "Downloads a new version if there is one, checks it and restarts Now Bar"
+msgid "Yeni sürüm varsa indirir, doğrular ve Pebbly'yi yeniden başlatır"
+msgstr "Downloads a new version if there is one, checks it and restarts Pebbly"
 
 #: src/settings_ui.rs
 msgid "Günde bir kez GitHub'a yeni sürüm var mı diye sorar"
 msgstr "Asks GitHub once a day whether there's a new version"
 
 #: src/settings_ui.rs
-msgid "Now Bar'ın günlük dosyası"
-msgstr "Now Bar's log file"
+msgid "Pebbly'nin günlük dosyası"
+msgstr "Pebbly's log file"
 
 #: src/settings_ui.rs
 msgid "settings.json"
@@ -2470,8 +2470,8 @@ msgid "Bir uygulama mikrofonu ya da kamerayı kullanırken pilde, uygulamanın a
 msgstr "In the pill, with the app's name, while an app uses the microphone or camera"
 
 #: src/settings_ui.rs
-msgid "nowbar.exe push ve Claude Code'un hook'ları pilde bir etkinlik gösterir"
-msgstr "nowbar.exe push and Claude Code's hooks show an activity in the pill"
+msgid "pebbly.exe push ve Claude Code'un hook'ları pilde bir etkinlik gösterir"
+msgstr "pebbly.exe push and Claude Code's hooks show an activity in the pill"
 
 #: src/settings_ui.rs
 msgid "Ekran görüntüsünü göster"
@@ -2641,11 +2641,11 @@ msgstr "{} ready · now {}"
 msgid "{} · güncel"
 msgstr "{} · up to date"
 
-#: src/bin/nowbar-settings.rs
+#: src/bin/pebbly-settings.rs
 msgid "Şu an çalıyor"
 msgstr "Playing now"
 
-#: src/bin/nowbar-settings.rs
+#: src/bin/pebbly-settings.rs
 msgid "Sürüm {}"
 msgstr "Version {}"
 
@@ -2815,8 +2815,8 @@ msgid "KL"
 msgstr "ECL"
 
 #: setup/src/install.rs
-msgid "Bu setup dosyasız derlendi (NOWBAR_SETUP_PAYLOAD olmadan)."
-msgstr "This setup was built without files (no NOWBAR_SETUP_PAYLOAD)."
+msgid "Bu setup dosyasız derlendi (PEBBLY_SETUP_PAYLOAD olmadan)."
+msgstr "This setup was built without files (no PEBBLY_SETUP_PAYLOAD)."
 
 #: setup/src/install.rs
 msgid "Bu klasöre yazılamıyor; başka bir yer seç."
@@ -2827,8 +2827,8 @@ msgid "Hazırlanıyor"
 msgstr "Getting ready"
 
 #: setup/src/install.rs
-msgid "Now Bar kapatılıyor"
-msgstr "Closing Now Bar"
+msgid "Pebbly kapatılıyor"
+msgstr "Closing Pebbly"
 
 #: setup/src/install.rs
 msgid "Dosyalar kopyalanıyor"
@@ -2847,12 +2847,12 @@ msgid "Claude Code bağlanamadı: ayar dosyası açık ya da okunamıyor."
 msgstr "Couldn't connect Claude Code: its settings file is open or can't be read."
 
 #: setup/src/install.rs
-msgid "Now Bar başlatılıyor"
-msgstr "Starting Now Bar"
+msgid "Pebbly başlatılıyor"
+msgstr "Starting Pebbly"
 
 #: setup/src/install.rs
-msgid "Now Bar açılmadı. Yeniden başlatıp tekrar dene."
-msgstr "Now Bar didn't start. Restart and try again."
+msgid "Pebbly açılmadı. Yeniden başlatıp tekrar dene."
+msgstr "Pebbly didn't start. Restart and try again."
 
 #: setup/src/install.rs
 msgid "Ayarlar yazılamadı: {}"
@@ -2863,8 +2863,8 @@ msgid "Windows'la başlatma ayarlanamadı: {}"
 msgstr "Couldn't set it to start with Windows: {}"
 
 #: setup/src/install.rs
-msgid "Now Bar'ın dosyaları değiştirilemedi; Now Bar'ı kapatıp tekrar dene."
-msgstr "Couldn't replace Now Bar's files; close Now Bar and try again."
+msgid "Pebbly'nin dosyaları değiştirilemedi; Pebbly'yi kapatıp tekrar dene."
+msgstr "Couldn't replace Pebbly's files; close Pebbly and try again."
 
 #: setup/src/main.rs
 msgid "Kurulum dosyası bozuk; yeniden indir."
@@ -2875,12 +2875,12 @@ msgid "Kurulum penceresi açılamadı: {}"
 msgstr "The setup window couldn't open: {}"
 
 #: setup/src/main.rs
-msgid "Now Bar'ı kaldır"
-msgstr "Uninstall Now Bar"
+msgid "Pebbly'yi kaldır"
+msgstr "Uninstall Pebbly"
 
 #: setup/src/main.rs
-msgid "Now Bar, kısayolları ve Claude Code bağlantısı kaldırılacak."
-msgstr "Now Bar, its shortcuts and its Claude Code connection will be removed."
+msgid "Pebbly, kısayolları ve Claude Code bağlantısı kaldırılacak."
+msgstr "Pebbly, its shortcuts and its Claude Code connection will be removed."
 
 #: setup/src/main.rs
 msgid "Kaldır"
@@ -2915,12 +2915,12 @@ msgid "Yine de kur"
 msgstr "Install anyway"
 
 #: setup/src/main.rs
-msgid "Now Bar görev çubuğunda. Her şeyi ayarlar penceresinden değiştirebilirsin."
-msgstr "Now Bar is in the taskbar. You can change everything in its settings window."
+msgid "Pebbly görev çubuğunda. Her şeyi ayarlar penceresinden değiştirebilirsin."
+msgstr "Pebbly is in the taskbar. You can change everything in its settings window."
 
 #: setup/src/main.rs
-msgid "Dosyalar yerinde; Now Bar başlatılmadı."
-msgstr "The files are in place; Now Bar wasn't started."
+msgid "Dosyalar yerinde; Pebbly başlatılmadı."
+msgstr "The files are in place; Pebbly wasn't started."
 
 #: setup/src/main.rs
 msgid "Kapat"
@@ -2935,8 +2935,8 @@ msgid "Tekrar dene"
 msgstr "Try again"
 
 #: setup/src/main.rs
-msgid "Now Bar kapanmadı; görev çubuğundan kapatıp tekrar dene."
-msgstr "Now Bar didn't close; quit it from the taskbar and try again."
+msgid "Pebbly kapanmadı; görev çubuğundan kapatıp tekrar dene."
+msgstr "Pebbly didn't close; quit it from the taskbar and try again."
 
 #: setup/src/main.rs
 msgid "Dosyalar siliniyor"
@@ -2987,8 +2987,8 @@ msgid "Bazı dosyalar silinemedi (açık olabilirler). Yeniden başlattıktan so
 msgstr "Some files couldn't be removed (they may be open). After a restart you can delete the folder yourself."
 
 #: setup/ui/setup.slint
-msgid "Now Bar kurulumu"
-msgstr "Now Bar setup"
+msgid "Pebbly kurulumu"
+msgstr "Pebbly setup"
 
 #: setup/ui/setup.slint
 msgid "Windows'la başlat"
@@ -3011,12 +3011,12 @@ msgid "Ayarlarımı da sil"
 msgstr "Delete my settings too"
 
 #: setup/ui/setup.slint
-msgid "Now Bar kaldırıldı"
-msgstr "Now Bar uninstalled"
+msgid "Pebbly kaldırıldı"
+msgstr "Pebbly uninstalled"
 
 #: setup/ui/setup.slint
-msgid "Now Bar kuruldu"
-msgstr "Now Bar installed"
+msgid "Pebbly kuruldu"
+msgstr "Pebbly installed"
 
 #: setup/ui/setup.slint
 msgid "Kaldırma tamamlanamadı"
@@ -3039,8 +3039,8 @@ msgid "Windows 11 gerekir"
 msgstr "Needs Windows 11"
 
 #: src/main.rs
-msgid "Now Bar, Windows 10 sürüm 1809 veya sonrasını gerektirir."
-msgstr "Now Bar needs Windows 10 version 1809 or later."
+msgid "Pebbly, Windows 10 sürüm 1809 veya sonrasını gerektirir."
+msgstr "Pebbly needs Windows 10 version 1809 or later."
 
 #: src/render/card.rs
 msgid "Bildirim göstermek istiyor"
@@ -3091,8 +3091,8 @@ msgid "Engelli"
 msgstr "Blocked"
 
 #: ui/pages.slint
-msgid "Açıkken, izin verdiğin uygulamalar pilde bildirim gösterebilir. Hangi uygulamalara izin verdiğin ve gösterdikleri senin sorumluluğunda; Now Bar yalnızca gösterir."
-msgstr "While it's on, the apps you allow can show notifications in the pill. Which apps you allow, and what they show, is your responsibility; the Now Bar only shows it."
+msgid "Açıkken, izin verdiğin uygulamalar pilde bildirim gösterebilir. Hangi uygulamalara izin verdiğin ve gösterdikleri senin sorumluluğunda; Pebbly yalnızca gösterir."
+msgstr "While it's on, the apps you allow can show notifications in the pill. Which apps you allow, and what they show, is your responsibility; Pebbly only shows it."
 
 #: setup/ui/setup.slint
 msgid "Uygulama bildirimlerini aç"
@@ -3435,12 +3435,12 @@ msgid "{} açılamadı · eski sürüm geri kondu"
 msgstr "{} didn't start · the old version is back"
 
 #: src/update.rs
-msgid "Now Bar çalışmıyor"
-msgstr "Now Bar isn't running"
+msgid "Pebbly çalışmıyor"
+msgstr "Pebbly isn't running"
 
 #: src/update.rs
-msgid "Now Bar yanıt vermedi"
-msgstr "Now Bar didn't answer"
+msgid "Pebbly yanıt vermedi"
+msgstr "Pebbly didn't answer"
 
 #: src/update.rs
 msgid "GitHub'a ulaşılamadı"

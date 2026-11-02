@@ -4,11 +4,11 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use nowbar::i18n::{n_, tr, trf};
+use pebbly::i18n::{n_, tr, trf};
 
 use crate::payload::unpack;
 use crate::plan::{place_steps, uninstall_values, SETUP_EXE, STAGED};
-use crate::system::{quit_now_bar, close_settings, shortcut, start_and_watch, write_values, Places};
+use crate::system::{quit_pebbly, close_settings, shortcut, start_and_watch, write_values, Places};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Options {
@@ -17,15 +17,15 @@ pub struct Options {
     pub desktop: bool,
     /// Other apps' notifications (the API); `None` leaves the setting as it is (`--quiet`).
     pub api: Option<bool>,
-    /// Start the Now Bar at the end (not in the sandbox, not with `--no-launch`).
+    /// Start Pebbly at the end (not in the sandbox, not with `--no-launch`).
     pub launch: bool,
 }
 
-pub const NO_FILES: &str = n_("Bu setup dosyasız derlendi (NOWBAR_SETUP_PAYLOAD olmadan).");
+pub const NO_FILES: &str = n_("Bu setup dosyasız derlendi (PEBBLY_SETUP_PAYLOAD olmadan).");
 const NOT_WRITABLE: &str = n_("Bu klasöre yazılamıyor; başka bir yer seç.");
 
 /// Installs `payload` into `places.dir`; `progress(step, 0..1)` as it goes. The notes are what
-/// didn't work but doesn't stop the Now Bar (a shortcut, Claude Code).
+/// didn't work but doesn't stop Pebbly (a shortcut, Claude Code).
 pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progress: impl Fn(&str, f32)) -> Result<Vec<String>, String> {
     if payload.is_empty() {
         return Err(NO_FILES.into());
@@ -36,8 +36,8 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
     std::fs::create_dir_all(&dir).map_err(|_| NOT_WRITABLE.to_string())?;
 
     if !places.sandbox {
-        progress(tr("Now Bar kapatılıyor"), 0.15);
-        quit_now_bar(Duration::from_secs(10))?;
+        progress(tr("Pebbly kapatılıyor"), 0.15);
+        quit_pebbly(Duration::from_secs(10))?;
         close_settings(&dir, Duration::from_secs(3));
     }
 
@@ -62,11 +62,11 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
 
     let mut notes = Vec::new();
     progress(tr("Kısayollar"), 0.7);
-    let exe = dir.join("nowbar.exe");
-    if let Err(e) = shortcut(&places.start_menu.join("Now Bar.lnk"), &exe) {
+    let exe = dir.join("pebbly.exe");
+    if let Err(e) = shortcut(&places.start_menu.join("Pebbly.lnk"), &exe) {
         notes.push(e);
     }
-    let on_desktop = places.desktop.join("Now Bar.lnk");
+    let on_desktop = places.desktop.join("Pebbly.lnk");
     if opts.desktop {
         if let Err(e) = shortcut(&on_desktop, &exe) {
             notes.push(e);
@@ -84,9 +84,9 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
     if let Some(path) = &places.claude {
         progress("Claude Code", 0.86);
         let changed = if opts.claude {
-            nowbar::claude_hooks::rewrite_at(path, |v| nowbar::claude_hooks::install(v, &exe.display().to_string()))
+            pebbly::claude_hooks::rewrite_at(path, |v| pebbly::claude_hooks::install(v, &exe.display().to_string()))
         } else {
-            nowbar::claude_hooks::rewrite_at(path, without_ours)
+            pebbly::claude_hooks::rewrite_at(path, without_ours)
         };
         if changed.is_err() {
             notes.push(tr("Claude Code bağlanamadı: ayar dosyası açık ya da okunamıyor.").into());
@@ -94,9 +94,9 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
     }
 
     if opts.launch {
-        progress(tr("Now Bar başlatılıyor"), 0.94);
+        progress(tr("Pebbly başlatılıyor"), 0.94);
         if !start_and_watch(&exe, &[], Duration::from_secs(2)) {
-            return Err(tr("Now Bar açılmadı. Yeniden başlatıp tekrar dene.").into());
+            return Err(tr("Pebbly açılmadı. Yeniden başlatıp tekrar dene.").into());
         }
     }
     for e in crate::plan::EXES {
@@ -108,28 +108,28 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
 
 /// Settings without our hooks; `None` when there were none (nothing to write).
 pub fn without_ours(v: serde_json::Value) -> Option<serde_json::Value> {
-    let next = nowbar::claude_hooks::remove(v.clone());
+    let next = pebbly::claude_hooks::remove(v.clone());
     (next != v).then_some(next)
 }
 
-/// The Now Bar's own setting (its first start would otherwise turn starting with Windows back
+/// Pebbly's own setting (its first start would otherwise turn starting with Windows back
 /// on) and the Run value.
 pub fn set_autostart(places: &Places, exe: &Path, on: bool) -> Result<(), String> {
     let file = places.roaming.join("settings.json");
-    let mut s = nowbar::settings::load_from(&file);
+    let mut s = pebbly::settings::load_from(&file);
     if s.autostart != on || !file.exists() {
         s.autostart = on;
-        nowbar::settings::save_to(&file, &s).map_err(|e| trf("Ayarlar yazılamadı: {}", &[&e]))?;
+        pebbly::settings::save_to(&file, &s).map_err(|e| trf("Ayarlar yazılamadı: {}", &[&e]))?;
     }
-    nowbar::platform::autostart::set_autostart_for(&places.run_name, exe, on).map_err(|e| trf("Windows'la başlatma ayarlanamadı: {}", &[&e]))
+    pebbly::platform::autostart::set_autostart_for(&places.run_name, exe, on).map_err(|e| trf("Windows'la başlatma ayarlanamadı: {}", &[&e]))
 }
 
-/// The user's answer to "Uygulama bildirimlerini aç", in the Now Bar's settings (the rest stays).
+/// The user's answer to "Uygulama bildirimlerini aç", in Pebbly's settings (the rest stays).
 pub fn set_api(file: &Path, on: bool) -> Result<(), String> {
     // A file there that can't be read now (half written, locked) stays as it is: the defaults
     // must never go over the user's settings.
-    let mut s = match (file.exists(), nowbar::settings::try_load_from(file)) {
-        (false, _) => nowbar::settings::Settings::default(),
+    let mut s = match (file.exists(), pebbly::settings::try_load_from(file)) {
+        (false, _) => pebbly::settings::Settings::default(),
         (true, Some(s)) => s,
         (true, None) => return Ok(()),
     };
@@ -137,7 +137,7 @@ pub fn set_api(file: &Path, on: bool) -> Result<(), String> {
         return Ok(());
     }
     s.api_enabled = on;
-    nowbar::settings::save_to(file, &s).map_err(|e| trf("Ayarlar yazılamadı: {}", &[&e]))
+    pebbly::settings::save_to(file, &s).map_err(|e| trf("Ayarlar yazılamadı: {}", &[&e]))
 }
 
 /// Renames along `place_steps`; on a failure the done ones are undone and the error says so.
@@ -147,7 +147,7 @@ fn place(dir: &Path, staged: &Path) -> Result<Vec<(PathBuf, PathBuf)>, String> {
         let moved = std::fs::rename(&from, &to).or_else(|_| std::fs::copy(&from, &to).map(|_| ()));
         if moved.is_err() {
             undo(&done);
-            return Err(tr("Now Bar'ın dosyaları değiştirilemedi; Now Bar'ı kapatıp tekrar dene.").into());
+            return Err(tr("Pebbly'nin dosyaları değiştirilemedi; Pebbly'yi kapatıp tekrar dene.").into());
         }
         done.push((from, to));
     }
@@ -160,7 +160,7 @@ fn undo(done: &[(PathBuf, PathBuf)]) {
     }
 }
 
-/// The setup beside the Now Bar: the installed apps list runs it to uninstall. Skipped when it
+/// The setup beside Pebbly: the installed apps list runs it to uninstall. Skipped when it
 /// is already the one running from there (a repair).
 fn copy_self(dir: &Path) -> Result<(), String> {
     let me = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -168,10 +168,10 @@ fn copy_self(dir: &Path) -> Result<(), String> {
     if crate::system::inside(&me, &target) {
         return Ok(());
     }
-    let _ = std::fs::remove_file(dir.join("nowbar-setup.old.exe"));
+    let _ = std::fs::remove_file(dir.join("pebbly-setup.old.exe"));
     if target.exists() && std::fs::remove_file(&target).is_err() {
         // In use (an uninstaller window open): step it aside.
-        let _ = std::fs::rename(&target, dir.join("nowbar-setup.old.exe"));
+        let _ = std::fs::rename(&target, dir.join("pebbly-setup.old.exe"));
     }
     std::fs::copy(&me, &target).map(|_| ()).map_err(|_| NOT_WRITABLE.to_string())
 }
@@ -194,16 +194,16 @@ mod tests {
 
     #[test]
     fn the_api_choice_lands_in_the_settings_and_keeps_the_rest() {
-        let dir = std::env::temp_dir().join(format!("nowbar-setup-api-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("pebbly-setup-api-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let file = dir.join("settings.json");
         set_api(&file, true).unwrap();
-        assert!(nowbar::settings::load_from(&file).api_enabled, "a first install writes it");
-        let mut s = nowbar::settings::load_from(&file);
+        assert!(pebbly::settings::load_from(&file).api_enabled, "a first install writes it");
+        let mut s = pebbly::settings::load_from(&file);
         s.idle_clock = false;
-        nowbar::settings::save_to(&file, &s).unwrap();
+        pebbly::settings::save_to(&file, &s).unwrap();
         set_api(&file, false).unwrap();
-        let s = nowbar::settings::load_from(&file);
+        let s = pebbly::settings::load_from(&file);
         assert!(!s.api_enabled && !s.idle_clock, "only the API changes");
         // A file that can't be read now (half written, locked) is left as it is.
         std::fs::write(&file, "{\"idle_clock\": false, ").unwrap();
