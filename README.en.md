@@ -4,12 +4,13 @@
 
 # Pebbly
 
-**Samsung One UI's Now Bar, in the Windows 11 and 10 taskbar.**
+**Live activities in the Windows 11 and 10 taskbar, inspired by Samsung One UI's Now Bar.**
 
 A small pill sits in the taskbar and shows what's going on right now: the song that's playing, a<br>
 timer, a match's score, what Claude Code is doing. Click the pill and a card opens above it.
 
 **[Download](https://github.com/nixesty/pebbly/releases/latest)** &nbsp;·&nbsp;
+[pebbly.bar](https://pebbly.bar) &nbsp;·&nbsp;
 [What it shows](#what-it-shows) &nbsp;·&nbsp;
 [Install](#install) &nbsp;·&nbsp;
 [Building](#building)
@@ -123,6 +124,16 @@ closed, its files are replaced and it starts again.
 
 For a silent install use `pebbly-setup.exe --quiet` (it leaves the app notifications setting as it
 is); for a silent uninstall, `"%LOCALAPPDATA%\Programs\Pebbly\pebbly-setup.exe" --uninstall --quiet`.
+
+### Moving from Now Bar
+
+Pebbly used to be called Now Bar. If Now Bar 0.5.0 or older is installed, its update moves it to
+Pebbly, from the **Update** row in About or with `pebbly-setup.exe`. The settings, log and caches
+(the `%APPDATA%\NowBar` and `%LOCALAPPDATA%\NowBar` folders become `Pebbly`), start with
+Windows, the Claude Code connection and the shortcuts stay as they were.
+`%LOCALAPPDATA%\Programs\NowBar` moves to a `Pebbly` folder beside it, and Pebbly takes Now
+Bar's place in the installed apps. If your own scripts use `nowbar.exe push`, change them to
+`pebbly.exe push`.
 
 ## Usage
 
@@ -329,7 +340,10 @@ Tests and clippy (the aliases in `.cargo\config.toml`) run in the quick profile;
 - `assets\make_icon.py`: redraws the icon (the white pill in the tray).
 - **Publishing a release:** raise `version` in `Cargo.toml`, run `tools\make-setup.ps1`, then
   publish what's in `dist\`:
-  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\SHA256SUMS.txt`.
+  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt`.
+  `nowbar.exe` (the setup itself) and `nowbar-settings.exe` are for Now Bar 0.2–0.5's updater,
+  which downloads only these names and starts `nowbar.exe`: the setup then moves that copy to
+  Pebbly. Every release needs them.
   `pebbly.exe --update-from <folder>` tries the update without GitHub, with the exes in a folder.
 
 ## License
@@ -352,5 +366,5 @@ Not covered by this license:
 
 ---
 
-<sub>Not affiliated with Samsung; an independent project inspired by One UI. The Galaxy Buds noise
+<sub>Not affiliated with Samsung; an independent project inspired by One UI's Now Bar. The Galaxy Buds noise
 control icons and earbud pictures belong to Samsung.</sub>

@@ -4,12 +4,13 @@
 
 # Pebbly
 
-**Samsung One UI'daki Now Bar, Windows 11 ve 10 görev çubuğunda.**
+**Windows 11 ve 10 görev çubuğunda canlı etkinlikler; Samsung One UI'daki Now Bar'dan esinlenildi.**
 
 Görev çubuğunda küçük bir pil durur ve o an olan biteni gösterir: çalan şarkı, zamanlayıcı, maçın<br>
 skoru, Claude Code'un ne yaptığı. Pile tıklayınca üstünde bir kart açılır.
 
 **[İndir](https://github.com/nixesty/pebbly/releases/latest)** &nbsp;·&nbsp;
+[pebbly.bar](https://pebbly.bar) &nbsp;·&nbsp;
 [Neler gösterir](#neler-gösterir) &nbsp;·&nbsp;
 [Kurulum](#kurulum) &nbsp;·&nbsp;
 [Derleme](#derleme)
@@ -119,6 +120,16 @@ Pebbly kapatılır, dosyaları yenilenir ve yeniden başlatılır.
 
 Sessiz kurulum için `pebbly-setup.exe --quiet` (uygulama bildirimleri ayarına dokunmaz), sessiz
 kaldırma için `"%LOCALAPPDATA%\Programs\Pebbly\pebbly-setup.exe" --uninstall --quiet` kullanılır.
+
+### Now Bar'dan geçiş
+
+Pebbly'nin eski adı Now Bar'dı. Now Bar 0.5.0 ya da daha eskisi kuruluysa güncellemesi onu
+Pebbly'ye taşır; Hakkında'daki **Güncelle** satırından da, `pebbly-setup.exe` ile de olur.
+Ayarlar, günlük ve önbellekler (`%APPDATA%\NowBar` ve `%LOCALAPPDATA%\NowBar` klasörleri
+`Pebbly` olur), Windows'la başlatma, Claude Code bağlantısı ve kısayollar olduğu gibi kalır.
+`%LOCALAPPDATA%\Programs\NowBar` yanındaki `Pebbly` klasörüne taşınır; Uygulamalar listesinde
+Now Bar'ın yerini Pebbly alır. Kendi betiklerinde `nowbar.exe push` kullanıyorsan
+`pebbly.exe push` olarak değiştir.
 
 ## Kullanım
 
@@ -328,7 +339,10 @@ Testler ve clippy (`.cargo\config.toml`'daki kısaltmalar) quick profilinde çal
 - `assets\make_icon.py`: simgeyi (tepsideki beyaz hap) yeniden çizer.
 - **Sürüm yayınlamak:** `Cargo.toml`'daki `version`'ı artır, `tools\make-setup.ps1`'i çalıştır,
   sonra `dist\` içindekileri yayınla:
-  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\SHA256SUMS.txt`.
+  `gh release create vX.Y.Z dist\pebbly-setup.exe dist\pebbly.exe dist\pebbly-settings.exe dist\nowbar.exe dist\nowbar-settings.exe dist\SHA256SUMS.txt`.
+  `nowbar.exe` (kurulumun kendisi) ve `nowbar-settings.exe` Now Bar 0.2–0.5'in güncelleyicisi
+  içindir: o yalnızca bu adları indirir, `nowbar.exe`'yi başlatır ve kurulum o kopyayı Pebbly'ye
+  taşır. Her sürümde bulunmaları gerekir.
   `pebbly.exe --update-from <klasör>` güncellemeyi GitHub olmadan, bir klasördeki exe'lerle dener.
 
 ## Lisans
@@ -351,5 +365,5 @@ Bu lisansın dışında kalanlar:
 
 ---
 
-<sub>Samsung ile bir ilgisi yoktur; One UI'dan esinlenmiş bağımsız bir projedir. Galaxy Buds'ın
+<sub>Samsung ile bir ilgisi yoktur; One UI'daki Now Bar'dan esinlenmiş bağımsız bir projedir. Galaxy Buds'ın
 gürültü kontrolü simgeleri ve kulaklık görselleri Samsung'a aittir.</sub>

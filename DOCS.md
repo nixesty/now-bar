@@ -13,7 +13,7 @@ curl -H "Content-Type: application/json" -d "{\"app\":\"Backup\",\"title\":\"Bac
   notifications") or in Settings → System → App notifications. Off, nothing listens.
 - **The user says yes to each app.** The first request from your app shows a prompt in the pill;
   nothing of yours shows until the user allows it.
-- Needs Pebbly 0.3.0 or later.
+- Needs Pebbly, or Now Bar 0.3.0 or later (Pebbly's name before).
 
 ## Responsibility
 
@@ -27,14 +27,15 @@ Windows or for another app: the card always says who sent it (below).
 1. **The address is fixed:** `http://127.0.0.1:20034`. Use `127.0.0.1` rather than `localhost`.
 2. **If that port is taken** (another program, a Hyper-V reservation), Pebbly listens
    wherever Windows puts it and says where in `%LOCALAPPDATA%\Pebbly\api.json`, which exists
-   only while it listens:
+   only while it listens (Now Bar wrote `%LOCALAPPDATA%\NowBar\api.json`):
 
    ```json
    {"name":"Pebbly","api":1,"version":"0.3.0","url":"http://127.0.0.1:20034","port":20034,"pid":4242}
    ```
 
    A robust client reads `url` from that file and falls back to `http://127.0.0.1:20034`.
-3. **To check it is Pebbly:** `GET /v1` answers `{"name":"Pebbly","api":1,"version":"0.3.0"}`.
+3. **To check it is Pebbly:** `GET /v1` answers `{"name":"Pebbly","api":1,"version":"0.3.0"}`
+   (`"Now Bar"` before the rename; the API is the same).
 
 **Connection refused** means Pebbly isn't installed, isn't running, or the user hasn't turned
 the API on. Skip quietly; don't ask the user to install anything.
