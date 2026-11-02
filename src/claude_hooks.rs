@@ -57,11 +57,13 @@ pub fn install(settings: Value, exe: &str) -> Option<Value> {
     Some(settings)
 }
 
-/// Our hooks repointed at `exe` when the exe they point at is gone (Pebbly was moved): the
-/// events, matchers and timeouts stay as the user left them. `None` when there are none, they
-/// point here, or their exe still exists (a dev build running from elsewhere must not take them
-/// over).
+/// Our hooks repointed at `exe` when the exe they point at is gone (Pebbly was moved) or is Now
+/// Bar's (the name before): the events, matchers and timeouts stay as the user left them. `None`
+/// when there are none, they point here, or another Pebbly exe of theirs still exists (a dev
+/// build running from elsewhere must not take them over).
 pub fn follow(mut settings: Value, exe: &str, exists: impl Fn(&str) -> bool) -> Option<Value> {
+    let now_bar = |c: &str| std::path::Path::new(c).file_name().is_some_and(|n| n.eq_ignore_ascii_case(crate::legacy::EXE));
+    let exists = |c: &str| !now_bar(c) && exists(c);
     let ours: Vec<&mut Value> = settings
         .get_mut("hooks")
         .and_then(Value::as_object_mut)?
@@ -113,9 +115,11 @@ pub fn rewrite_at(path: &std::path::Path, change: impl FnOnce(Value) -> Option<V
         std::fs::create_dir_all(dir)?;
     }
     let backup = path.with_extension("json.before-pebbly");
-    // The first is the file before Pebbly ever touched it; `.pebbly-last` is the one before this write.
+    // The first is the file before Pebbly ever touched it (or Now Bar, by its name before);
+    // `.pebbly-last` is the one before this write.
+    let first_kept = backup.exists() || path.with_extension("json.before-nowbar").exists();
     if path.exists() {
-        std::fs::copy(&path, if backup.exists() { path.with_extension("json.pebbly-last") } else { backup })?;
+        std::fs::copy(&path, if first_kept { path.with_extension("json.pebbly-last") } else { backup })?;
     }
     let pretty = serde_json::to_string_pretty(&next).map_err(std::io::Error::other)?;
     let tmp = path.with_extension(format!("json.{}.tmp", std::process::id()));
@@ -199,6 +203,16 @@ mod tests {
         assert!(moved["hooks"].get("Notification").is_none(), "an event the user dropped stays dropped");
         assert_eq!(ours(&moved, "PermissionRequest")[0]["timeout"], 100, "the user's timeout stays");
         assert_eq!(ours(&moved, "PermissionRequest")[0]["command"], EXE);
+    }
+
+    #[test]
+    fn hooks_at_now_bar_come_to_pebbly_even_while_its_exe_is_there() {
+        let v = install(json!({}), r"C:\Apps\NowBar\nowbar.exe").unwrap();
+        let moved = follow(v, EXE, |_| true).unwrap();
+        assert_eq!(ours(&moved, "Stop")[0]["command"], EXE);
+        // Another Pebbly's exe that is still there keeps them (a dev build elsewhere).
+        let other = install(json!({}), r"C:\old\pebbly.exe").unwrap();
+        assert_eq!(follow(other, EXE, |_| true), None);
     }
 
     #[test]

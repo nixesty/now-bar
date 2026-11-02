@@ -3745,3 +3745,11 @@ msgstr "Connect"
 #: src/render/card/buds.rs
 msgid "Bağlantıyı kes"
 msgstr "Disconnect"
+
+#: setup/src/install.rs
+msgid "Now Bar'dan taşınıyor"
+msgstr "Moving over from Now Bar"
+
+#: setup/src/main.rs
+msgid "Now Bar v{} kurulu · Pebbly v{} olarak güncellenecek"
+msgstr "Now Bar v{} installed · will update to Pebbly v{}"

@@ -11,7 +11,7 @@ use crate::render::card::{bud_art, BudsCard};
 
 fn lid_path() -> std::path::PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("Pebbly").join("buds-lid.txt")
+    base.join(crate::DIR).join("buds-lid.txt")
 }
 
 /// The lid counter last seen, from before a restart.

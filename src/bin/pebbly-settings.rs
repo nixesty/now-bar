@@ -187,7 +187,7 @@ fn api_rows(s: &Settings) -> Vec<Item> {
 /// Where the running Pebbly listens (its api.json), else where it would.
 fn api_address() -> String {
     let found = std::env::var_os("LOCALAPPDATA")
-        .and_then(|d| std::fs::read_to_string(std::path::Path::new(&d).join("Pebbly").join("api.json")).ok())
+        .and_then(|d| std::fs::read_to_string(std::path::Path::new(&d).join(pebbly::DIR).join("api.json")).ok())
         .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
         .and_then(|v| v["url"].as_str().map(|u| u.trim_start_matches("http://").to_string()));
     found.unwrap_or_else(|| format!("127.0.0.1:{}", pebbly::activities::api::DEFAULT_PORT))

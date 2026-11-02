@@ -63,7 +63,7 @@ pub fn place() -> Option<WeatherCity> {
 
 fn located_path() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("Pebbly").join("place.json")
+    base.join(crate::DIR).join("place.json")
 }
 
 /// What Pebbly last found of where the PC is (the settings window's location row).

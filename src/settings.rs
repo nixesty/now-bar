@@ -516,7 +516,7 @@ fn from_value(value: Value) -> Settings {
 
 pub fn settings_path() -> PathBuf {
     let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("Pebbly").join("settings.json")
+    base.join(crate::DIR).join("settings.json")
 }
 
 /// Missing file → defaults; unreadable JSON → defaults, and the file is kept as `settings.json.bad`.

@@ -48,6 +48,19 @@ pub fn follow_exe() -> Option<String> {
     Some(old)
 }
 
+/// Now Bar's Run value `old` handed to Pebbly's `new`, for `exe`: starting with Windows stays as
+/// the user had it. Whether there was one.
+pub fn adopt_run_value(old: &str, new: &str, exe: &Path) -> bool {
+    if run_value(old).is_none() {
+        return false;
+    }
+    if run_value(new).is_none() {
+        let _ = set_autostart_for(new, exe, true);
+    }
+    let _ = set_autostart_for(old, exe, false);
+    true
+}
+
 pub fn set_autostart(on: bool) -> windows::core::Result<()> {
     let exe = std::env::current_exe().map_err(|_| windows::core::Error::from(windows::Win32::Foundation::E_FAIL))?;
     set_autostart_for(NAME, &exe, on)

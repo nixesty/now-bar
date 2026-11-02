@@ -113,7 +113,7 @@ impl Drop for ApiServer {
 
 /// `%LOCALAPPDATA%\Pebbly\api.json`.
 fn discovery_path() -> Option<PathBuf> {
-    std::env::var_os("LOCALAPPDATA").map(|d| PathBuf::from(d).join("Pebbly").join("api.json"))
+    std::env::var_os("LOCALAPPDATA").map(|d| PathBuf::from(d).join(crate::DIR).join("api.json"))
 }
 
 fn accept(listener: TcpListener, shared: Arc<Shared>) {

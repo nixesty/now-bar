@@ -45,8 +45,20 @@ fn main() {
     let (quiet, no_launch) = (has("--quiet"), has("--no-launch"));
     let from = args.iter().position(|a| a == "--uninstall-from").and_then(|i| args.get(i + 1)).map(PathBuf::from);
     let uninstalling = has("--uninstall") || from.is_some();
-    // The language Pebbly's settings pick (a first install has none: Windows' own).
-    pebbly::i18n::set_language(pebbly::i18n::chosen(pebbly::settings::load().language));
+    let me = std::env::current_exe().ok();
+    let bridged = me.as_deref().is_some_and(plan::bridged);
+    // A Claude Code hook or a script still calling the old app by its name, mid-move: no setup.
+    if bridged && plan::app_command(&args) {
+        return;
+    }
+    // The language Pebbly's settings pick (Now Bar's before it moves; a first install has none:
+    // Windows' own).
+    let settings = pebbly::settings::settings_path();
+    let settings = match (settings.exists(), settings.parent().and_then(Path::parent)) {
+        (false, Some(roaming)) => roaming.join(pebbly::legacy::NAME).join("settings.json"),
+        _ => settings,
+    };
+    pebbly::i18n::set_language(pebbly::i18n::chosen(pebbly::settings::load_from(&settings).language));
     // Older Windows 10s lack what Pebbly runs on; removing it still works there.
     if !uninstalling && pebbly::platform::os::build().is_some_and(|b| !pebbly::platform::os::supported(b)) {
         if !quiet {
@@ -58,6 +70,9 @@ fn main() {
         let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
     }
     let mut places = Places::current();
+    if let (true, Some(me)) = (bridged, &me) {
+        return bridge(places, me, no_launch);
+    }
     if let Some(dir) = &from {
         places.dir = dir.clone();
     }
@@ -81,7 +96,7 @@ fn main() {
             install::run(&places, &opts, PAYLOAD, VERSION, |_, _| {}).is_ok()
         };
         if from.is_some() {
-            system::delete_self_later();
+            delete_self_later(None);
         }
         std::process::exit(if ok { 0 } else { 1 });
     }
@@ -89,7 +104,82 @@ fn main() {
         message(&trf("Kurulum penceresi açılamadı: {}", &[&e]));
     }
     if from.is_some() {
-        system::delete_self_later();
+        delete_self_later(None);
+    }
+}
+
+fn delete_self_later(and_folder: Option<&Path>) {
+    if let Ok(me) = std::env::current_exe() {
+        system::delete_later(&me, and_folder);
+    }
+}
+
+/// Started as `nowbar.exe` by Now Bar's updater (0.2.0 to 0.5.0, with `--after-update`), which
+/// swapped this setup in for the app: moves that copy to Pebbly without a window, starts Pebbly
+/// and leaves no Now Bar behind. The old Now Bar is still ending meanwhile: its updater watches
+/// this exe for 2 s (one that ends sooner gets the old exes put back) and holds its mutex till then.
+fn bridge(mut places: Places, me: &Path, no_launch: bool) {
+    let Some(old) = me.parent().map(Path::to_path_buf) else { return };
+    let installed = places.legacy_installed().is_some_and(|(d, _)| system::inside(&d, &old) && system::inside(&old, &d));
+    places.dir = if installed { plan::new_home(&old) } else { old.clone() };
+    places.portable = !installed;
+    places.legacy_dir = Some(old.clone());
+    if !places.sandbox {
+        // Its settings window first: it would reopen itself from this folder in a moment.
+        system::close_settings(&[old.join(pebbly::legacy::SETTINGS_EXE), old.join("nowbar-settings.old.exe")], Duration::from_secs(3));
+        pebbly::legacy::wait_gone(Duration::from_secs(30));
+    }
+    let now = set_up_now(&places);
+    let opts = Options { autostart: now.autostart, claude: now.claude, desktop: now.desktop, api: None, launch: !no_launch && !places.sandbox };
+    let result = install::run(&places, &opts, PAYLOAD, VERSION, |_, _| {});
+    if !places.sandbox {
+        pebbly::platform::log::log(&match &result {
+            Ok(_) => format!("setup: Now Bar in {} moved to {}", old.display(), places.dir.display()),
+            Err(e) => format!("setup: moving Now Bar in {} failed: {e}", old.display()),
+        });
+    }
+    if result.is_err() && !places.dir.join(plan::EXE).exists() {
+        // Nothing moved: Now Bar back as it was, as its own updater would have put it back.
+        let aside = restore_now_bar(&old);
+        if !places.sandbox {
+            let _ = std::process::Command::new(old.join(pebbly::legacy::EXE)).arg("--after-update").spawn();
+        }
+        for p in aside {
+            system::delete_later(&p, None);
+        }
+        return;
+    }
+    delete_self_later((!places.portable).then_some(old.as_path()));
+}
+
+/// Puts the old exes back under their names (`plan::restore_steps`); what was set aside.
+fn restore_now_bar(dir: &Path) -> Vec<PathBuf> {
+    let steps = plan::restore_steps(dir);
+    for (from, to) in &steps {
+        let _ = std::fs::rename(from, to);
+    }
+    steps[..2].iter().map(|(_, to)| to.clone()).collect()
+}
+
+/// How this PC has it now, which an upgrade keeps: Pebbly's own, else Now Bar's.
+struct SetUp {
+    autostart: bool,
+    desktop: bool,
+    claude: bool,
+    api: bool,
+}
+
+fn set_up_now(places: &Places) -> SetUp {
+    use pebbly::platform::autostart::{points_at, run_value};
+    let runs = |name: &str, exe: &Path| run_value(name).is_some_and(|v| points_at(&v, exe));
+    let now_bar = places.legacy_dir.as_ref().map(|d| d.join(pebbly::legacy::EXE));
+    let settings = places.roaming.join("settings.json");
+    let settings = if settings.exists() { settings } else { places.legacy.roaming.join("settings.json") };
+    SetUp {
+        autostart: runs(&places.run_name, &places.dir.join(plan::EXE)) || now_bar.is_some_and(|e| runs(&places.legacy.run_name, &e)),
+        desktop: places.desktop.join("Pebbly.lnk").exists() || places.desktop.join(pebbly::legacy::SHORTCUT).exists(),
+        claude: places.claude.as_deref().is_some_and(has_our_hooks),
+        api: pebbly::settings::load_from(&settings).api_enabled,
     }
 }
 
@@ -116,6 +206,7 @@ fn describe(ui: &SetupWindow, places: &Places, uninstalling: bool) {
     let old = installed.as_ref().map(|(_, v)| v.clone()).unwrap_or_default();
     let (subtitle, primary) = match kind(installed.as_ref().map(|(_, v)| v.as_str()), VERSION) {
         Kind::Fresh => (tr("Görev çubuğunda canlı etkinlikler").to_string(), tr("Kur")),
+        Kind::Upgrade if places.upgrades_now_bar() => (trf("Now Bar v{} kurulu · Pebbly v{} olarak güncellenecek", &[&old, &VERSION]), tr("Güncelle")),
         Kind::Upgrade => (trf("v{} kurulu · v{} sürümüne güncellenecek", &[&old, &VERSION]), tr("Güncelle")),
         Kind::Repair => (tr("Bu sürüm zaten kurulu; dosyalar yeniden yazılacak.").to_string(), tr("Onar")),
         Kind::Downgrade => (trf("Daha yeni bir sürüm kurulu (v{}).", &[&old]), tr("Yine de kur")),
@@ -123,13 +214,13 @@ fn describe(ui: &SetupWindow, places: &Places, uninstalling: bool) {
     ui.set_subtitle(subtitle.into());
     ui.set_primary(primary.into());
     if installed.is_some() {
-        // As it is set up now; the folder stays.
-        let exe = places.dir.join("pebbly.exe");
+        // As it is set up now; the folder stays (Now Bar's moves beside itself).
+        let now = set_up_now(places);
         ui.set_location_visible(false);
-        ui.set_autostart(pebbly::platform::autostart::run_value(&places.run_name).is_some_and(|v| pebbly::platform::autostart::points_at(&v, &exe)));
-        ui.set_desktop(places.desktop.join("Pebbly.lnk").exists());
-        ui.set_claude(places.claude.as_deref().is_some_and(has_our_hooks));
-        ui.set_api(pebbly::settings::load_from(&places.roaming.join("settings.json")).api_enabled);
+        ui.set_autostart(now.autostart);
+        ui.set_desktop(now.desktop);
+        ui.set_claude(now.claude);
+        ui.set_api(now.api);
         ui.set_open_settings(false);
     }
 }
@@ -328,6 +419,9 @@ fn shoot(ui: &SetupWindow, dir: &str) -> Result<(), slint::PlatformError> {
             ui.set_primary(tr("Güncelle").into());
             ui.set_location_visible(false);
             ui.set_open_settings(false);
+        })),
+        ("6b-now-bar", Box::new(|ui| {
+            ui.set_subtitle(trf("Now Bar v{} kurulu · Pebbly v{} olarak güncellenecek", &[&"0.5.0", &VERSION]).into());
         })),
         ("7-onar", Box::new(|ui| {
             ui.set_subtitle(tr("Bu sürüm zaten kurulu; dosyalar yeniden yazılacak.").into());

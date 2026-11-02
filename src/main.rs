@@ -236,6 +236,10 @@ fn main() {
         }
         std::thread::sleep(std::time::Duration::from_millis(200));
     };
+    // Now Bar, the name before: a copy still running gives way, and what it kept (settings, log,
+    // starting with Windows) moves over before anything reads or writes it here.
+    let gave_way = !pebbly::legacy::running() || pebbly::legacy::quit_running(std::time::Duration::from_secs(10));
+    let adopted = pebbly::legacy::adopt();
     pebbly::platform::updater::cleanup_old();
     // After an update (or any new exe dropped in): the installed apps list shows this version.
     if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(std::path::Path::to_path_buf)) {
@@ -244,6 +248,12 @@ fn main() {
     std::panic::set_hook(Box::new(|info| log(&format!("panic: {info}"))));
     let build = pebbly::platform::os::build();
     log(&format!("windows build {build:?} ({:?})", pebbly::platform::os::generation()));
+    if !gave_way {
+        log("now bar: a Now Bar still runs");
+    }
+    for line in adopted {
+        log(&format!("now bar: {line}"));
+    }
     if build.is_some_and(|b| !pebbly::platform::os::supported(b)) {
         pebbly::i18n::set_language(pebbly::i18n::chosen(pebbly::settings::load().language));
         return message_box(tr("Pebbly, Windows 10 sürüm 1809 veya sonrasını gerektirir."));

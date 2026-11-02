@@ -48,7 +48,7 @@ struct UsageFile {
 
 pub fn usage_path() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("Pebbly").join("usage.json")
+    base.join(crate::DIR).join("usage.json")
 }
 
 /// The usage file as saved (the settings window shows today's apps from it).

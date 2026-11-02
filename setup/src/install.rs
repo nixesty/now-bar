@@ -7,8 +7,8 @@ use std::time::Duration;
 use pebbly::i18n::{n_, tr, trf};
 
 use crate::payload::unpack;
-use crate::plan::{place_steps, uninstall_values, SETUP_EXE, STAGED};
-use crate::system::{quit_pebbly, close_settings, shortcut, start_and_watch, write_values, Places};
+use crate::plan::{legacy_files, place_steps, uninstall_values, EXE, SETUP_EXE, STAGED};
+use crate::system::{close_settings, delete_key, delete_patiently, quit_pebbly, shortcut, start_and_watch, write_values, Places};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Options {
@@ -38,7 +38,15 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
     if !places.sandbox {
         progress(tr("Pebbly kapatılıyor"), 0.15);
         quit_pebbly(Duration::from_secs(10))?;
-        close_settings(&dir, Duration::from_secs(3));
+        // Now Bar, the name before: it quits the same way (its own setup's way).
+        if !pebbly::legacy::quit_running(Duration::from_secs(10)) {
+            return Err(tr("Pebbly kapanmadı; görev çubuğundan kapatıp tekrar dene.").into());
+        }
+        let mut windows = vec![dir.join("pebbly-settings.exe")];
+        if let Some(old) = &places.legacy_dir {
+            windows.extend([old.join(pebbly::legacy::SETTINGS_EXE), old.join("nowbar-settings.old.exe")]);
+        }
+        close_settings(&windows, Duration::from_secs(3));
     }
 
     progress(tr("Dosyalar kopyalanıyor"), 0.3);
@@ -54,29 +62,41 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
     let placed = place(&dir, &staged);
     let _ = std::fs::remove_dir_all(&staged);
     let done = placed?;
-    copy_self(&dir).inspect_err(|_| undo(&done))?;
+    if !places.portable {
+        copy_self(&dir).inspect_err(|_| undo(&done))?;
+    }
 
-    progress(tr("Kaydediliyor"), 0.6);
-    let date = today();
-    write_values(&places.uninstall_key, &uninstall_values(&dir, version, folder_kb(&dir), &date))?;
+    // Before anything writes settings.json: Now Bar's settings, log and caches become Pebbly's.
+    if places.legacy_dir.is_some() || places.legacy.roaming.exists() || places.legacy.local.exists() {
+        progress(tr("Now Bar'dan taşınıyor"), 0.5);
+        pebbly::legacy::move_folder(&places.legacy.roaming, &places.roaming);
+        pebbly::legacy::move_folder(&places.legacy.local, &places.local);
+    }
 
     let mut notes = Vec::new();
-    progress(tr("Kısayollar"), 0.7);
-    let exe = dir.join("pebbly.exe");
-    if let Err(e) = shortcut(&places.start_menu.join("Pebbly.lnk"), &exe) {
-        notes.push(e);
-    }
-    let on_desktop = places.desktop.join("Pebbly.lnk");
-    if opts.desktop {
-        if let Err(e) = shortcut(&on_desktop, &exe) {
+    let exe = dir.join(EXE);
+    if !places.portable {
+        progress(tr("Kaydediliyor"), 0.6);
+        let date = today();
+        write_values(&places.uninstall_key, &uninstall_values(&dir, version, folder_kb(&dir), &date))?;
+
+        progress(tr("Kısayollar"), 0.7);
+        if let Err(e) = shortcut(&places.start_menu.join("Pebbly.lnk"), &exe) {
             notes.push(e);
         }
-    } else {
-        let _ = std::fs::remove_file(&on_desktop);
+        let on_desktop = places.desktop.join("Pebbly.lnk");
+        if opts.desktop {
+            if let Err(e) = shortcut(&on_desktop, &exe) {
+                notes.push(e);
+            }
+        } else {
+            let _ = std::fs::remove_file(&on_desktop);
+        }
     }
 
     progress(tr("Windows'la başlatma"), 0.78);
     set_autostart(places, &exe, opts.autostart)?;
+    let _ = pebbly::platform::autostart::set_autostart_for(&places.legacy.run_name, &exe, false);
     if let Some(on) = opts.api {
         set_api(&places.roaming.join("settings.json"), on)?;
     }
@@ -93,6 +113,8 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
         }
     }
 
+    retire_now_bar(places);
+
     if opts.launch {
         progress(tr("Pebbly başlatılıyor"), 0.94);
         if !start_and_watch(&exe, &[], Duration::from_secs(2)) {
@@ -104,6 +126,27 @@ pub fn run(places: &Places, opts: &Options, payload: &[u8], version: &str, progr
     }
     progress(tr("Bitti"), 1.0);
     Ok(notes)
+}
+
+/// What is left of Now Bar once Pebbly took its place: its installed apps entry, shortcuts and
+/// files (the folder too, when that empties it and Pebbly moved out). Not this exe, when an old
+/// updater started it as `nowbar.exe`: that one goes once it has ended.
+fn retire_now_bar(places: &Places) {
+    let _ = std::fs::remove_file(places.start_menu.join(pebbly::legacy::SHORTCUT));
+    let _ = std::fs::remove_file(places.desktop.join(pebbly::legacy::SHORTCUT));
+    if places.legacy_installed().is_some() {
+        delete_key(&places.legacy.uninstall_key);
+    }
+    let Some(old) = &places.legacy_dir else { return };
+    let me = std::env::current_exe().ok();
+    for p in legacy_files(old) {
+        if me.as_deref().is_none_or(|me| !crate::system::inside(me, &p)) {
+            delete_patiently(&p);
+        }
+    }
+    if !crate::system::inside(&places.dir, old) {
+        let _ = std::fs::remove_dir(old);
+    }
 }
 
 /// Settings without our hooks; `None` when there were none (nothing to write).

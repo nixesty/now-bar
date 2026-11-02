@@ -7,6 +7,8 @@ use pebbly::update::parse_version;
 
 /// The exes the setup puts in the folder (the setup copies itself beside them).
 pub const EXES: [&str; 2] = ["pebbly", "pebbly-settings"];
+/// The app, which the installed apps entry and the shortcuts start.
+pub const EXE: &str = "pebbly.exe";
 pub const SETUP_EXE: &str = "pebbly-setup.exe";
 pub const STAGED: &str = ".staged";
 
@@ -75,6 +77,47 @@ pub fn ours(dir: &Path) -> Vec<PathBuf> {
     out
 }
 
+/// Where a Now Bar install moves to: its own `NowBar` folder becomes a `Pebbly` beside it; a
+/// folder named otherwise (picked by the user, or a copy run from anywhere) stays.
+pub fn new_home(old: &Path) -> PathBuf {
+    match old.file_name() {
+        Some(name) if name.eq_ignore_ascii_case(pebbly::legacy::NAME) => old.with_file_name(pebbly::DIR),
+        _ => old.to_path_buf(),
+    }
+}
+
+/// What Now Bar's setup and updater put in `dir`: what taking its copy over deletes.
+pub fn legacy_files(dir: &Path) -> Vec<PathBuf> {
+    let mut out: Vec<PathBuf> = ["nowbar", "nowbar-settings", "nowbar-setup"].iter().flat_map(|e| [dir.join(format!("{e}.exe")), dir.join(format!("{e}.old.exe"))]).collect();
+    out.push(dir.join(STAGED));
+    out
+}
+
+/// Whether this setup runs as Now Bar's `nowbar.exe`: an old updater swapped it in for the app
+/// and started it, to move that copy to Pebbly.
+pub fn bridged(exe: &Path) -> bool {
+    exe.file_name().is_some_and(|n| n.eq_ignore_ascii_case(pebbly::legacy::EXE))
+}
+
+/// The old app's own commands (Claude Code's hooks, `push` from a script), which still run
+/// `nowbar.exe` until the copy has moved: not for the setup.
+pub fn app_command(args: &[String]) -> bool {
+    matches!(args.get(1).map(String::as_str), Some("push" | "claude-hook" | "claude-hooks" | "update"))
+}
+
+/// The renames that put Now Bar back in `dir` as its updater left it before it started this
+/// setup: the first two set this setup and the new settings window aside, the rest bring the old
+/// exes back under their names.
+pub fn restore_steps(dir: &Path) -> Vec<(PathBuf, PathBuf)> {
+    let at = |name: &str| dir.join(name);
+    vec![
+        (at("nowbar.exe"), at("nowbar.bridge.exe")),
+        (at("nowbar-settings.exe"), at("nowbar-settings.bridge.exe")),
+        (at("nowbar.old.exe"), at("nowbar.exe")),
+        (at("nowbar-settings.old.exe"), at("nowbar-settings.exe")),
+    ]
+}
+
 /// The folder as the window shows it: `~\…` under the home folder.
 pub fn short_path(path: &Path, home: &Path) -> String {
     let (p, h) = (path.display().to_string(), home.display().to_string());
@@ -134,5 +177,53 @@ mod tests {
         assert_eq!(short_path(Path::new(r"C:\Users\Ekin\AppData\Local\Programs\Pebbly"), home), r"~\AppData\Local\Programs\Pebbly");
         assert_eq!(short_path(Path::new(r"D:\Apps\Pebbly"), home), r"D:\Apps\Pebbly");
         assert_eq!(short_path(Path::new(r"C:\Users\Ekinx\Pebbly"), home), r"C:\Users\Ekinx\Pebbly");
+    }
+
+    #[test]
+    fn a_now_bar_folder_moves_beside_itself() {
+        let programs = Path::new(r"C:\Users\Ekin\AppData\Local\Programs");
+        assert_eq!(new_home(&programs.join("NowBar")), programs.join("Pebbly"));
+        assert_eq!(new_home(Path::new(r"D:\Apps\nowbar")), Path::new(r"D:\Apps\Pebbly"), "any case");
+        assert_eq!(new_home(Path::new(r"D:\Tools\taskbar")), Path::new(r"D:\Tools\taskbar"), "a folder of the user's own name stays");
+    }
+
+    #[test]
+    fn taking_now_bar_over_deletes_only_its_files() {
+        let dir = Path::new(r"C:\X");
+        let list = legacy_files(dir);
+        for f in ["nowbar.exe", "nowbar.old.exe", "nowbar-settings.exe", "nowbar-settings.old.exe", "nowbar-setup.exe", "nowbar-setup.old.exe", ".staged"] {
+            assert!(list.contains(&dir.join(f)), "{f}");
+        }
+        assert!(!list.iter().any(|p| p.display().to_string().contains("pebbly")));
+        assert!(list.iter().all(|p| p.parent() == Some(dir)), "never the folder itself");
+    }
+
+    #[test]
+    fn a_failed_move_puts_now_bar_back_as_its_updater_left_it() {
+        let dir = Path::new(r"C:\X");
+        assert_eq!(
+            restore_steps(dir),
+            vec![
+                (dir.join("nowbar.exe"), dir.join("nowbar.bridge.exe")),
+                (dir.join("nowbar-settings.exe"), dir.join("nowbar-settings.bridge.exe")),
+                (dir.join("nowbar.old.exe"), dir.join("nowbar.exe")),
+                (dir.join("nowbar-settings.old.exe"), dir.join("nowbar-settings.exe")),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_setup_knows_it_runs_as_now_bar() {
+        assert!(bridged(Path::new(r"C:\X\nowbar.exe")));
+        assert!(bridged(Path::new(r"C:\X\NowBar.EXE")));
+        assert!(!bridged(Path::new(r"C:\X\pebbly-setup.exe")));
+        assert!(!bridged(Path::new(r"C:\X\nowbar-settings.exe")));
+        let args = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(app_command(&args(&["nowbar.exe", "claude-hook", "--ask"])));
+        assert!(app_command(&args(&["nowbar.exe", "push", "--id", "x"])));
+        assert!(app_command(&args(&["nowbar.exe", "update"])));
+        assert!(app_command(&args(&["nowbar.exe", "claude-hooks", "install"])));
+        assert!(!app_command(&args(&["nowbar.exe", "--after-update"])));
+        assert!(!app_command(&args(&["nowbar.exe"])));
     }
 }

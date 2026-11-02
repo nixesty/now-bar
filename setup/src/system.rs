@@ -38,6 +38,24 @@ pub struct Places {
     /// Claude Code's settings.json, when Claude Code is set up on this computer.
     pub claude: Option<PathBuf>,
     pub sandbox: bool,
+    pub legacy: Legacy,
+    /// The Now Bar copy this run takes over: the installed one, or the folder an old updater
+    /// started this setup in (`nowbar.exe`).
+    pub legacy_dir: Option<PathBuf>,
+    /// The copy taken over was no setup's (run from a folder of its own): its exes are replaced
+    /// there, with no installed apps entry, shortcuts or uninstaller.
+    pub portable: bool,
+}
+
+/// Now Bar's places (`pebbly::legacy`), which an install takes over: its data moves to Pebbly's
+/// folders, its entry, Run value and shortcuts go.
+#[derive(Clone, Debug)]
+pub struct Legacy {
+    /// Under HKCU.
+    pub uninstall_key: String,
+    pub run_name: String,
+    pub roaming: PathBuf,
+    pub local: PathBuf,
 }
 
 impl Places {
@@ -49,49 +67,89 @@ impl Places {
     }
 
     pub fn real() -> Places {
-        let local = known(&FOLDERID_LocalAppData);
-        let installed = installed_at(pebbly::platform::uninstall_entry::KEY);
+        let (roaming, local) = (known(&FOLDERID_RoamingAppData), known(&FOLDERID_LocalAppData));
+        let legacy = Legacy {
+            uninstall_key: pebbly::legacy::UNINSTALL_KEY.into(),
+            run_name: pebbly::legacy::NAME.into(),
+            roaming: roaming.join(pebbly::legacy::NAME),
+            local: local.join(pebbly::legacy::NAME),
+        };
         Places {
-            dir: installed.map(|(d, _)| d).unwrap_or_else(|| crate::plan::default_dir(&local)),
+            dir: crate::plan::default_dir(&local),
             uninstall_key: pebbly::platform::uninstall_entry::KEY.into(),
             run_name: pebbly::platform::autostart::NAME.into(),
             start_menu: known(&FOLDERID_Programs),
             desktop: known(&FOLDERID_Desktop),
-            roaming: known(&FOLDERID_RoamingAppData).join("Pebbly"),
-            local: local.join("Pebbly"),
+            roaming: roaming.join(pebbly::DIR),
+            local: local.join(pebbly::DIR),
             claude: pebbly::claude_hooks::settings_path().filter(|p| p.parent().is_some_and(Path::is_dir)),
             sandbox: false,
+            legacy,
+            legacy_dir: None,
+            portable: false,
         }
+        .found()
     }
 
+    /// Names apart from the real ones; Now Bar's are those its own setup's sandbox used
+    /// (`NOWBAR_SETUP_SANDBOX`), so an old sandbox install can be taken over.
     pub fn sandbox(root: &Path) -> Places {
-        let key = r"Software\Pebbly-Sandbox\Uninstall\Pebbly".to_string();
-        let installed = installed_at(&key);
         let claude = root.join(".claude");
+        let legacy = Legacy {
+            uninstall_key: r"Software\NowBar-Sandbox\Uninstall\NowBar".into(),
+            run_name: "NowBar-Sandbox".into(),
+            roaming: root.join("Roaming").join(pebbly::legacy::NAME),
+            local: root.join("Local").join(pebbly::legacy::NAME),
+        };
         Places {
-            dir: installed.map(|(d, _)| d).unwrap_or_else(|| crate::plan::default_dir(root)),
-            uninstall_key: key,
+            dir: crate::plan::default_dir(root),
+            uninstall_key: r"Software\Pebbly-Sandbox\Uninstall\Pebbly".into(),
             run_name: "Pebbly-Sandbox".into(),
             start_menu: root.join("Start Menu"),
             desktop: root.join("Desktop"),
-            roaming: root.join("Roaming").join("Pebbly"),
-            local: root.join("Local").join("Pebbly"),
+            roaming: root.join("Roaming").join(pebbly::DIR),
+            local: root.join("Local").join(pebbly::DIR),
             claude: claude.is_dir().then(|| claude.join("settings.json")),
             sandbox: true,
+            legacy,
+            legacy_dir: None,
+            portable: false,
         }
+        .found()
     }
 
-    /// The installed copy's folder and version, if one is there.
+    /// The folder: the installed Pebbly's, else where the installed Now Bar's moves to.
+    fn found(mut self) -> Places {
+        self.legacy_dir = self.legacy_installed().map(|(d, _)| d);
+        if let Some((dir, _)) = installed_at(&self.uninstall_key, crate::plan::EXE) {
+            self.dir = dir;
+        } else if let Some(old) = &self.legacy_dir {
+            self.dir = crate::plan::new_home(old);
+        }
+        self
+    }
+
+    /// The installed copy's folder and version, if one is there: Pebbly's, else Now Bar's.
     pub fn installed(&self) -> Option<(PathBuf, String)> {
-        installed_at(&self.uninstall_key)
+        installed_at(&self.uninstall_key, crate::plan::EXE).or_else(|| self.legacy_installed())
+    }
+
+    /// An install over Now Bar's, with no Pebbly installed yet.
+    pub fn upgrades_now_bar(&self) -> bool {
+        installed_at(&self.uninstall_key, crate::plan::EXE).is_none() && self.legacy_installed().is_some()
+    }
+
+    /// The installed Now Bar's folder and version.
+    pub fn legacy_installed(&self) -> Option<(PathBuf, String)> {
+        installed_at(&self.legacy.uninstall_key, pebbly::legacy::EXE)
     }
 }
 
-fn installed_at(key: &str) -> Option<(PathBuf, String)> {
+fn installed_at(key: &str, exe: &str) -> Option<(PathBuf, String)> {
     use pebbly::platform::uninstall_entry::read_str;
     let dir = PathBuf::from(read_str(key, "InstallLocation")?);
     let version = read_str(key, "DisplayVersion").unwrap_or_default();
-    dir.join("pebbly.exe").exists().then_some((dir, version))
+    dir.join(exe).exists().then_some((dir, version))
 }
 
 fn known(id: &windows::core::GUID) -> PathBuf {
@@ -177,10 +235,9 @@ pub fn quit_pebbly(timeout: Duration) -> Result<(), String> {
     }
 }
 
-/// Asks the settings windows that run from `dir` to close, and waits up to `timeout` (one that
-/// stays is renamed aside like a running Pebbly).
-pub fn close_settings(dir: &Path, timeout: Duration) {
-    let exe = dir.join("pebbly-settings.exe");
+/// Asks the settings windows that run one of `exes` to close, and waits up to `timeout` (one
+/// that stays is renamed aside like a running Pebbly).
+pub fn close_settings(exes: &[PathBuf], timeout: Duration) {
     let mut found: Vec<(HWND, u32)> = Vec::new();
     unsafe extern "system" fn each(hwnd: HWND, lp: LPARAM) -> windows::core::BOOL {
         let list = unsafe { &mut *(lp.0 as *mut Vec<(HWND, u32)>) };
@@ -192,7 +249,7 @@ pub fn close_settings(dir: &Path, timeout: Duration) {
     unsafe {
         let _ = EnumWindows(Some(each), LPARAM(&mut found as *mut _ as isize));
     }
-    let ours: Vec<(HWND, u32)> = found.into_iter().filter(|(_, pid)| process_path(*pid).is_some_and(|p| p.eq_ignore_ascii_case(&exe.display().to_string()))).collect();
+    let ours: Vec<(HWND, u32)> = found.into_iter().filter(|(_, pid)| process_path(*pid).is_some_and(|p| exes.iter().any(|e| p.eq_ignore_ascii_case(&e.display().to_string())))).collect();
     for (hwnd, _) in &ours {
         unsafe {
             let _ = PostMessageW(Some(*hwnd), WM_CLOSE, WPARAM(0), LPARAM(0));
@@ -261,15 +318,29 @@ pub fn relaunch_from_temp(dir: &Path, quiet: bool) -> Result<(), String> {
     cmd.spawn().map(|_| ()).map_err(|e| trf("Kaldırıcı başlatılamadı: {}", &[&e]))
 }
 
-/// This exe (the temp copy) deletes itself a moment after it ends.
-pub fn delete_self_later() {
+/// Deletes `file` a moment after this exe ends (this exe itself: the uninstaller's temp copy, or
+/// the `nowbar.exe` an old updater started), and `and_folder` when that leaves it empty.
+pub fn delete_later(file: &Path, and_folder: Option<&Path>) {
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    if let Ok(me) = std::env::current_exe() {
-        let _ = std::process::Command::new("cmd")
-            .raw_arg(format!("/c ping 127.0.0.1 -n 3 > nul & del /f /q \"{}\"", me.display()))
-            .creation_flags(CREATE_NO_WINDOW)
-            .spawn();
+    // rd without /s: only an empty folder goes.
+    let rd = and_folder.map(|d| format!(" & rd \"{}\"", d.display())).unwrap_or_default();
+    let _ = std::process::Command::new("cmd")
+        .raw_arg(format!("/c ping 127.0.0.1 -n 3 > nul & del /f /q \"{}\"{rd}", file.display()))
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn();
+}
+
+/// Deletes `p` (a file or a folder), trying for a few seconds: the uninstaller that handed over
+/// to its temp copy, or a Pebbly (or Now Bar) just told to quit, may still hold its exe a moment.
+pub fn delete_patiently(p: &Path) -> bool {
+    for _ in 0..25 {
+        let gone = if p.is_dir() { std::fs::remove_dir_all(p) } else if p.exists() { std::fs::remove_file(p) } else { Ok(()) };
+        if gone.is_ok() {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(200));
     }
+    false
 }
 
 /// Whether `path` is inside `dir` (or is it).

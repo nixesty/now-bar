@@ -10,7 +10,7 @@ const MAX_BYTES: u64 = 1024 * 1024;
 
 pub fn log_path() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    base.join("Pebbly").join("log.txt")
+    base.join(crate::DIR).join("log.txt")
 }
 
 pub fn log(line: &str) {
