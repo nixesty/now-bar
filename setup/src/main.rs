@@ -206,7 +206,7 @@ fn describe(ui: &SetupWindow, places: &Places, uninstalling: bool) {
     let old = installed.as_ref().map(|(_, v)| v.clone()).unwrap_or_default();
     let (subtitle, primary) = match kind(installed.as_ref().map(|(_, v)| v.as_str()), VERSION) {
         Kind::Fresh => (tr("Görev çubuğunda canlı etkinlikler").to_string(), tr("Kur")),
-        Kind::Upgrade if places.upgrades_now_bar() => (trf("Now Bar v{} kurulu · Pebbly v{} olarak güncellenecek", &[&old, &VERSION]), tr("Güncelle")),
+        Kind::Upgrade if places.upgrades_now_bar() => (trf("Now Bar v{} kurulu · Pebbly'ye geçecek", &[&old]), tr("Güncelle")),
         Kind::Upgrade => (trf("v{} kurulu · v{} sürümüne güncellenecek", &[&old, &VERSION]), tr("Güncelle")),
         Kind::Repair => (tr("Bu sürüm zaten kurulu; dosyalar yeniden yazılacak.").to_string(), tr("Onar")),
         Kind::Downgrade => (trf("Daha yeni bir sürüm kurulu (v{}).", &[&old]), tr("Yine de kur")),
@@ -421,7 +421,7 @@ fn shoot(ui: &SetupWindow, dir: &str) -> Result<(), slint::PlatformError> {
             ui.set_open_settings(false);
         })),
         ("6b-now-bar", Box::new(|ui| {
-            ui.set_subtitle(trf("Now Bar v{} kurulu · Pebbly v{} olarak güncellenecek", &[&"0.5.0", &VERSION]).into());
+            ui.set_subtitle(trf("Now Bar v{} kurulu · Pebbly'ye geçecek", &[&"0.5.0"]).into());
         })),
         ("7-onar", Box::new(|ui| {
             ui.set_subtitle(tr("Bu sürüm zaten kurulu; dosyalar yeniden yazılacak.").into());

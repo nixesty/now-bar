@@ -49,6 +49,7 @@ pub fn uninstall_values(dir: &Path, version: &str, size_kb: u32, date: &str) -> 
         ("DisplayName", s("Pebbly".into())),
         ("DisplayVersion", s(version.into())),
         ("Publisher", s("Pebbly".into())),
+        ("URLInfoAbout", s("https://pebbly.bar".into())),
         ("DisplayIcon", s(format!("{},0", dir.join("pebbly.exe").display()))),
         ("InstallLocation", s(dir.display().to_string())),
         ("UninstallString", s(format!("\"{}\" --uninstall", setup.display()))),
@@ -150,6 +151,7 @@ mod tests {
         assert_eq!(get("DisplayIcon"), Value::Str(r"C:\X\pebbly.exe,0".into()));
         assert_eq!((get("NoModify"), get("NoRepair")), (Value::Dword(1), Value::Dword(1)));
         assert_eq!(get("DisplayName"), Value::Str("Pebbly".into()));
+        assert_eq!(get("URLInfoAbout"), Value::Str("https://pebbly.bar".into()));
     }
 
     #[test]
